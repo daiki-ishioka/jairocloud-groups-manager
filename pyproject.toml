@@ -1,0 +1,9 @@
+[project]
+name = "map-web-ui"
+version = "0.1.0"
+description = "Web client for managing JAIRO Cloud groups."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "flask>=3.1.2",
+]
