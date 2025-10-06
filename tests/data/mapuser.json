@@ -1,0 +1,36 @@
+{
+  "schemas": [
+    "urn:ietf:params:scim:schemas:mace:example.jp:core:2.0:User"
+  ],
+  "id": "00404105-6f3e-47bb-b839-ad093153b34c",
+  "externalId": null,
+  "userName": "John Doe",
+  "preferredLanguage": "en",
+  "meta": {
+    "resourceType": "User",
+    "created": "2025-07-22T02:07:23Z",
+    "lastModified": "2025-07-30T00:46:09Z",
+    "createdBy": null
+  },
+  "eduPersonPrincipalNames": [
+    {
+      "value": "john_doe@id.example.com",
+      "idpEntityId": "https://example.com/auth/example/saml2/assertions"
+    }
+  ],
+  "emails": [
+    {
+      "value": "john_doe@example.com"
+    }
+  ],
+  "groups": [
+    {
+      "value": "rcos_example_groups",
+      "$ref": "https://example.jp/Groups/rcos_example_groups"
+    },
+    {
+      "value": "rcos_testing_groups",
+      "$ref": "https://example.jp/Groups/rcos_testing_groups"
+    }
+  ]
+}

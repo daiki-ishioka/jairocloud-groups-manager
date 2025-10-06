@@ -1,0 +1,101 @@
+import pytest
+from datetime import datetime
+from uuid import UUID
+
+from pydantic import ValidationError
+
+from schema.map_user import MapUser, Meta, EPPN, Email, Group
+
+from tests.helpers import load_json_data
+
+
+def test_validate():
+    json_data = load_json_data("data/mapuser.json")
+    user = MapUser(
+        schemas=json_data["schemas"],
+        id=json_data["id"],
+        external_id=json_data["externalId"],
+        user_name=json_data["userName"],
+        preferred_language=json_data["preferredLanguage"],
+        meta=Meta(
+            created=json_data["meta"]["created"],
+            last_modified=json_data["meta"]["lastModified"],
+            created_by=json_data["meta"]["createdBy"],
+        ),
+        edu_person_principal_names=[
+            EPPN(
+                value=json_data["eduPersonPrincipalNames"][0]["value"],
+                idp_entity_id=json_data["eduPersonPrincipalNames"][0]["idpEntityId"],
+            ),
+        ],
+        emails=[Email(value=json_data["emails"][0]["value"])],
+        groups=[
+            Group(
+                value=json_data["groups"][0]["value"],
+                ref=json_data["groups"][0]["$ref"],
+            ),
+            Group(
+                value=json_data["groups"][1]["value"],
+                ref=json_data["groups"][1]["$ref"],
+            ),
+        ],
+    )
+    assert user.schemas
+    assert user.id == UUID(json_data["id"])
+    assert user.external_id == json_data["externalId"]
+    assert user.user_name == json_data["userName"]
+    assert user.preferred_language == json_data["preferredLanguage"]
+    assert user.meta.resource_type == "User"
+    assert user.meta.created == datetime.fromisoformat(json_data["meta"]["created"])
+    assert user.meta.last_modified == datetime.fromisoformat(json_data["meta"]["lastModified"])
+    assert user.meta.created_by == json_data["meta"]["createdBy"]
+    assert len(user.edu_person_principal_names) == len(json_data["eduPersonPrincipalNames"])
+    assert user.edu_person_principal_names[0].value == json_data["eduPersonPrincipalNames"][0]["value"]
+    assert user.edu_person_principal_names[0].idp_entity_id == json_data["eduPersonPrincipalNames"][0]["idpEntityId"]
+    assert len(user.emails) == len(json_data["emails"])
+    assert user.emails[0].value == json_data["emails"][0]["value"]
+    assert len(user.groups) == len(json_data["groups"])
+    assert user.groups[0].value == json_data["groups"][0]["value"]
+    assert str(user.groups[0].ref) == json_data["groups"][0]["$ref"]
+    assert user.groups[1].value == json_data["groups"][1]["value"]
+    assert str(user.groups[1].ref) == json_data["groups"][1]["$ref"]
+
+    json_user = user.model_dump(mode="json", by_alias=True)
+    assert json_user == json_data
+
+
+def test_validate_json_data():
+    json_data = load_json_data("data/mapuser.json")
+    user = MapUser.model_validate(json_data)
+
+    assert user.schemas
+    assert user.id == UUID(json_data["id"])
+    assert user.external_id == json_data["externalId"]
+    assert user.user_name == json_data["userName"]
+    assert user.preferred_language == json_data["preferredLanguage"]
+    assert user.meta.resource_type == "User"
+    assert user.meta.created == datetime.fromisoformat(json_data["meta"]["created"])
+    assert user.meta.last_modified == datetime.fromisoformat(json_data["meta"]["lastModified"])
+    assert user.meta.created_by == json_data["meta"]["createdBy"]
+    assert len(user.edu_person_principal_names) == len(json_data["eduPersonPrincipalNames"])
+    assert user.edu_person_principal_names[0].value == json_data["eduPersonPrincipalNames"][0]["value"]
+    assert user.edu_person_principal_names[0].idp_entity_id == json_data["eduPersonPrincipalNames"][0]["idpEntityId"]
+    assert len(user.emails) == len(json_data["emails"])
+    assert user.emails[0].value == json_data["emails"][0]["value"]
+    assert len(user.groups) == len(json_data["groups"])
+    assert user.groups[0].value == json_data["groups"][0]["value"]
+    assert str(user.groups[0].ref) == json_data["groups"][0]["$ref"]
+    assert user.groups[1].value == json_data["groups"][1]["value"]
+    assert str(user.groups[1].ref) == json_data["groups"][1]["$ref"]
+
+    json_user = user.model_dump(mode="json", by_alias=True, exclude_unset=True)
+    assert json_user == json_data
+
+
+def test_validate_json_data_invalid_type():
+    json_data = load_json_data("data/mapuser.json")
+    json_data["meta"]["resourceType"] = "InvalidType"
+
+    with pytest.raises(ValidationError) as exc_info:
+        MapUser.model_validate(json_data)
+        assert "unexpected value; permitted: 'User'" in str(exc_info.value)
