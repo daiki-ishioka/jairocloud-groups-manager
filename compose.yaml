@@ -6,6 +6,10 @@ services:
     environment:
       PYTHONPATH: server
       SECRET_KEY: CHANGE ME
+      POSTGRES_USER: mapuser
+      POSTGRES_HOST: postgres
+      POSTGRES_PASSWORD: mappass
+      POSTGRES_DB: mapdb
     ports:
       - "5000:5000"
     develop:
@@ -21,3 +25,17 @@ services:
           path: pyproject.toml
         - action: rebuild
           path: Dockerfile
+
+  postgres:
+    image: postgres:12
+    environment:
+      POSTGRES_USER: mapuser
+      POSTGRES_PASSWORD: mappass
+      POSTGRES_DB: mapdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
