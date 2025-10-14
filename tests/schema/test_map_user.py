@@ -2,7 +2,7 @@ import pytest
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import ValidationError
+from pydantic_core import ValidationError
 
 from schema.map_user import MapUser, Meta, EPPN, Email, Group
 
@@ -98,4 +98,15 @@ def test_validate_json_data_invalid_type():
 
     with pytest.raises(ValidationError) as exc_info:
         MapUser.model_validate(json_data)
-        assert "unexpected value; permitted: 'User'" in str(exc_info.value)
+
+    assert "Input should be 'User'" in str(exc_info.value)
+
+
+def test_validate_assign_invalid_type():
+    json_data = load_json_data("data/mapuser.json")
+    user = MapUser.model_validate(json_data)
+
+    with pytest.raises(ValidationError) as exc_info:
+        user.meta.resource_type = "InvalidType"  # pyright: ignore[reportAttributeAccessIssue]
+
+    assert "Input should be 'User'" in str(exc_info.value)

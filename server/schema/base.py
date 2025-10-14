@@ -11,6 +11,7 @@ class BaseModel(PydanticBaseModel):
 
     model_config = ConfigDict(
         extra="forbid",
+        validate_assignment=True,
         alias_generator=to_camel,
         validate_by_name=True,
         validate_by_alias=True,
