@@ -12,6 +12,9 @@ MAP_SERVICE_SCHEMA: Final = (
 )
 """The schema URI for mAP Service resources."""
 
+MAP_ERROR_SCHEMA: Final = "urn:ietf:params:scim:schemas:mace:gakunin.jp:core:2.0:Error"
+"""The schema URI for mAP Error resources."""
+
 MAP_OAUTH_ISSUE_ENDPOINT: Final = "/oauth/sslauth/issue.php"
 """The OAuth endpoint for issuing client certificates from mAP Core."""
 
@@ -20,3 +23,6 @@ MAP_OAUTH_AUTHORIZE_ENDPOINT: Final = "/oauth/shib/authrequest.php"
 
 MAP_OAUTH_TOKEN_ENDPOINT: Final = "/oauth/token.php"
 """The OAuth endpoint for obtaining access tokens from mAP Core."""
+
+MAP_EXIST_EPPN_ENDPOINT: Final = "/api/v2/Existeppn"
+"""The endpoint to check the existence of an ePPN in mAP Core."""

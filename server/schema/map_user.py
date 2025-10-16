@@ -19,13 +19,13 @@ class MapUser(BaseModel):
     external_id: str | None = None
     """The external identifier for the user. Alias to 'externalId'."""
 
-    user_name: str
+    user_name: str | None = None
     """The username of the user. Alias to 'userName'."""
 
-    preferred_language: Literal["en", "ja"]
+    preferred_language: Literal["en", "ja"] | None = None
     """The preferred language of the user. Alias to 'preferredLanguage'."""
 
-    meta: Meta
+    meta: Meta | None = None
     """Metadata about the user."""
 
     edu_person_principal_names: list[EPPN] = []
