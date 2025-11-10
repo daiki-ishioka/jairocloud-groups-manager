@@ -7,7 +7,10 @@ export default defineNuxtConfig({
     '@nuxtjs/i18n',
   ],
   ssr: false,
-  devtools: { enabled: false },
+  imports: {
+    dirs: ['~/types'],
+  },
+  devtools: { enabled: true },
   app: {
     baseURL: '/',
   },

@@ -96,6 +96,7 @@ services:
           include:
             - app
             - public
+            - nuxt.config.ts
           ignore:
             - .nuxt
             - .venv

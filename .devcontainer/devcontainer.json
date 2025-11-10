@@ -51,10 +51,11 @@
         "[vue]": {
           "editor.rulers": [100]
         },
+        "typescript.tsdk": "/workspace/node_modules/typescript/lib",
         "editor.codeActionsOnSave": {
           "source.fixAll.eslint": "always"
         },
-        "tailwindCSS.classAttributes": ["class", "ui"],
+        "tailwindCSS.classAttributes": ["class", "ui", "active-class", "inactive-class"],
         "tailwindCSS.experimental.classRegex": [
           ["ui:\\s*{([^)]*)\\s*}", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
         ]

@@ -1,0 +1,187 @@
+{
+  "repositories": [
+    {
+      "id": "1",
+      "displayName": "AAA大学リポジトリ",
+      "url": "https://aaa.repo.nii.ac.jp/",
+      "entityIds": "aaa_repo_nii_ac_jp",
+      "suspended": false
+    },
+    {
+      "id": "2",
+      "displayName": "BBB大学リポジトリ",
+      "url": "https://bbb.repo.nii.ac.jp/",
+      "entityIds": "bbb_repo_nii_ac_jp",
+      "suspended": true
+    },
+    {
+      "id": "3",
+      "displayName": "CCC共同リポジトリ",
+      "url": "https://ccc.repo.nii.ac.jp/",
+      "entityIds": "ccc_repo_nii_ac_jp",
+      "suspended": false
+    },
+    {
+      "id": "4",
+      "displayName": "DDD大学リポジトリ",
+      "url": "https://ddd.repo.nii.ac.jp/",
+      "entityIds": "ddd_repo_nii_ac_jp",
+      "suspended": false
+    }
+  ],
+  "groups": [
+    {
+      "id": "1",
+      "displayName": "jc_xxx_roles_repoadm",
+      "isPublic": true,
+      "joinCondition": "approval",
+      "memberVisibility": "private",
+      "members": [
+        {
+          "id": "1"
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "displayName": "jc_xxx_roles_repoadm",
+      "isPublic": true,
+      "joinCondition": "approval",
+      "memberVisibility": "private",
+      "members": [
+        {
+          "id": "2"
+        }
+      ]
+    },
+    {
+      "id": "3",
+      "displayName": "jc_xxx_roles_contributor",
+      "isPublic": true,
+      "joinCondition": "approval",
+      "memberVisibility": "private"
+    },
+    {
+      "id": "4",
+      "displayName": "jc_xxx_groups_AAA",
+      "isPublic": true,
+      "joinCondition": "open",
+      "memberVisibility": "public"
+    },
+    {
+      "id": "5",
+      "displayName": "test_group",
+      "isPublic": false,
+      "joinCondition": "approval",
+      "memberVisibility": "hidden",
+      "members": [
+        {
+          "id": "3"
+        },
+        {
+          "id": "4"
+        },
+        {
+          "id": "5"
+        }
+      ]
+    },
+    {
+      "id": "6",
+      "displayName": "test_group2",
+      "isPublic": false,
+      "joinCondition": "approval",
+      "memberVisibility": "hidden"
+    },
+    {
+      "id": "7",
+      "displayName": "test_group3",
+      "isPublic": false,
+      "joinCondition": "approval",
+      "memberVisibility": "hidden"
+    },
+    {
+      "id": "8",
+      "displayName": "test_group_AAA",
+      "isPublic": false,
+      "joinCondition": "approval",
+      "memberVisibility": "hidden"
+    },
+    {
+      "id": "9",
+      "displayName": "test_group2_AAA",
+      "isPublic": false,
+      "joinCondition": "approval",
+      "memberVisibility": "hidden"
+    },
+    {
+      "id": "10",
+      "displayName": "test_group3",
+      "isPublic": false,
+      "joinCondition": "approval",
+      "memberVisibility": "hidden"
+    }
+  ],
+  "users": [
+    {
+      "id": "1",
+      "displayName": "青木 太郎",
+      "role": [
+        "admin"
+      ],
+      "email": "taro@example.com",
+      "eppn": "taro_aoki@idp.example.com",
+      "lastModified": "2025/11/7"
+    },
+    {
+      "id": "2",
+      "displayName": "大田 次郎",
+      "role": [
+        "repoadm"
+      ],
+      "email": "jiro@example.com",
+      "eppn": "jiro_ota@idp.example.com",
+      "lastModified": "2025/11/7"
+    },
+    {
+      "id": "3",
+      "displayName": "佐々木 花子",
+      "email": "hanako@example.com",
+      "eppn": "hanako_sasaki@idp.example.com",
+      "lastModified": "2025/11/7"
+    },
+    {
+      "id": "4",
+      "displayName": "田中 四郎",
+      "email": "shiro@example.com",
+      "eppn": "shiro_tanaka@idp.example.com",
+      "lastModified": "2025/11/7"
+    },
+    {
+      "id": "5",
+      "displayName": "富田 五郎",
+      "email": "goro@example.com",
+      "eppn": "goro_tomita@idp.example.com",
+      "lastModified": "2025/11/7"
+    },
+    {
+      "id": "6",
+      "displayName": "中川 六郎",
+      "email": "rokuro@example.com",
+      "eppn": "nakagawa_rokuro@idp.example.com",
+      "lastModified": "2025/11/7"
+    },
+    {
+      "id": "7",
+      "displayName": "早川 七郎",
+      "eppn": "shichiro_hayakawa@idp.example.com",
+      "lastModified": "2025/11/7"
+    },
+    {
+      "id": "8",
+      "displayName": "佐々木 冬子",
+      "eppn": "hanako_sasaki@idp.example.com",
+      "lastModified": "2025/11/7"
+    }
+  ]
+}

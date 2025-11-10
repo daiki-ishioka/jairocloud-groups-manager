@@ -1,7 +1,8 @@
 // @ts-check
-import withNuxt from './.nuxt/eslint.config.mjs'
 import unicorn from 'eslint-plugin-unicorn'
 import { globalIgnores } from 'eslint/config'
+
+import withNuxt from './.nuxt/eslint.config.mjs'
 
 export default withNuxt([
   // Your custom configs here
@@ -21,6 +22,20 @@ export default withNuxt([
     },
   },
   {
+    name: 'sort-imports',
+    rules: {
+      'sort-imports': ['error', {
+        ignoreCase: false,
+        ignoreDeclarationSort: true,
+        ignoreMemberSort: false,
+      }],
+      'import/order': ['error', {
+        'groups': ['builtin', 'external', 'parent', 'sibling', 'index', 'object', 'type'],
+        'newlines-between': 'always',
+      }],
+    },
+  },
+  {
     files: ['**/app/**/*.vue'],
     rules: {
       'unicorn/filename-case': [
@@ -30,7 +45,7 @@ export default withNuxt([
     },
   },
   {
-    files: ['**/*.{ts,js'],
+    files: ['**/app/**/*.{ts,js}'],
     rules: {
       'unicorn/filename-case': ['error', { case: 'camelCase' }],
     },

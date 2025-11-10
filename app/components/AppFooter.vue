@@ -1,22 +1,25 @@
 <script setup lang="ts">
+import type { FooterColumn } from '@nuxt/ui'
+
 const localePath = useLocalePath()
 
-const columns = [
+const columns = computed<FooterColumn[]>(() => [
   {
     label: $t('Management'),
     children: [
-      { label: $t('Repositories'), to: localePath('/repositories') },
-      { label: $t('Groups'), to: localePath('/groups') },
-      { label: $t('User'), to: localePath('/users') },
+      { label: $t('repositories'), to: localePath('/repos') },
+      { label: $t('groups'), to: localePath('/groups') },
+      { label: $t('users'), to: localePath('/users') },
     ],
   },
   {
     label: $t('Others'),
     children: [
-      { label: $t('History'), to: '/history' },
+      { label: $t('history'), to: localePath('/history') },
+      { label: $t('cache-groups-menu'), to: localePath('/cache') },
     ],
   },
-]
+])
 </script>
 
 <template>

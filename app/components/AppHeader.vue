@@ -4,12 +4,19 @@ import type { DropdownMenuItem } from '@nuxt/ui'
 const { setLocale } = useI18n()
 const { currentLocale: locale, locales } = useAvailableLocales()
 
-const items: DropdownMenuItem[] = [
-  { label: 'プロフィール', icon: 'i-lucide-user', to: '/profile' },
-  { label: '設定', icon: 'i-lucide-settings', to: '/settings' },
-  { label: 'ヘルプ', icon: 'i-lucide-help-circle', to: '/help' },
-  { label: 'ログアウト', icon: 'i-lucide-log-out', to: '/logout', color: 'error' },
-]
+const { users } = useDataStore()
+const user = computed(() => users[1])
+
+const items = computed<DropdownMenuItem[][]>(() => {
+  const localePath = useLocalePath()
+  return [[
+    { label: $t('profile'), icon: 'i-lucide-user', to: localePath(`/users/${user.value?.id}`) },
+    { label: $t('settings'), icon: 'i-lucide-settings', to: localePath('/settings') },
+    { label: $t('help'), icon: 'i-lucide-help-circle', to: localePath('/help') },
+  ], [
+    { label: $t('logout'), icon: 'i-lucide-log-out', to: '/logout', color: 'error' }],
+  ]
+})
 
 const isAouthenticated = true
 </script>
@@ -34,10 +41,21 @@ const isAouthenticated = true
 
       <UDropdownMenu :items="items" arrow :modal="false">
         <UButton
-          v-if="isAouthenticated" label="大田 次郎"
+          v-if="isAouthenticated" :label="user?.displayName"
           icon="i-lucide-user-circle" color="neutral" variant="subtle"
         />
       </UDropdownMenu>
+      <!-- <UButton
+        v-if="isAouthenticated"
+        icon="i-lucide-log-out" color="neutral" variant="ghost" to="/logout"
+        class="lg:hidden"
+      />
+
+      <UButton
+        v-if="isAouthenticated"
+        :label="$t('logout')" color="error" variant="outline" to="/logout"
+        class="hidden lg:inline-flex"
+      /> -->
     </template>
   </UHeader>
 </template>
