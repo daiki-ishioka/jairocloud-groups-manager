@@ -21,5 +21,10 @@
       "enableNonRootDocker": true,
       "moby": false
     }
-  }
+  },
+  "remoteEnv": {
+    "VIRTUAL_ENV": "/home/vscode/.venv",
+    "UV_PROJECT_ENVIRONMENT": "/home/vscode/.venv"
+  },
+  "onCreateCommand": "/bin/sh setup_commands.sh install_deps"
 }

@@ -1,0 +1,9 @@
+[project]
+name = "jairocloud-groups-manager"
+version = "0.1.0"
+description = "A web client for JAIRO Cloud repository administrators to manage groups in the GakuNin Cloud Gateway."
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "flask>=3.1.2",
+]
