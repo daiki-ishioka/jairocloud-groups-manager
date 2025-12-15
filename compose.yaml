@@ -31,8 +31,21 @@ services:
       - redis
       - rabbitmq
 
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.vite
+      target: dev
+    image: jc-groups-manager-vite
+    container_name: app
+    ports:
+      - "3000:3000"
+
   nginx:
-    build: nginx
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+      target: prod
     image: jc-groups-manager-nginx
     container_name: nginx
     ports:
@@ -40,6 +53,7 @@ services:
       - "443:443"
     depends_on:
       - web
+      - app
 
   redis:
     restart: "always"

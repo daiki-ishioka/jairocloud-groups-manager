@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
 
 ARG NGINX_VERSION=1.29.3
+ARG NODE_VERSION=24.12
 ARG SHIB_MOD_VERSION=2.0.2
 
 # ==============================
@@ -29,10 +30,28 @@ RUN ./configure --with-compat --add-dynamic-module=../nginx-http-shibboleth-${SH
 
 
 # ==============================
-# Runtime stage:
-#   setup nginx and run with supervisord
+# Build stage:
+#   build the Nuxt application
 # ==============================
-FROM nginx:${NGINX_VERSION}-trixie
+FROM node:${NODE_VERSION}-slim AS app
+
+WORKDIR /code
+RUN chown node:node /code
+RUN npm install -g npm && npm install -g pnpm
+
+USER node
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm i --frozen-lockfile
+
+COPY --chown=node:node . .
+RUN NODE_ENV=production pnpm nuxt generate
+
+
+# ==============================
+# Base stage:
+#   install dependencies and configure nginx + shibboleth
+# ==============================
+FROM nginx:${NGINX_VERSION}-trixie AS base
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     supervisor \
@@ -52,21 +71,45 @@ COPY --from=build \
     /usr/src/nginx-${NGINX_VERSION}/objs/ngx_http_shibboleth_module.so \
     /etc/nginx/modules/
 
-COPY supervisord.conf /etc/supervisord.conf
-COPY shibboleth2.xml /etc/shibboleth/shibboleth2.xml
+COPY nginx/supervisord.conf /etc/supervisord.conf
+COPY nginx/shibboleth2.xml /etc/shibboleth/shibboleth2.xml
 
-COPY conf.d /etc/nginx/conf.d
-COPY ssl/server.crt /etc/nginx/server.crt
-COPY ssl/server.key /etc/nginx/server.key
+COPY nginx/conf.d /etc/nginx/conf.d
+COPY nginx/ssl/server.crt /etc/nginx/server.crt
+COPY nginx/ssl/server.key /etc/nginx/server.key
 
-COPY ssl/server.crt /etc/shibboleth/server.crt
-COPY ssl/server.key /etc/shibboleth/server.key
+COPY nginx/ssl/server.crt /etc/shibboleth/server.crt
+COPY nginx/ssl/server.key /etc/shibboleth/server.key
 RUN chmod 644 /etc/shibboleth/server.crt /etc/shibboleth/server.key
 
 RUN sed -i \
     '1s|^|load_module modules/ngx_http_shibboleth_module.so;\n|' \
     /etc/nginx/nginx.conf
 
+
+# ==============================
+# Development stage:
+#   override nginx config for dev server
+# ==============================
+FROM base AS dev
+
+RUN sed -i \
+    '/# Application resources requests/,/# replace this for dev server/ \
+    s|app[.]inc|app.dev.inc|' \
+    /etc/nginx/conf.d/default.conf
+
+EXPOSE 80 443
+
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
+
+
+# ==============================
+# Production stage:
+#   copy built app to nginx html folder
+# ==============================
+FROM base AS prod
+
+COPY --from=app --chown=nginx:nginx /code/.output/public /usr/share/nginx/html
 
 EXPOSE 80 443
 

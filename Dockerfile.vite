@@ -1,0 +1,35 @@
+# syntax=docker/dockerfile:1
+
+ARG NODE_VERSION=24.12
+
+# ==============================
+# Base stage: common setup
+# ==============================
+FROM node:${NODE_VERSION}-slim AS base
+
+ARG USERNAME=node
+ARG GROUPNAME=${USERNAME}
+
+WORKDIR /code
+RUN chown ${USERNAME}:${GROUPNAME} /code
+RUN npm install -g npm && npm install -g pnpm
+
+USER ${USERNAME}
+
+
+# ==============================
+# Development stage:
+#   install dev dependencies and start dev server
+# ==============================
+FROM base AS dev
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm i --frozen-lockfile
+
+COPY --chown=${USERNAME}:${GROUPNAME} . .
+
+ENV NODE_ENV=development
+ENV NUXT_PORT=3000
+
+EXPOSE 3000
+CMD [ "pnpm", "dev" ]
