@@ -26,5 +26,45 @@
   ],
 
   "onCreateCommand": "/bin/sh .devcontainer/setup_commands.sh install_deps",
-  "postAttachCommand": "/bin/sh .devcontainer/setup_commands.sh container_watch"
+  "postAttachCommand": "/bin/sh .devcontainer/setup_commands.sh container_watch",
+
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.languageServer": "Pylance",
+        "[python]": {
+          "editor.rulers": [88]
+        },
+
+        "[typescript]": {
+          "editor.rulers": [100]
+        },
+        "[vue]": {
+          "editor.rulers": [100]
+        },
+        "typescript.tsdk": "/workspace/node_modules/typescript/lib",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "always"
+        },
+        "tailwindCSS.classAttributes": ["class", "ui", "active-class", "inactive-class"],
+        "tailwindCSS.experimental.classRegex": [
+          ["ui:\\s*{([^)]*)\\s*}", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
+        ]
+      },
+
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+
+        "vue.volar",
+        "bradlc.vscode-tailwindcss",
+        "dbaeumer.vscode-eslint",
+
+        "editorconfig.editorconfig",
+        "mhutchie.git-graph",
+        "eamodio.gitlens"
+      ],
+      "ignoreExtensions": ["*"]
+    }
+  }
 }
