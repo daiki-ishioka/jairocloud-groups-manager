@@ -1,21 +1,16 @@
 {
-  "name": "devcontainer",
-  "dockerComposeFile": [
-    "dev.compose.yaml"
-  ],
-  "runServices": ["dev"],
-  "service": "dev",
+  "name": "DevContainer for JAIRO Cloud Groups Manager",
+  "image": "mcr.microsoft.com/devcontainers/base:bookworm",
   "remoteUser": "vscode",
-  "workspaceFolder": "/workspace",
 
   "features": {
     "ghcr.io/devcontainers/features/python:1": {
       "version": "3.14"
     },
     "ghcr.io/devcontainers/features/node:1": {
-      "version": "24"
+      "version": "24.12"
     },
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
       "version": "latest",
       "dockerDashComposeVersion": "latest",
       "enableNonRootDocker": true,
@@ -26,5 +21,10 @@
     "VIRTUAL_ENV": "/home/vscode/.venv",
     "UV_PROJECT_ENVIRONMENT": "/home/vscode/.venv"
   },
-  "onCreateCommand": "/bin/sh setup_commands.sh install_deps"
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  ],
+
+  "onCreateCommand": "/bin/sh .devcontainer/setup_commands.sh install_deps",
+  "postAttachCommand": "/bin/sh .devcontainer/setup_commands.sh container_watch"
 }

@@ -5,11 +5,25 @@ install_deps() {
     pip install --upgrade pip && pip install uv
     uv sync && uv pip install -e .
 
+    if ! grep -q "venv_activate_reload" ~/.bashrc 2>/dev/null; then
+        {
+        echo ""
+        echo "# venv_activate_reload"
+        echo "if [ -f ~/.venv/bin/activate ]; then"
+        echo "  source ~/.venv/bin/activate"
+        echo "fi"
+        } >> ~/.bashrc
+    fi
+
     # Install Node.js dependencies
     npm install -g npm && npm install -g pnpm
     pnpm config set global-bin-dir "$HOME/.local/bin"
     pnpm config set store-dir "$HOME/.pnpm-store"
     pnpm install
+}
+
+container_watch() {
+    pkill -9 -f 'docker compose up --watch' || true && docker compose up --watch
 }
 
 

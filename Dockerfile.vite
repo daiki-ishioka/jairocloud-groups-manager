@@ -7,14 +7,11 @@ ARG NODE_VERSION=24.12
 # ==============================
 FROM node:${NODE_VERSION}-slim AS base
 
-ARG USERNAME=node
-ARG GROUPNAME=${USERNAME}
-
 WORKDIR /code
-RUN chown ${USERNAME}:${GROUPNAME} /code
+RUN chown node:node /code
 RUN npm install -g npm && npm install -g pnpm
 
-USER ${USERNAME}
+USER node
 
 
 # ==============================
@@ -26,7 +23,7 @@ FROM base AS dev
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm i --frozen-lockfile
 
-COPY --chown=${USERNAME}:${GROUPNAME} . .
+COPY --chown=node:node . .
 
 ENV NODE_ENV=development
 ENV NUXT_PORT=3000

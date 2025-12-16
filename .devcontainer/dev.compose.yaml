@@ -1,7 +1,0 @@
-services:
-  dev:
-    image: mcr.microsoft.com/devcontainers/base:bookworm
-    volumes:
-      - .:/workspace
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: sleep infinity

@@ -14,6 +14,20 @@ services:
       CELERY_RESULT_BACKEND: redis://redis:6379/2
     ports:
       - "5050:5050"
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /code
+          include:
+            - src/server
+            - certs
+        - action: rebuild
+          path: pyproject.toml
+        - action: rebuild
+          path: uv.lock
+        - action: rebuild
+          path: Dockerfile
 
   worker:
     restart: "always"
@@ -30,6 +44,20 @@ services:
     depends_on:
       - redis
       - rabbitmq
+    develop:
+      watch:
+        - action: sync+restart
+          path: .
+          target: /code
+          include:
+            - src/server
+            - certs
+        - action: rebuild
+          path: pyproject.toml
+        - action: rebuild
+          path: uv.lock
+        - action: rebuild
+          path: Dockerfile
 
   app:
     build:
@@ -40,6 +68,27 @@ services:
     container_name: app
     ports:
       - "3000:3000"
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /code
+          include:
+            - src/app
+            - public
+            - nuxt.config.ts
+            - tsconfig.json
+            - pnpm-workspace.yaml
+        - action: rebuild
+          path: package.json
+        - action: rebuild
+          path: pnpm-lock.yaml
+        - action: rebuild
+          path: Dockerfile.vite
+    volumes:
+      - type: bind
+        source: ./.nuxt
+        target: /code/.nuxt
 
   nginx:
     build:
