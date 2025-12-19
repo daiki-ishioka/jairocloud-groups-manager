@@ -13,3 +13,20 @@ dependencies = [
     "flask>=3.1.2",
     "pydantic[email]>=2.12.5",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+]
+
+[tool.pytest]
+pythonpath = ["."]
+addopts = [
+    "--import-mode=importlib",
+    "--cov=src/server",
+    "--cov-branch"
+]
+
+[tool.coverage.run]
+omit = ["__init__.py", "tests/*"]
