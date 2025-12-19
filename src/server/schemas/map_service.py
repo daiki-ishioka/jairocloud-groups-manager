@@ -45,7 +45,7 @@ class MapService(BaseModel):
 class Meta(BaseModel):
     """Schema for service resource metadata."""
 
-    resource_type: t.Annotated[t.Literal["Service"], Field(frozen=True)] = "Service"
+    resource_type: t.Literal["Service"] = "Service"
     """Type of resource. Always 'Service'. Alias for 'resourceType'."""
 
     created: datetime
@@ -53,6 +53,9 @@ class Meta(BaseModel):
 
     last_modified: datetime
     """Date and time when the resource was last modified. Alias for 'lastModified'."""
+
+    model_config = BaseModel.model_config | {"frozen": True}
+    """Make Meta instances immutable."""
 
 
 class ServiceEntityID(BaseModel):

@@ -136,4 +136,4 @@ def test_validate_reassign_resource_type():
     with pytest.raises(ValidationError) as exc_info:
         user.meta.resource_type = "User"
 
-    assert "Field is frozen" in str(exc_info.value)
+    assert "Instance is frozen" in str(exc_info.value)

@@ -57,7 +57,7 @@ type Visibility = t.Literal["Public", "Private", "Hidden"]
 class Meta(BaseModel):
     """Schema for group resource metadata."""
 
-    resource_type: t.Annotated[t.Literal["Group"], Field(frozen=True)] = "Group"
+    resource_type: t.Literal["Group"] = "Group"
     """Type of resource. Always 'Group'. Alias for 'resourceType'."""
 
     created: datetime
@@ -67,6 +67,9 @@ class Meta(BaseModel):
     """Date and time when the resource was last modified.
     Alias for 'lastModified'.
     """
+
+    model_config = BaseModel.model_config | {"frozen": True}
+    """Make Meta instances immutable."""
 
 
 type Member = t.Annotated[MemberUser | MemberGroup, Field(..., discriminator="type")]

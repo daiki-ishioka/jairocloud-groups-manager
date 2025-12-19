@@ -47,7 +47,7 @@ class MapUser(BaseModel):
 class Meta(BaseModel):
     """Schema for user resource metadata."""
 
-    resource_type: t.Annotated[t.Literal["User"], Field(frozen=True)] = "User"
+    resource_type: t.Literal["User"] = "User"
     """Type of resource. Always 'User'. Alias for 'resourceType'."""
 
     created: datetime
@@ -60,6 +60,9 @@ class Meta(BaseModel):
 
     created_by: str | None
     """ID of the user who created this resource. Alias for 'createdBy'."""
+
+    model_config = BaseModel.model_config | {"frozen": True}
+    """Make Meta instances immutable."""
 
 
 class EPPN(BaseModel):
