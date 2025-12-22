@@ -4,29 +4,47 @@
 
 """Factory for creating and configuring the Flask application."""
 
-import os
+import typing as t
 
 from celery import Celery, Task
 from flask import Flask
 
-from server.config import setup_config
-from server.const import DEFAULT_CONFIG_PATH
+from .ext import JAIROCloudGroupsManager
+
+if t.TYPE_CHECKING:
+    from .config import RuntimeConfig
 
 
-def create_app(import_name: str) -> Flask:
+@t.overload
+def create_app(import_name: str) -> Flask: ...
+
+
+@t.overload
+def create_app(import_name: str, *, config_path: str) -> Flask: ...
+
+
+@t.overload
+def create_app(import_name: str, *, config: RuntimeConfig) -> Flask: ...
+
+
+def create_app(
+    import_name: str,
+    config_path: str | None = None,
+    config: RuntimeConfig | None = None,
+) -> Flask:
     """Factory function to create and configure the Flask application.
 
     Args:
         import_name (str): The name of the application package.
+        config_path (str | None): The path to the configuration TOML file.
+        config (RuntimeConfig | None): The runtime configuration instance.
 
     Returns:
         Flask: The configured Flask application instance.
 
     """
     app = Flask(import_name)
-    config = setup_config(DEFAULT_CONFIG_PATH)
-    app.config.from_object(config)
-    app.config.from_prefixed_env()
+    JAIROCloudGroupsManager(app, config=config or config_path)
     celery_init_app(app)
 
     return app
