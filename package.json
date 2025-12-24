@@ -14,7 +14,9 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
-    "typecheck": "nuxt typecheck"
+    "typecheck": "nuxt typecheck",
+    "docs:dev": "pnpm -F docs dev",
+    "docs:generate": "pnpm -F docs generate"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.81",
