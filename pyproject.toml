@@ -75,3 +75,7 @@ convention = "google"
 # refer to https://docs.astral.sh/ruff/settings/#format
 preview = true
 skip-magic-trailing-comma = false
+
+
+[tool.pyright]
+typeCheckingMode =  "standard"

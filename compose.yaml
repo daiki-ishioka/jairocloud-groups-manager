@@ -86,14 +86,14 @@ services:
           path: Dockerfile.vite
     volumes:
       - type: bind
-        source: ./.nuxt
+        source: ${LOCAL_WORKSPACE_FOLDER}/.nuxt
         target: /code/.nuxt
 
   nginx:
     build:
       context: .
       dockerfile: nginx/Dockerfile
-      target: prod
+      target: dev
     image: jc-groups-manager-nginx
     container_name: nginx
     ports:

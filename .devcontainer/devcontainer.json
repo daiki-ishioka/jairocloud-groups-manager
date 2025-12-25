@@ -18,8 +18,12 @@
     }
   },
   "remoteEnv": {
+    "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}",
     "VIRTUAL_ENV": "/home/vscode/.venv",
-    "UV_PROJECT_ENVIRONMENT": "/home/vscode/.venv"
+    "UV_PROJECT_ENVIRONMENT": "/home/vscode/.venv",
+    "FLASK_ENV": "development",
+    "FLASK_APP": "server.app"
+
   },
   "mounts": [
     "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
@@ -32,6 +36,7 @@
     "vscode": {
       "settings": {
         "python.languageServer": "Pylance",
+        "python.defaultInterpreterPath": "~/.venv/bin/python",
         "[python]": {
           "editor.rulers": [88],
           "editor.formatOnSave": true,
@@ -48,7 +53,7 @@
         "[vue]": {
           "editor.rulers": [100]
         },
-        "typescript.tsdk": "/workspace/node_modules/typescript/lib",
+        "typescript.tsdk": "./node_modules/typescript/lib",
         "editor.codeActionsOnSave": {
           "source.fixAll.eslint": "always"
         },

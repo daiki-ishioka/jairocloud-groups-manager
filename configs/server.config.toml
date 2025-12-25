@@ -21,7 +21,7 @@ user = "jcgroups"
 password = "jcpass"
 
 # Host name or IP address of the PostgreSQL server.
-host = "localhost"
+host = "postgres"
 
 # Port number for the PostgreSQL server.
 port = 5432
