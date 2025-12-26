@@ -2,7 +2,7 @@
 # Copyright (C) 2025 National Institute of Informatics.
 #
 
-"""Celery application for background task processing."""
+"""Entry point for the background task processing application."""
 
 import typing as t
 
