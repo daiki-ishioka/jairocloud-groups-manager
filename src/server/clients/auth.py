@@ -75,3 +75,30 @@ def issue_oauth_token(code: str, credentials: _ClientCreds) -> OAuthToken:
     response.raise_for_status()
 
     return OAuthToken.model_validate(response.json())
+
+
+def refresh_oauth_token(refresh_token: str, credentials: _ClientCreds) -> OAuthToken:
+    """Refresh an OAuth access token using the refresh token.
+
+    Args:
+        refresh_token (str): Refresh token.
+        credentials (_ClientCreds):
+            Client credentials. It must contain members `client_id` and `client_secret`.
+
+    Returns:
+        OAuthToken:
+            New OAuth token. It has members `access_token`, `token_type`,
+            `expires_in`,`refresh_token` , and `scope`.
+    """
+    response = requests.post(
+        f"{config.MAP_CORE.base_url}{MAP_OAUTH_TOKEN_ENDPOINT}",
+        data={
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token,
+        },
+        auth=(credentials.client_id, credentials.client_secret),
+        timeout=config.MAP_CORE.timeout,
+    )
+    response.raise_for_status()
+
+    return OAuthToken.model_validate(response.json())

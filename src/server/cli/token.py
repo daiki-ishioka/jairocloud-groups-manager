@@ -6,7 +6,7 @@
 
 import click
 
-from server.services.token import prepare_issuing_url
+from server.services.token import prepare_issuing_url, refresh_access_token
 
 
 @click.group()
@@ -22,3 +22,10 @@ def issue() -> None:
         "Please access the following URL to authenticate. "
         f"An access token will be issued:\n{url}"
     )
+
+
+@token.command()
+def refresh() -> None:
+    """Refresh access token."""
+    refresh_access_token()
+    click.echo("Access token has been refreshed.")

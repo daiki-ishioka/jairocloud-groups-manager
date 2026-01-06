@@ -59,6 +59,9 @@ def prepare_issuing_url() -> str:
             json = exc.response.json()
             error = f"Failed to issue client credentials: {json['error_description']}"
             raise CertificatesError(error) from exc
+        except requests.JSONDecodeError as exc:
+            error = "Failed to decode credentials response from mAP Core API."
+            raise CertificatesError(error) from exc
 
         save_client_credentials(certs)
 
@@ -113,7 +116,45 @@ def issue_access_token(code: str) -> str:
         json = exc.response.json()
         error = f"Failed to issue OAuth token: {json['error_description']}"
         raise OAuthTokenError(error) from exc
+    except requests.JSONDecodeError as exc:
+        error = "Failed to decode token response from mAP Core API."
+        raise OAuthTokenError(error) from exc
 
     save_oauth_token(token)
 
     return token.access_token
+
+
+def refresh_access_token() -> str:
+    """Refresh the OAuth access token.
+
+    Returns:
+        str: The refreshed access token.
+
+    Raises:
+        CredentialsError: If client credentials are not available.
+        OAuthTokenError: If refreshing the token fails.
+    """
+    certs = get_client_credentials()
+    if certs is None:
+        error = "Client credentials are not stored on the server."
+        raise CredentialsError(error)
+
+    token = get_oauth_token()
+    if token is None or token.refresh_token is None:
+        error = "Refresh token is not stored on the server."
+        raise OAuthTokenError(error)
+
+    try:
+        new_token = auth.refresh_oauth_token(token.refresh_token, certs)
+    except requests.HTTPError as exc:
+        json = exc.response.json()
+        error = f"Failed to refresh OAuth token: {json['error_description']}"
+        raise OAuthTokenError(error) from exc
+    except requests.JSONDecodeError as exc:
+        error = "Failed to decode token response from mAP Core API."
+        raise OAuthTokenError(error) from exc
+
+    save_oauth_token(new_token)
+
+    return new_token.access_token
