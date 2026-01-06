@@ -49,7 +49,7 @@ class MapService(BaseModel):
     """The groups associated with the service."""
 
     model_config = camel_case_config | forbid_extra_config
-    """Configure camelCase aliasing and forbid extra fields."""
+    """Configure to use camelCase aliasing and forbid extra fields."""
 
 
 class Meta(BaseModel):
@@ -65,7 +65,7 @@ class Meta(BaseModel):
     """Date and time when the resource was last modified. Alias for 'lastModified'."""
 
     model_config = camel_case_config | forbid_extra_config | {"frozen": True}
-    """Configure camelCase aliasing, forbid extra fields, and make immutable."""
+    """Configure to use camelCase aliasing and forbid extra fields."""
 
 
 class ServiceEntityID(BaseModel):
@@ -74,8 +74,8 @@ class ServiceEntityID(BaseModel):
     value: str
     """The entity ID value."""
 
-    model_config = camel_case_config | forbid_extra_config
-    """Configure forbid extra fields."""
+    model_config = forbid_extra_config
+    """Configure to forbid extra fields."""
 
 
 class Administrator(BaseModel):
@@ -99,7 +99,7 @@ class Administrator(BaseModel):
     """User's ID."""
 
     model_config = forbid_extra_config | {"validate_by_name": True}
-    """Configure forbid extra fields and validate by name."""
+    """Configure to forbid extra fields and validate by attribute names."""
 
 
 class Group(BaseModel):
@@ -123,4 +123,4 @@ class Group(BaseModel):
     """Group's ID."""
 
     model_config = forbid_extra_config | {"validate_by_name": True}
-    """Configure forbid extra fields and validate by name."""
+    """Configure to forbid extra fields and validate by attribute names."""

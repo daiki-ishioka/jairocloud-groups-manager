@@ -51,7 +51,7 @@ class MapUser(BaseModel):
     """List of groups the user belongs to."""
 
     model_config = camel_case_config | forbid_extra_config
-    """Configure camelCase aliasing and forbid extra fields."""
+    """Configure to use camelCase aliasing and forbid extra fields."""
 
 
 class Meta(BaseModel):
@@ -72,7 +72,7 @@ class Meta(BaseModel):
     """ID of the user who created this resource. Alias for 'createdBy'."""
 
     model_config = camel_case_config | forbid_extra_config | {"frozen": True}
-    """Configure camelCase aliasing, forbid extra fields, and make immutable."""
+    """Configure to use camelCase aliasing, forbid extra fields, and make immutable."""
 
 
 class EPPN(BaseModel):
@@ -87,7 +87,7 @@ class EPPN(BaseModel):
     """
 
     model_config = camel_case_config | forbid_extra_config
-    """Configure forbid extra fields."""
+    """Configure to use camelCase aliasing and forbid extra fields."""
 
 
 class Email(BaseModel):
@@ -97,7 +97,7 @@ class Email(BaseModel):
     """Email address."""
 
     model_config = forbid_extra_config
-    """Configure forbid extra fields."""
+    """Configure to forbid extra fields."""
 
 
 class Group(BaseModel):
@@ -118,4 +118,4 @@ class Group(BaseModel):
     """URI of the corresponding Group resource. Alias for '$ref'."""
 
     model_config = forbid_extra_config | {"validate_by_name": True}
-    """Configure forbid extra fields and validate by name."""
+    """Configure to forbid extra fields and validate by attribute names."""

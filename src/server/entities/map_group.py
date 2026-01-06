@@ -58,7 +58,7 @@ class MapGroup(BaseModel):
     """The services associated with the group."""
 
     model_config = camel_case_config | forbid_extra_config
-    """Configure camelCase aliasing and forbid extra fields."""
+    """Configure to use camelCase aliasing and forbid extra fields."""
 
 
 type Visibility = t.Literal["Public", "Private", "Hidden"]
@@ -79,7 +79,7 @@ class Meta(BaseModel):
     """
 
     model_config = camel_case_config | forbid_extra_config | {"frozen": True}
-    """Configure camelCase aliasing, forbid extra fields, and make immutable."""
+    """Configure to use camelCase aliasing, forbid extra fields, and make immutable."""
 
 
 type Member = t.Annotated[MemberUser | MemberGroup, Field(..., discriminator="type")]
@@ -112,7 +112,7 @@ class MemberUser(BaseModel):
     """Custom roles assigned to the user. Alias for 'customRole'."""
 
     model_config = camel_case_config | forbid_extra_config
-    """Configure camelCase aliasing and forbid extra fields."""
+    """Configure to use camelCase aliasing and forbid extra fields."""
 
 
 class MemberGroup(BaseModel):
@@ -139,7 +139,7 @@ class MemberGroup(BaseModel):
     """Group ID."""
 
     model_config = forbid_extra_config | {"validate_by_name": True}
-    """Configure forbid extra fields and validate by name."""
+    """Configure to forbid extra fields and validate by attribute names."""
 
 
 class Administrator(BaseModel):
@@ -163,7 +163,7 @@ class Administrator(BaseModel):
     """User ID."""
 
     model_config = forbid_extra_config | {"validate_by_name": True}
-    """Configure forbid extra fields and validate by name."""
+    """Configure to forbid extra fields and validate by attribute names."""
 
 
 class Service(BaseModel):
@@ -192,4 +192,4 @@ class Service(BaseModel):
     """
 
     model_config = forbid_extra_config | {"validate_by_name": True}
-    """Configure forbid extra fields and validate by name."""
+    """Configure to forbid extra fields and validate by attribute names."""
