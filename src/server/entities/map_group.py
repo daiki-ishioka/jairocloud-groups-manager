@@ -191,5 +191,7 @@ class Service(BaseModel):
     Alias for 'administratorOfGroup'.
     """
 
-    model_config = forbid_extra_config | {"validate_by_name": True}
-    """Configure to forbid extra fields and validate by attribute names."""
+    model_config = camel_case_config | forbid_extra_config | {"validate_by_name": True}
+    """Configure to use camelCase aliasing, forbid extra fields,
+    and validate by attribute names.
+    """

@@ -22,7 +22,7 @@ MAP_SERVICE_SCHEMA: Final = (
 """Schema URI for mAP Service resources."""
 
 MAP_ERROR_SCHEMA: Final = "urn:ietf:params:scim:schemas:mace:gakunin.jp:core:2.0:Error"
-"""The schema URI for mAP Error resources."""
+"""Schema URI for mAP Error resources."""
 
 
 MAP_OAUTH_ISSUE_ENDPOINT: Final = "/oauth/sslauth/issue.php"

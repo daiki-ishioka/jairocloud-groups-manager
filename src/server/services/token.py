@@ -38,6 +38,23 @@ def get_access_token() -> str:
     return token.access_token
 
 
+def get_client_secret() -> str:
+    """Get the client secret from stored client credentials.
+
+    Returns:
+        str: The client secret.
+
+    Raises:
+        CredentialsError: If client credentials are not available.
+    """
+    creds = get_client_credentials()
+    if creds is None:
+        error = "Client credentials are not stored on the server."
+        raise CredentialsError(error)
+
+    return creds.client_secret
+
+
 def prepare_issuing_url() -> str:
     """Prepare the URL to issue authorization code.
 

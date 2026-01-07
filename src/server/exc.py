@@ -43,3 +43,17 @@ class DatabaseError(JAIROCloudGroupsManagerError):
 
     Errors caused by database operation issues.
     """
+
+
+class ApiClientError(JAIROCloudGroupsManagerError):
+    """Exception for mAP Core API errors.
+
+    Errors caused by mAP Core API server issues.
+    """
+
+
+class UnexpectedResponseError(ApiClientError):
+    """Exception for unexpected responses from mAP Core API server.
+
+    Errors caused by unexpected response structure or data from mAP Core API server.
+    """
