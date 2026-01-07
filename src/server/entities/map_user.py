@@ -33,7 +33,7 @@ class MapUser(BaseModel):
     user_name: str | None = None
     """User's name. Alias for 'userName'."""
 
-    preferred_language: t.Literal["en", "ja"] | None = None
+    preferred_language: t.Literal["en", "ja", ""] | None = None
     """User's preferred language. Alias for 'preferredLanguage'."""
 
     meta: t.Annotated[Meta | None, Field(frozen=True)] = None
@@ -81,7 +81,7 @@ class EPPN(BaseModel):
     value: str
     """eduPersonPrincipalName value."""
 
-    idp_entity_id: str | None = None
+    idp_entity_id: t.Annotated[str | None, Field(exclude=True)] = None
     """Entity ID of the Identity Provider that issued this ePPN.
     Alias for 'idpEntityId'.
     """
@@ -112,7 +112,7 @@ class Group(BaseModel):
             ...,
             # NOTE: not using `alias` because it changes the constructor arguments.
             validation_alias="$ref",
-            serialization_alias="$ref",
+            exclude=True,
         ),
     ] = None
     """URI of the corresponding Group resource. Alias for '$ref'."""

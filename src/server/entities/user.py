@@ -8,14 +8,11 @@ import typing as t
 
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 from .common import camel_case_config, forbid_extra_config
 from .group import GroupSummary
-
-
-if t.TYPE_CHECKING:
-    from .map_user import MapUser
+from .map_user import EPPN, Email, Group, MapUser
 
 
 class UserDetail(BaseModel):
@@ -30,10 +27,10 @@ class UserDetail(BaseModel):
     user_name: str
     """The username of the user. Alias to 'userName'."""
 
-    emails: list[str] | None = None
+    emails: list[EmailStr] | None = None
     """The email addresses of the user."""
 
-    preferred_language: t.Literal["en", "ja"] | None = None
+    preferred_language: t.Literal["en", "ja", ""] | None = None
     """The preferred language of the user. Alias to 'preferredLanguage'."""
 
     groups: list[GroupSummary] | None = None
@@ -76,6 +73,24 @@ class UserDetail(BaseModel):
             last_modified=user.meta.last_modified if user.meta else None,
         )
 
+    def to_map_user(self) -> MapUser:
+        """Convert this UserDetail instance to a MapUser instance.
+
+        Returns:
+            MapUser: The created MapUser instance.
+        """
+        user = MapUser(id=self.id)
+        user.user_name = self.user_name
+        if self.preferred_language:
+            user.preferred_language = self.preferred_language
+        if self.eppn:
+            user.edu_person_principal_names = [EPPN(value=eppn) for eppn in self.eppn]
+        if self.emails:
+            user.emails = [Email(value=email) for email in self.emails]
+        if self.groups:
+            user.groups = [Group(value=group.id) for group in self.groups]
+        return user
+
 
 class UserSummary(BaseModel):
     """Model for summary User information in mAP Core API."""
@@ -86,7 +101,7 @@ class UserSummary(BaseModel):
     user_name: str | None = None
     """The username of the user. Alias to 'userName'."""
 
-    email: str | None = None
+    email: EmailStr | None = None
     """The first email address of the user."""
 
     eppn: str | None = None
