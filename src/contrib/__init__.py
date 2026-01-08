@@ -8,6 +8,7 @@ import json
 import pathlib
 
 from flask import current_app
+from pydantic import BaseModel
 
 
 if current_app.config["ENV"] != "development" or not current_app.debug:
@@ -33,6 +34,8 @@ def dump(obj: object, name: str) -> None:
             with (instance_path / f"{name}.json").open("w", encoding="utf-8") as f:
                 json.dump(parsed, f, indent=2, ensure_ascii=False)
             return
+        if isinstance(obj, BaseModel):
+            obj = obj.model_dump(mode="json", by_alias=True, exclude_unset=True)
         if not isinstance(obj, (str, bytes)):
             with (instance_path / f"{name}.json").open("w", encoding="utf-8") as f:
                 json.dump(obj, f, indent=2, ensure_ascii=False)
