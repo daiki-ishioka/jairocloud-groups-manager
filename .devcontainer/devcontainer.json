@@ -28,6 +28,7 @@
     "VIRTUAL_ENV": "/home/vscode/.venv",
     "UV_PROJECT_ENVIRONMENT": "/home/vscode/.venv",
     "FLASK_ENV": "development",
+    "FLASK_DEBUG": "1",
     "FLASK_APP": "server.app"
 
   },
@@ -54,7 +55,7 @@
           "editor.defaultFormatter": "charliermarsh.ruff"
         },
         "python.useEnvironmentsExtension": false,
-        "python.terminal.activateEnvironment": true,
+        "python.terminal.activateEnvironment": false,
 
         "[typescript]": {
           "editor.rulers": [100]
