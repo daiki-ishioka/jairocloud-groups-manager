@@ -40,9 +40,7 @@ class RuntimeConfig(BaseSettings):
     SP: SpConfig
     """This application's Service Provider configuration."""
 
-    RESOURCES: ResourcesConfig = Field(
-        default_factory=lambda: ResourcesConfig(),  # noqa: PLW0108
-    )
+    RESOURCES: ResourcesConfig
     """Resource-related configuration values."""
 
     CELERY: CeleryConfig = Field(default_factory=lambda: CeleryConfig())  # noqa: PLW0108
@@ -114,8 +112,11 @@ class SpConfig(BaseModel):
 class ResourcesConfig(BaseModel):
     """Schema for resource-related configuration."""
 
-    sp_connecter_id_pattern: str = "jc_{repository_id}"
-    """SP Connecter ID pattern. It should include '{repository_id}' placeholder."""
+    sp_connecter_id_pattern: str
+    """SP Connecter ID pattern. It should include `{repository_id}` placeholder."""
+
+    group: GroupConfig
+    """Group resource configuration."""
 
     @field_validator("sp_connecter_id_pattern")
     @classmethod
@@ -138,6 +139,38 @@ class ResourcesConfig(BaseModel):
             )
             raise ValueError(error)
         return v
+
+
+class GroupConfig(BaseModel):
+    """Schema for Group resource configuration."""
+
+    system_admin_group_id: str
+    """ID of the system administrator group."""
+
+    repository_admin_group_id_pattern: str
+    """Pattern for repository administrator group IDs.
+    It should include `{repository_id}` placeholder.
+    """
+
+    community_admin_group_id_pattern: str
+    """Pattern for community administrator group IDs.
+    It should include `{repository_id}` placeholder.
+    """
+
+    contributor_group_id_pattern: str
+    """Pattern for contributor group IDs.
+    It should include `{repository_id}` placeholder.
+    """
+
+    general_user_group_id_pattern: str
+    """Pattern for general user group IDs.
+    It should include `{repository_id}` placeholder.
+    """
+
+    custom_group_id_pattern: str
+    """Pattern for custom group IDs.
+    It should include `{repository_id}` and `{custom_id}` placeholders.
+    """
 
 
 class MapCoreConfig(BaseModel):
