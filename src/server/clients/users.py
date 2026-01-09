@@ -16,6 +16,7 @@ from server.config import config
 from server.const import MAP_EXIST_EPPN_ENDPOINT, MAP_USERS_ENDPOINT
 from server.entities.map_error import MapError
 from server.entities.map_user import MapUser
+from server.entities.patch_request import PatchOperation, PatchRequestPayload
 
 from .utils import compute_signature, get_time_stamp
 
@@ -293,8 +294,6 @@ def patch_by_id(
         "signature": signature,
     }
 
-    for op in operations:
-        op.path = alias_generator(op.path)
     payload = PatchRequestPayload(operations=operations).model_dump(
         mode="json",
         by_alias=True,

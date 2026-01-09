@@ -17,7 +17,6 @@ from pydantic_core import ValidationError
 from server.clients import services
 from server.const import MAP_NOT_FOUND_PATTERN
 from server.entities.map_error import MapError
-from server.entities.patch_request import PatchOperation
 from server.entities.repository import RepositoryDetail
 from server.exc import (
     CredentialsError,
@@ -28,10 +27,12 @@ from server.exc import (
 )
 
 from .token import get_access_token, get_client_secret
+from .utils import build_patch_operations
 
 
 if t.TYPE_CHECKING:
     from server.entities.map_service import MapService
+    from server.entities.patch_request import PatchOperation
 
 
 def get_by_id(service_id: str) -> RepositoryDetail | None:
@@ -159,13 +160,19 @@ def update(repository: RepositoryDetail) -> RepositoryDetail:
         ResourceNotFound: If the Repository resource does not exist.
         UnexpectedResponseError: If response from mAP Core API is unexpected.
     """
+    current = get_by_id(repository.id)
+    if current is None:
+        error = f"'{repository.id}' Not Found"
+        raise ResourceNotFound(error)
+
+    operations: list[PatchOperation] = build_patch_operations(
+        current.to_map_service(),
+        repository.to_map_service(),
+        exclude={"schemas", "meta"},
+    )
     try:
         access_token = get_access_token()
         client_secret = get_client_secret()
-
-        operations: list[PatchOperation] = [
-            # Create patch operations for all updatable fields.
-        ]
         result: MapService | MapError = services.patch_by_id(
             repository.id,
             operations,

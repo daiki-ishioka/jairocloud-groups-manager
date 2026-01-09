@@ -240,8 +240,6 @@ def patch_by_id(
         "signature": signature,
     }
 
-    for op in operations:
-        op.path = alias_generator(op.path)
     payload = PatchRequestPayload(operations=operations).model_dump(
         mode="json",
         by_alias=True,

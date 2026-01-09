@@ -17,7 +17,6 @@ from pydantic_core import ValidationError
 from server.clients import users
 from server.const import MAP_NOT_FOUND_PATTERN
 from server.entities.map_error import MapError
-from server.entities.patch_request import PatchOperation
 from server.entities.user import UserDetail
 from server.exc import (
     CredentialsError,
@@ -28,6 +27,7 @@ from server.exc import (
 )
 
 from .token import get_access_token, get_client_secret
+from .utils import build_patch_operations
 
 
 if t.TYPE_CHECKING:
@@ -208,13 +208,20 @@ def update(user: UserDetail) -> UserDetail:
         ResourceNotFound: If the User resource is not found.
         UnexpectedResponseError: If response from mAP Core API is unexpected.
     """
+    current: UserDetail | None = get_by_id(user.id)
+    if current is None:
+        error = f"'{user.id}' Not Found"
+        raise ResourceNotFound(error)
+
+    operations: list[PatchOperation] = build_patch_operations(
+        current.to_map_user(),
+        user.to_map_user(),
+        exclude={"schemas", "meta"},
+    )
+
     try:
         access_token = get_access_token()
         client_secret = get_client_secret()
-
-        operations: list[PatchOperation] = [
-            # Create patch operations for all updatable fields.
-        ]
         result: MapUser | MapError = users.patch_by_id(
             user.id,
             operations,
