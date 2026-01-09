@@ -10,13 +10,16 @@ from http import HTTPStatus
 
 import requests
 
+from flask import current_app
 from pydantic_core import ValidationError
 
 from server.clients import services
+from server.entities.map_error import MapError
 from server.entities.repository import RepositoryDetail
 from server.exc import (
     CredentialsError,
     OAuthTokenError,
+    ResourceInvalid,
     UnexpectedResponseError,
 )
 
@@ -44,7 +47,7 @@ def get_by_id(service_id: str) -> RepositoryDetail | None:
     try:
         access_token = get_access_token()
         client_secret = get_client_secret()
-        map_service: MapService | None = services.get_by_id(
+        result: MapService | MapError = services.get_by_id(
             service_id,
             access_token=access_token,
             client_secret=client_secret,
@@ -73,10 +76,11 @@ def get_by_id(service_id: str) -> RepositoryDetail | None:
     except OAuthTokenError, CredentialsError:
         raise
 
-    if map_service is None:
+    if isinstance(result, MapError):
+        current_app.logger.info(result.detail)
         return None
 
-    return RepositoryDetail.from_map_service(map_service)
+    return RepositoryDetail.from_map_service(result)
 
 
 def create(repository: RepositoryDetail) -> RepositoryDetail:
@@ -91,12 +95,13 @@ def create(repository: RepositoryDetail) -> RepositoryDetail:
     Raises:
         OAuthTokenError: If the access token is invalid or expired.
         CredentialsError: If the client credentials are invalid.
+        ResourceInvalid: If the Repository resource data is invalid.
         UnexpectedResponseError: If response from mAP Core API is unexpected.
     """
     try:
         access_token = get_access_token()
         client_secret = get_client_secret()
-        map_service: MapService = services.post(
+        result: MapService | MapError = services.post(
             repository.to_map_service(),
             exclude={"meta"},
             access_token=access_token,
@@ -127,4 +132,8 @@ def create(repository: RepositoryDetail) -> RepositoryDetail:
     except OAuthTokenError, CredentialsError:
         raise
 
-    return RepositoryDetail.from_map_service(map_service)
+    if isinstance(result, MapError):
+        current_app.logger.info(result.detail)
+        raise ResourceInvalid(result.detail)
+
+    return RepositoryDetail.from_map_service(result)

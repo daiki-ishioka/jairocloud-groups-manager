@@ -4,19 +4,25 @@
 
 """Services for managing users."""
 
+import re
 import typing as t
 
 from http import HTTPStatus
 
 import requests
 
+from flask import current_app
 from pydantic_core import ValidationError
 
 from server.clients import users
+from server.const import MAP_NOT_FOUND_PATTERN
+from server.entities.map_error import MapError
 from server.entities.user import UserDetail
 from server.exc import (
     CredentialsError,
     OAuthTokenError,
+    ResourceInvalid,
+    ResourceNotFound,
     UnexpectedResponseError,
 )
 
@@ -44,7 +50,7 @@ def get_by_id(user_id: str) -> UserDetail | None:
     try:
         access_token = get_access_token()
         client_secret = get_client_secret()
-        map_user: MapUser | None = users.get_by_id(
+        result: MapUser | MapError = users.get_by_id(
             user_id, access_token=access_token, client_secret=client_secret
         )
     except requests.HTTPError as exc:
@@ -71,10 +77,11 @@ def get_by_id(user_id: str) -> UserDetail | None:
     except OAuthTokenError, CredentialsError:
         raise
 
-    if map_user is None:
+    if isinstance(result, MapError):
+        current_app.logger.info(result.detail)
         return None
 
-    return UserDetail.from_map_user(map_user)
+    return UserDetail.from_map_user(result)
 
 
 def get_by_eppn(eppn: str) -> UserDetail | None:
@@ -94,7 +101,7 @@ def get_by_eppn(eppn: str) -> UserDetail | None:
     try:
         access_token = get_access_token()
         client_secret = get_client_secret()
-        map_user: MapUser | None = users.get_by_eppn(
+        result: MapUser | MapError = users.get_by_eppn(
             eppn, access_token=access_token, client_secret=client_secret
         )
     except requests.HTTPError as exc:
@@ -121,10 +128,11 @@ def get_by_eppn(eppn: str) -> UserDetail | None:
     except OAuthTokenError, CredentialsError:
         raise
 
-    if map_user is None:
+    if isinstance(result, MapError):
+        current_app.logger.info(result.detail)
         return None
 
-    return UserDetail.from_map_user(map_user)
+    return UserDetail.from_map_user(result)
 
 
 def create(user: UserDetail) -> UserDetail:
@@ -139,12 +147,13 @@ def create(user: UserDetail) -> UserDetail:
     Raises:
         OAuthTokenError: If the access token is invalid or expired.
         CredentialsError: If the client credentials are invalid.
+        ResourceInvalid: If the User resource data is invalid.
         UnexpectedResponseError: If response from mAP Core API is unexpected.
     """
     try:
         access_token = get_access_token()
         client_secret = get_client_secret()
-        map_user: MapUser = users.post(
+        result: MapUser | MapError = users.post(
             user.to_map_user(),
             exclude={"meta"},
             access_token=access_token,
@@ -175,4 +184,8 @@ def create(user: UserDetail) -> UserDetail:
     except OAuthTokenError, CredentialsError:
         raise
 
-    return UserDetail.from_map_user(map_user)
+    if isinstance(result, MapError):
+        current_app.logger.info(result.detail)
+        raise ResourceInvalid(result.detail)
+
+    return UserDetail.from_map_user(result)

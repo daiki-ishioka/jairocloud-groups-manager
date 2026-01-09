@@ -40,3 +40,13 @@ MAP_USERS_ENDPOINT: Final = "/api/v2/Users"
 
 MAP_EXIST_EPPN_ENDPOINT: Final = "/api/v2/Existeppn"
 """Endpoint to check existence of ePPN in mAP Core API."""
+
+MAP_GROUPS_ENDPOINT: Final = "/api/v2/Groups"
+"""Endpoint for Group resources in mAP Core API."""
+
+MAP_SERVICES_ENDPOINT: Final = "/api/v2/Services"
+"""Endpoint for Service resources in mAP Core API."""
+
+
+MAP_NOT_FOUND_PATTERN: Final = r"'(.*)' Not Found"
+"""Pattern to identify 'Not Found' errors from mAP Core API."""

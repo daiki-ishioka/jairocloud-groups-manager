@@ -52,6 +52,20 @@ class ApiClientError(JAIROCloudGroupsManagerError):
     """
 
 
+class ResourceInvalid(ApiClientError):  # noqa: N818
+    """Exception for resource invalid errors from mAP Core API server.
+
+    Errors caused by invalid resource data in requests.
+    """
+
+
+class ResourceNotFound(ApiClientError):  # noqa: N818
+    """Exception for resource not found errors from mAP Core API server.
+
+    Errors caused by requests for non-existing resources.
+    """
+
+
 class UnexpectedResponseError(ApiClientError):
     """Exception for unexpected responses from mAP Core API server.
 

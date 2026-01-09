@@ -21,6 +21,7 @@ from .utils import compute_signature, get_time_stamp
 
 
 type GetMapServiceResponse = MapService | MapError
+adapter: TypeAdapter[GetMapServiceResponse] = TypeAdapter(GetMapServiceResponse)
 
 
 def get_by_id(
@@ -31,7 +32,7 @@ def get_by_id(
     *,
     access_token: str,
     client_secret: str,
-) -> MapService | None:
+) -> GetMapServiceResponse:
     """Get a Service resource by its ID from mAP API.
 
     Args:
@@ -44,7 +45,7 @@ def get_by_id(
         client_secret (str): Client secret for Authentication.
 
     Returns:
-        MapService: The Service resource if found, otherwise None.
+        GetMapServiceResponse: The Service resource if found, otherwise Error response.
     """
     time_stamp = get_time_stamp()
     signature = compute_signature(client_secret, access_token, time_stamp)
@@ -75,13 +76,7 @@ def get_by_id(
     if response.status_code > HTTPStatus.BAD_REQUEST:
         response.raise_for_status()
 
-    adapter: TypeAdapter[GetMapServiceResponse] = TypeAdapter(GetMapServiceResponse)
-    result = adapter.validate_json(response.text)
-
-    if isinstance(result, MapError):
-        return None
-
-    return result
+    return adapter.validate_json(response.text)
 
 
 def post(
@@ -92,7 +87,7 @@ def post(
     *,
     access_token: str,
     client_secret: str,
-) -> MapService:
+) -> GetMapServiceResponse:
     """Create a Service resource in mAP API.
 
     Args:
@@ -105,7 +100,8 @@ def post(
         client_secret (str): Client secret for Authentication.
 
     Returns:
-        MapService: The created Service resource.
+        GetMapServiceResponse:
+            The created Service resource if successful, otherwise Error response.
     """
     time_stamp = get_time_stamp()
     signature = compute_signature(client_secret, access_token, time_stamp)
@@ -140,9 +136,11 @@ def post(
         json={"request": auth_params} | payload,
         timeout=config.MAP_CORE.timeout,
     )
-    response.raise_for_status()
 
-    return MapService.model_validate_json(response.text)
+    if response.status_code > HTTPStatus.BAD_REQUEST:
+        response.raise_for_status()
+
+    return adapter.validate_json(response.text)
 
 
 def put_by_id(
@@ -153,7 +151,7 @@ def put_by_id(
     *,
     access_token: str,
     client_secret: str,
-) -> MapService:
+) -> GetMapServiceResponse:
     """Update a Service resource by its ID in mAP API.
 
     Args:
@@ -166,7 +164,8 @@ def put_by_id(
         client_secret (str): Client secret for Authentication.
 
     Returns:
-        MapService: The updated Service resource.
+        GetMapServiceResponse:
+            The updated Service resource if successful, otherwise Error response.
     """
     time_stamp = get_time_stamp()
     signature = compute_signature(client_secret, access_token, time_stamp)
@@ -200,9 +199,11 @@ def put_by_id(
         json={"request": auth_params} | payload | attributes_params,
         timeout=config.MAP_CORE.timeout,
     )
-    response.raise_for_status()
 
-    return MapService.model_validate_json(response.text)
+    if response.status_code > HTTPStatus.BAD_REQUEST:
+        response.raise_for_status()
+
+    return adapter.validate_json(response.text)
 
 
 def _get_alias_generator() -> t.Callable[[str], str]:

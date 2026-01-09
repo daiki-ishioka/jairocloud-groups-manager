@@ -21,6 +21,7 @@ from .utils import compute_signature, get_time_stamp
 
 
 type GetMapUserResponse = MapUser | MapError
+adapter: TypeAdapter[GetMapUserResponse] = TypeAdapter(GetMapUserResponse)
 
 
 def get_by_id(
@@ -31,7 +32,7 @@ def get_by_id(
     *,
     access_token: str,
     client_secret: str,
-) -> MapUser | None:
+) -> GetMapUserResponse:
     """Get a User resource by its ID from mAP API.
 
     Args:
@@ -44,7 +45,7 @@ def get_by_id(
         client_secret (str): Client secret for Authentication.
 
     Returns:
-        MapUser: The User resource if found, otherwise None.
+        GetMapUserResponse: The User resource if found, otherwise Error response.
     """
     time_stamp = get_time_stamp()
     signature = compute_signature(client_secret, access_token, time_stamp)
@@ -75,12 +76,7 @@ def get_by_id(
     if response.status_code > HTTPStatus.BAD_REQUEST:
         response.raise_for_status()
 
-    adapter: TypeAdapter[GetMapUserResponse] = TypeAdapter(GetMapUserResponse)
-    result = adapter.validate_json(response.text)
-
-    if isinstance(result, MapError):
-        return None
-    return result
+    return adapter.validate_json(response.text)
 
 
 def get_by_eppn(
@@ -90,7 +86,7 @@ def get_by_eppn(
     *,
     access_token: str,
     client_secret: str,
-) -> MapUser | None:
+) -> GetMapUserResponse:
     """Get a User resource by its ePPN from mAP API.
 
     Args:
@@ -103,7 +99,7 @@ def get_by_eppn(
         client_secret (str): Client secret for Authentication.
 
     Returns:
-        MapUser: The User resource if found, otherwise None.
+        GetMapUserResponse: The User resource if found, otherwise Error response.
     """
     time_stamp = get_time_stamp()
     signature = compute_signature(client_secret, access_token, time_stamp)
@@ -134,12 +130,7 @@ def get_by_eppn(
     if response.status_code > HTTPStatus.BAD_REQUEST:
         response.raise_for_status()
 
-    adapter: TypeAdapter[GetMapUserResponse] = TypeAdapter(GetMapUserResponse)
-    result = adapter.validate_json(response.text, extra="ignore")
-
-    if isinstance(result, MapError):
-        return None
-    return result
+    return adapter.validate_json(response.text)
 
 
 def post(
@@ -150,7 +141,7 @@ def post(
     *,
     access_token: str,
     client_secret: str,
-) -> MapUser:
+) -> GetMapUserResponse:
     """Create a User resource in mAP API.
 
     Args:
@@ -163,7 +154,8 @@ def post(
         client_secret (str): Client secret for Authentication.
 
     Returns:
-        MapUser: The created User resource.
+        GetMapUserResponse:
+            The created User resource if successful, otherwise Error response.
     """
     time_stamp = get_time_stamp()
     signature = compute_signature(client_secret, access_token, time_stamp)
@@ -198,9 +190,11 @@ def post(
         json={"request": auth_params} | payload,
         timeout=config.MAP_CORE.timeout,
     )
-    response.raise_for_status()
 
-    return MapUser.model_validate_json(response.text)
+    if response.status_code > HTTPStatus.BAD_REQUEST:
+        response.raise_for_status()
+
+    return adapter.validate_json(response.text)
 
 
 def put_by_id(
@@ -211,7 +205,7 @@ def put_by_id(
     *,
     access_token: str,
     client_secret: str,
-) -> MapUser:
+) -> GetMapUserResponse:
     """Update a User resource by its ID in mAP API.
 
     Args:
@@ -224,7 +218,8 @@ def put_by_id(
         client_secret (str): Client secret for Authentication.
 
     Returns:
-        MapUser: The updated User resource.
+        GetMapUserResponse:
+            The updated User resource if successful, otherwise Error response.
     """
     time_stamp = get_time_stamp()
     signature = compute_signature(client_secret, access_token, time_stamp)
@@ -258,9 +253,11 @@ def put_by_id(
         json={"request": auth_params} | payload | attributes_params,
         timeout=config.MAP_CORE.timeout,
     )
-    response.raise_for_status()
 
-    return MapUser.model_validate_json(response.text)
+    if response.status_code > HTTPStatus.BAD_REQUEST:
+        response.raise_for_status()
+
+    return adapter.validate_json(response.text)
 
 
 def _get_alias_generator() -> t.Callable[[str], str]:
