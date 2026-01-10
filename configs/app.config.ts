@@ -7,6 +7,21 @@
  */
 const serverName = 'localhost' as string
 
+const header = {
+  /**
+   * Path to the logo image file \
+   * Example: "/logo.png" \
+   * [Mandatory]
+   */
+  serviceLogo: '/logo.png' as string,
+
+  /**
+   * Alt name for the logo image file \
+   * [Mandatory]
+   */
+  serviceAltName: 'JAIRO Cloud Groups Manager' as string,
+}
+
 const wayf = {
   /**
    * URL of the WAYF to use \
