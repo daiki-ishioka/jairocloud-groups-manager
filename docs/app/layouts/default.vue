@@ -1,4 +1,6 @@
 <template>
+  <AppHeader />
+
   <UApp>
     <UMain>
       <UContainer>

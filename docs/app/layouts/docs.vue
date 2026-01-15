@@ -16,7 +16,7 @@ const { data: files } = useLazyAsyncData(() => `search-${collection.value}`, () 
 
 <template>
   <UApp :locale="ja">
-    <DocsHeader />
+    <AppHeader />
 
     <UMain>
       <UContainer>
@@ -27,10 +27,7 @@ const { data: files } = useLazyAsyncData(() => `search-${collection.value}`, () 
                 <UContentSearchButton :collapsed="false" :kbds="['/']" />
               </template>
 
-              <UContentNavigation
-                :navigation="navigation"
-                highlight
-              />
+              <UContentNavigation :navigation="navigation" highlight />
             </UPageAside>
           </template>
 
@@ -40,9 +37,7 @@ const { data: files } = useLazyAsyncData(() => `search-${collection.value}`, () 
     </UMain>
 
     <LazyUContentSearch
-      :files="files"
-      shortcut="/"
-      :navigation="navigation"
+      shortcut="/" :files="files" :navigation="navigation"
       :fuse="{ resultLimit: 42 }"
     />
   </UApp>
