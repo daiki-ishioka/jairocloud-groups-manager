@@ -6,6 +6,8 @@
 
 import typing as t
 
+from uuid import uuid7
+
 from celery import Celery, Task
 from flask import Flask
 
@@ -18,12 +20,8 @@ if t.TYPE_CHECKING:
 
 @t.overload
 def create_app(import_name: str) -> Flask: ...
-
-
 @t.overload
 def create_app(import_name: str, *, config_path: str) -> Flask: ...
-
-
 @t.overload
 def create_app(import_name: str, *, config: RuntimeConfig) -> Flask: ...
 
@@ -64,10 +62,16 @@ def celery_init_app(app: Flask) -> Celery:
     class FlaskTask(Task):
         """Task with Flask application context."""
 
+        # ruff : noqa: ANN001 ANN002 ANN003 ANN204 ANN202
         @t.override
         def __call__(self, *args, **kwargs):
             with app.app_context():
                 return self.run(*args, **kwargs)
+
+        @t.override
+        def apply_async(self, *args, task_id=None, **kwargs):
+            task_id = task_id or str(uuid7())
+            return super().apply_async(args, kwargs, task_id=task_id)
 
     celery_app = Celery(app.name, task_cls=FlaskTask)
     celery_app.config_from_object(app.config["CELERY"])
