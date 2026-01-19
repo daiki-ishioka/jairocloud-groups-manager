@@ -6,6 +6,9 @@
 
 import click
 
+from flask import current_app
+
+from server.messages import I
 from server.services.token import prepare_issuing_url, refresh_access_token
 
 
@@ -18,14 +21,11 @@ def token() -> None:
 def issue() -> None:
     """Issue access token."""
     url = prepare_issuing_url()
-    click.echo(
-        "Please access the following URL to authenticate. "
-        f"An access token will be issued:\n{url}"
-    )
+    current_app.logger.info(I.REQUEST_FOR_AUTH_CODE, {"url": url})
 
 
 @token.command()
 def refresh() -> None:
     """Refresh access token."""
     refresh_access_token()
-    click.echo("Access token has been refreshed.")
+    current_app.logger.info(I.SUCCESS_REFRESH_TOKEN)
