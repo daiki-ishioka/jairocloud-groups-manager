@@ -30,7 +30,11 @@ from server.exc import (
 )
 
 from .token import get_access_token, get_client_secret
-from .utils import UsersCriteria, build_patch_operations, build_search_query
+from .utils import (
+    UsersCriteria,
+    build_patch_operations,
+    build_search_query,
+)
 
 
 if t.TYPE_CHECKING:
@@ -56,10 +60,11 @@ def search(criteria: UsersCriteria) -> SearchResult[UserSummary]:
     """
     default_include = {
         "id",
-        "emails",
         "user_name",
-        "edu_person_principal_names",
         "meta",
+        "edu_person_principal_names",
+        "emails",
+        "groups",
     }
 
     try:
@@ -96,16 +101,7 @@ def search(criteria: UsersCriteria) -> SearchResult[UserSummary]:
     except InvalidQueryError, OAuthTokenError, CredentialsError:
         raise
 
-    user_summaries = [
-        UserSummary(
-            id=result.id,
-            user_name=result.user_name,
-            emails=[email.value for email in result.emails or []],
-            eppns=[eppn.value for eppn in result.edu_person_principal_names or []],
-            last_modified=result.meta.last_modified if result.meta else None,
-        )
-        for result in results.resources
-    ]
+    user_summaries = [UserSummary.from_map_user(result) for result in results.resources]
 
     return SearchResult(
         total=results.total_results,

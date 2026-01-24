@@ -204,6 +204,11 @@ def _group_groups_filter(criteria: GroupsCriteria, id_path: str) -> str:
         # no additional filter for system admin
         specified = criteria.r
     else:
+        # reduce specified group IDs to only user-defined groups
+        if criteria.i:
+            _, groups = detect_affiliations(criteria.i)
+            criteria.i = [aff.group_id for aff in groups]
+
         # force filter by logged-in user's permitted repository IDs
         permitted = get_permitted_repository_ids()
         specified = list(permitted.intersection(criteria.r or permitted))
@@ -297,7 +302,7 @@ def _user_groups_filter(criteria: UsersCriteria, path: str) -> str:
         _, groups = detect_affiliations(criteria.g)
         criteria.g = [aff.group_id for aff in groups]
 
-    specified_roles: list[str] = []
+    specified_roles: list[USER_ROLES] = []
     if criteria.a:
         user_roles = list(USER_ROLES)
         specified_roles = [
@@ -308,6 +313,11 @@ def _user_groups_filter(criteria: UsersCriteria, path: str) -> str:
 
     if is_current_user_system_admin():
         return _system_admin_user_groups_filter(criteria, path, specified_roles)
+
+    # repository admin could not see System Administrator
+    specified_roles = [
+        role for role in specified_roles if role != USER_ROLES.SYSTEM_ADMIN
+    ]
 
     permitted: set[str] = get_permitted_repository_ids()
     if criteria.r:
@@ -322,7 +332,7 @@ def _user_groups_filter(criteria: UsersCriteria, path: str) -> str:
 
 
 def _system_admin_user_groups_filter(  # noqa: PLR0911
-    criteria: UsersCriteria, path: str, specified_roles: list[str]
+    criteria: UsersCriteria, path: str, specified_roles: list[USER_ROLES]
 ) -> str:
     """Generate a filter string for user affiliated group IDs for system admin."""
     criteria = _patch_falsey_to_none(criteria, {"a", "r", "g"})
@@ -355,7 +365,10 @@ def _system_admin_user_groups_filter(  # noqa: PLR0911
 
 
 def _repository_admin_user_groups_filter(
-    criteria: UsersCriteria, path: str, permitted: set[str], specified_roles: list[str]
+    criteria: UsersCriteria,
+    path: str,
+    permitted: set[str],
+    specified_roles: list[USER_ROLES],
 ) -> str:
     """Generate a filter string for user affiliated group IDs for repository admin."""
     criteria = _patch_falsey_to_none(criteria, {"a", "g"})
@@ -404,7 +417,7 @@ def _all_repository_all_group_filter(path: str) -> str:
     return " or ".join([f'{path} sw "{prefix}"' for prefix in prefix_patterns])
 
 
-def _all_repository_specified_role_filter(path: str, roles: list[str]) -> str:
+def _all_repository_specified_role_filter(path: str, roles: list[USER_ROLES]) -> str:
     """Generate a filter string.
 
     Filter by prefix/suffix match for role-type group IDs without specifying
@@ -427,7 +440,7 @@ def _all_repository_specified_group_filter(path: str, group_ids: list[str]) -> s
 
 
 def _all_repository_specified_role_specified_group_filter(
-    path: str, roles: list[str], group_ids: list[str]
+    path: str, roles: list[USER_ROLES], group_ids: list[str]
 ) -> str:
     """Generate a filter string.
 
@@ -453,7 +466,7 @@ def _specified_repository_all_group_filter(path: str, repository_ids: list[str])
 
 
 def _specified_repository_specified_role_filter(
-    path: str, repository_ids: list[str], roles: list[str]
+    path: str, repository_ids: list[str], roles: list[USER_ROLES]
 ) -> str:
     """Generate a filter string.
 
@@ -485,7 +498,7 @@ def _specified_repository_specified_group_filter(
 
 
 def _specified_repository_specified_role_specified_group_filter(
-    path: str, repository_ids: list[str], roles: list[str], group_ids: list[str]
+    path: str, repository_ids: list[str], roles: list[USER_ROLES], group_ids: list[str]
 ) -> str:
     """Generate a filter string.
 

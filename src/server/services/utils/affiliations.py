@@ -11,6 +11,7 @@ from collections import defaultdict
 from functools import cache
 
 from server.config import config
+from server.const import USER_ROLES
 
 
 def detect_affiliations(group_ids: list[str]) -> Affiliations:
@@ -36,7 +37,7 @@ def detect_affiliations(group_ids: list[str]) -> Affiliations:
         if (detect := detect_affiliation(group_id)) is not None
     ]
 
-    aggregated: defaultdict[str | None, list[str]] = defaultdict(list)
+    aggregated: defaultdict[str | None, list[USER_ROLES]] = defaultdict(list)
     for detect in detect_affiliations:
         if detect.type == "role":
             aggregated[detect.repository_id].extend(detect.roles)
@@ -86,10 +87,12 @@ def detect_affiliation(group_id: str) -> Affiliation | None:
             original_param_name = k.replace(prefix, "")
             params[original_param_name] = v
 
-    if matched_role == "user_defined":
+    if matched_role not in USER_ROLES:
         return _Group(group_id=group_id, **params)  # pyright: ignore[reportArgumentType]
 
-    return _RoleGroup(repository_id=params.get("repository_id"), roles=[matched_role])
+    return _RoleGroup(
+        repository_id=params.get("repository_id"), roles=[USER_ROLES(matched_role)]
+    )
 
 
 class Affiliations(t.NamedTuple):
@@ -104,7 +107,7 @@ type Affiliation = _RoleGroup | _Group
 
 class _RoleGroup(t.NamedTuple):
     repository_id: str | None
-    roles: list[str]
+    roles: list[USER_ROLES]
     type: t.Literal["role"] = "role"
 
 

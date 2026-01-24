@@ -8,8 +8,11 @@ from datetime import datetime
 
 from pydantic import BaseModel, EmailStr, HttpUrl
 
+from server.const import USER_ROLES
+
 from .common import camel_case_config, forbid_extra_config
 from .map_group import Visibility
+from .map_user import MapUser
 
 
 class RepositorySummary(BaseModel):
@@ -66,6 +69,9 @@ class UserSummary(BaseModel):
     user_name: str | None = None
     """The username of the user. Alias to 'userName'."""
 
+    role: USER_ROLES | None = None
+    """The highest role of the user in logged-in user could see."""
+
     emails: list[EmailStr] | None = None
     """The first email address of the user."""
 
@@ -77,3 +83,41 @@ class UserSummary(BaseModel):
 
     model_config = camel_case_config | forbid_extra_config
     """Configure to use camelCase aliasing and forbid extra fields."""
+
+    @classmethod
+    def from_map_user(cls, user: MapUser) -> UserSummary:
+        """Create a UserSummary instance from this UserDetail instance.
+
+        Returns:
+            UserSummary: The created UserSummary instance.
+        """
+        from server.services.permissions import (  # noqa: PLC0415
+            get_permitted_repository_ids,
+            is_current_user_system_admin,
+        )
+        from server.services.utils import (  # noqa: PLC0415
+            detect_affiliations,
+            get_highest_role,
+        )
+
+        highest_role: USER_ROLES | None = None
+        if user.groups:
+            group_ids = [group.value for group in user.groups]
+            roles, _ = detect_affiliations(group_ids)
+            if not is_current_user_system_admin():
+                permitted_repo_ids = get_permitted_repository_ids()
+                roles = [
+                    role for role in roles if role.repository_id in permitted_repo_ids
+                ]
+            highest_role = get_highest_role([
+                role for repo in roles for role in repo.roles
+            ])
+
+        return cls(
+            id=user.id,
+            user_name=user.user_name,
+            role=highest_role,
+            emails=[email.value for email in user.emails or []],
+            eppns=[eppn.value for eppn in user.edu_person_principal_names or []],
+            last_modified=user.meta.last_modified if user.meta else None,
+        )
