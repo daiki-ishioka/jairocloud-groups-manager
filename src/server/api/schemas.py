@@ -38,6 +38,16 @@ class OAuthTokenQuery(BaseModel):
     """Configure to ignore extra fields."""
 
 
+class ErrorResponse(BaseModel):
+    """Schema for error responses."""
+
+    code: str
+    """Message code."""
+
+    message: str
+    """Error message."""
+
+
 class RepositoriesQuery(BaseModel):
     """Schema for repositories search query parameters."""
 
