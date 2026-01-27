@@ -55,15 +55,16 @@ const useUsersTable = () => {
   const selectedCount = computed(() => {
     return Object.values(selectedMap.value).filter(value => value === true).length
   })
-  const toggleSelection = (row: Row<UserSummary>) => {
+  const toggleSelection = (event: Event | undefined, row: Row<UserSummary>) => {
     selectedMap.value[row.id] = !selectedMap.value[row.id]
     row.toggleSelected(selectedMap.value[row.id])
   }
 
   /** Column names with translations */
-  const columnNames = {
+  const columnNames: Record<keyof UserSummary, string> = {
     id: '#',
     userName: $t('users.table.column.user-name'),
+    role: $t('users.table.column.role'),
     emails: $t('users.table.column.emails'),
     eppns: $t('users.table.column.eppns'),
     lastModified: $t('users.table.column.last-modified'),
@@ -94,7 +95,7 @@ const useUsersTable = () => {
       label: $t('button.reload'),
       color: 'neutral',
       variant: 'subtle',
-      onClick: () => {},
+      onClick: () => {}, // Placeholder for reload action
     },
   ])
 
@@ -149,7 +150,7 @@ const useUsersTable = () => {
       cell: ({ row }) =>
         h(UCheckbox, {
           'modelValue': row.getIsSelected(),
-          'onUpdate:modelValue': () => toggleSelection(row),
+          'onUpdate:modelValue': () => toggleSelection(undefined, row),
           'aria-label': 'Select row',
         }),
       enableHiding: false,
@@ -212,12 +213,12 @@ const useUsersTable = () => {
     {
       accessorKey: 'emails',
       header: () => sortableHeader('emails'),
-      cell: ({ row }) => row.original.emails?.[0] || '',
+      cell: ({ row }) => row.original.emails?.[0] ?? '',
     },
     {
       accessorKey: 'eppns',
       header: () => sortableHeader('eppns'),
-      cell: ({ row }) => row.original.eppns?.[0] || '',
+      cell: ({ row }) => row.original.eppns?.[0] ?? '',
     },
     {
       accessorKey: 'lastModified',
@@ -310,12 +311,12 @@ const useUsersTable = () => {
         icon: 'i-lucide-clipboard-copy',
       },
       {
+        type: 'separator',
+      },
+      {
         label: $t('table.actions.view-details'),
         to: `/users/${row.original.id}`,
         icon: 'i-lucide-eye',
-      },
-      {
-        type: 'separator',
       },
     ]
   }
@@ -428,6 +429,7 @@ const useUsersTable = () => {
     creationButtons,
     emptyActions,
     selectedCount,
+    toggleSelection,
     selectedUsersActions,
     columns,
     columnNames,

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const {
   query, updateQuery, criteria, creationButtons, emptyActions,
-  selectedCount, selectedUsersActions, columns, columnNames, columnVisibility,
+  toggleSelection, selectedCount, selectedUsersActions, columns, columnNames, columnVisibility,
   makeAttributeFilters, dateFilter: { dateRange, formattedDateRange }, makePageInfo,
 } = useUsersTable()
 
@@ -85,8 +85,9 @@ const pageInfo = makePageInfo(searchResult)
         :loading="filterOptionsStatus === 'pending'"
         @click="isFilterOpen = !isFilterOpen"
       />
+
       <div class="flex flex-1 justify-end items-center space-x-4">
-        <div class="flex items-center space-x-2">
+        <div class="flex items-center">
           <label class="text-sm text-gray-600">{{ $t('table.page-size-label') }}</label>
           <USelect
             v-model="pageSize" :items="pageOptions"
@@ -130,8 +131,8 @@ const pageInfo = makePageInfo(searchResult)
   >
     <template #content>
       <USelectMenu
-        v-for="(filter, index) in filterSelects"
-        :key="index" :placeholder="filter.placeholder" :icon="filter.icon"
+        v-for="filter in filterSelects"
+        :key="filter.key" :placeholder="filter.placeholder" :icon="filter.icon"
         :items="filter.items" :multiple="filter.multiple"
         :loading="filterOptionsStatus === 'pending'" :search-input="filter.searchInput"
         @update:model-value="filter.onUpdated"
@@ -174,6 +175,7 @@ const pageInfo = makePageInfo(searchResult)
     v-model:column-visibility="columnVisibility"
     :loading="status === 'pending'"
     :data="searchResult?.resources" :columns="columns" :ui="{ root: 'mb-8' }"
+    @select="toggleSelection"
   >
     <template #empty>
       <UEmpty
@@ -193,6 +195,7 @@ const pageInfo = makePageInfo(searchResult)
         v-model:page="pageNumber"
         :items-per-page="pageSize"
         :total="searchResult?.total"
+        @update:page="(value) => updateQuery({ p: value })"
       />
     </div>
     <div class="flex-1" />

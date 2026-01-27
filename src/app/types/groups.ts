@@ -3,7 +3,7 @@
  */
 
 /** Member list visibility options */
-type Visibility = 'public' | 'private' | 'hidden'
+type Visibility = 'Public' | 'Private' | 'Hidden'
 
 /** Group summary information */
 interface GroupSummary {

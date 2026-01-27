@@ -18,6 +18,38 @@ const toArray = (value: unknown): string[] => (
 )
 
 /**
+ * Normalize location query to repositories search query
+ */
+const normalizeRepositoriesQuery = (query: LocationQuery): RepositoriesSearchQuery => {
+  const { table: { pageSize } } = useAppConfig()
+  return {
+    q: query.q ? pickSingle(query.q) : undefined,
+    i: query.i ? toArray(query.i) : undefined,
+    k: query.k ? pickSingle(query.k, { camel: true }) : undefined,
+    d: query.d ? pickSingle(query.d) as SortOrder : undefined,
+    p: Number(query.p) || 1,
+    l: Number(query.l) || pageSize.repositories?.[0],
+  }
+}
+
+/** Normalize location query to groups search query */
+const normalizeGroupsQuery = (query: LocationQuery): GroupsSearchQuery => {
+  const { table: { pageSize } } = useAppConfig()
+  return {
+    q: query.q ? pickSingle(query.q) : undefined,
+    i: query.i ? toArray(query.i) : undefined,
+    r: query.r ? toArray(query.r) : undefined,
+    u: query.u ? toArray(query.u) : undefined,
+    s: query.s === undefined ? undefined : Number(pickSingle(query.s)) as 0 | 1,
+    v: query.v === undefined ? undefined : Number(pickSingle(query.v)) as 0 | 1 | 2,
+    k: query.k ? pickSingle(query.k, { camel: true }) : undefined,
+    d: query.d ? pickSingle(query.d) as SortOrder : undefined,
+    p: Number(query.p) || 1,
+    l: Number(query.l) || pageSize.groups?.[0],
+  }
+}
+
+/**
  * Normalize location query to users search query
  */
 const normalizeUsersQuery = (query: LocationQuery): UsersSearchQuery => {
@@ -37,4 +69,4 @@ const normalizeUsersQuery = (query: LocationQuery): UsersSearchQuery => {
   }
 }
 
-export { normalizeUsersQuery }
+export { normalizeRepositoriesQuery, normalizeGroupsQuery, normalizeUsersQuery }

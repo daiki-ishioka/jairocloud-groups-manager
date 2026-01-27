@@ -13,7 +13,35 @@
     "terms-of-use": "Terms of Use"
   },
   "groups": {
+    "actions": {
+      "copy-id": "Copy ID to clipboard",
+      "copy-id-success": "The selected group ID has been copied to the clipboard."
+    },
+    "button": {
+      "selected-groups-actions": "Actions for selected users"
+    },
+    "delete-selected-button": "Delete groups",
     "description": "You can manage groups in your repository.",
+    "table": {
+      "cell": {
+        "public": {
+          "private": "Private",
+          "public": "Public"
+        },
+        "visibility": {
+          "hidden": "Hidden",
+          "private": "Visible only to members",
+          "public": "Public"
+        }
+      },
+      "column": {
+        "display-name": "Display Name",
+        "member-list-visibility": "Member Visibility",
+        "public": "Public Status",
+        "users-count": "Users"
+      },
+      "search-placeholder": "Seach..."
+    },
     "title": "Groups"
   },
   "header": {
@@ -28,23 +56,51 @@
     "other": "Other"
   },
   "repositories": {
+    "actions": {
+      "copy-sp-connector-id": "Copy SP Connecter ID to clipboard\t",
+      "copy-sp-connector-id-success": "The selected repository's URL has been copied to the clipboard."
+    },
     "description": "You can check information about the repositories you manage.",
-    "title": "Repositories"
+    "entity-id-label": "Entity ID: ",
+    "table": {
+      "column": {
+        "entity-ids": "Entity ID",
+        "service-name": "Repository Name",
+        "service-url": "URL",
+        "sp-connector-id": "SP Connecter"
+      },
+      "no-repositories-description": "you have no repositories to manage",
+      "no-repositories-title": "No repositories found",
+      "title": "Repositories List"
+    },
+    "title": "Repositories",
+    "url-label": "URL: "
+  },
+  "repository": {
+    "actions": {
+      "copy-url": "Copy URL to clipboard",
+      "copy-url-success": "The selected repository's URL has been copied to the clipboard."
+    }
   },
   "table": {
     "actions": {
-      "view-details": "View user details"
+      "delete": "Delete it",
+      "view-details": "View details"
     },
     "actions-label": "Action",
     "display-columns-label": "Columns",
     "filter-button-label": "Filter",
     "page-size-label": "Page size:",
-    "selected": "selected"
+    "selected": "selected",
+    "switch-to-card-view": "Switch to card view",
+    "switch-to-table-view": "Switch to table view"
   },
   "user": {
     "actions": {
       "copy-eppn": "Copy ePPN to clipboard",
-      "copy-id": "Copy ID to clipboard"
+      "copy-eppn-success": "The selected user's ePPN has been copied to the clipboard.",
+      "copy-id": "Copy ID to clipboard",
+      "copy-id-success": "The selected user ID has been copied to the clipboard."
     },
     "roles-title": "Roles",
     "title": "User Details"
@@ -71,6 +127,7 @@
         "emails": "Email",
         "eppns": "ePPN",
         "last-modified": "Last Modified",
+        "role": "Role",
         "user-name": "UserName"
       },
       "no-users-description": "Your repository does not have any users. Please create a user or upload a file first.",

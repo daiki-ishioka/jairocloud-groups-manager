@@ -11,6 +11,30 @@ interface FilterOption {
   items?: { value: string | number, label: string }[]
 }
 
+/** Repositories query parameters */
+interface RepositoriesSearchQuery {
+  q?: string
+  i?: string[]
+  k?: RepositoriesSortableKeys
+  d?: SortOrder
+  p?: number
+  l?: number
+}
+
+/** Groups query parameters */
+interface GroupsSearchQuery {
+  q?: string
+  i?: string[]
+  r?: string[]
+  u?: string[]
+  s?: 0 | 1
+  v?: 0 | 1 | 2
+  k?: GroupsSortableKeys
+  d?: SortOrder
+  p?: number
+  l?: number
+}
+
 /** Users query parameters */
 interface UsersSearchQuery {
   q?: string
@@ -25,6 +49,10 @@ interface UsersSearchQuery {
   p?: number
   l?: number
 }
+
+type RepositoriesSortableKeys = 'id' | 'serviceName' | 'serviceUrl' | 'entityIds'
+
+type GroupsSortableKeys = 'id' | 'displayName' | 'public' | 'memberListVisibility'
 
 type UsersSortableKeys = 'id' | 'userName' | 'emails' | 'eppns' | 'lastModified'
 
@@ -49,6 +77,8 @@ type UsersSearchResult = SearchResult<UserSummary>
 
 export type {
   FilterOption,
+  RepositoriesSearchQuery, RepositoriesSortableKeys,
+  GroupsSearchQuery, GroupsSortableKeys,
   UsersSearchQuery, UsersSortableKeys,
   SortOrder,
   SearchResult, UsersSearchResult, GroupsSearchResult, RepositoriesSearchResult,
