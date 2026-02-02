@@ -40,12 +40,12 @@ class RepositoryDetail(BaseModel):
     """Whether the service is active."""
 
     service_id: t.Annotated[
-        str,
+        str | None,
         Field(
             validation_alias="spConnectorId",
             serialization_alias="spConnectorId",
         ),
-    ]
+    ] = None
     """The ID of the corresponding resource. Alias to 'spConnectorId'."""
     entity_ids: list[str] | None = None
     """The entity IDs associated with the repository. Alias to 'entityIds'."""

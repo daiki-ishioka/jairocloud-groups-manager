@@ -17,7 +17,11 @@ from pydantic_core import ValidationError
 from server.clients import services
 from server.const import MAP_NOT_FOUND_PATTERN
 from server.entities.map_error import MapError
-from server.entities.repository_detail import RepositoryDetail, resolve_repository_id
+from server.entities.repository_detail import (
+    RepositoryDetail,
+    resolve_repository_id,
+    resolve_service_id,
+)
 from server.entities.search_request import SearchResult
 from server.entities.summaries import RepositorySummary
 from server.exc import (
@@ -109,11 +113,11 @@ def search(criteria: RepositoriesCriteria) -> SearchResult[RepositorySummary]:
     )
 
 
-def get_by_id(service_id: str) -> RepositoryDetail | None:
+def get_by_id(repository_id: str) -> RepositoryDetail | None:
     """Get a Repository resource by its ID.
 
     Args:
-        service_id (str): ID of the Repository resource.
+        repository_id (str): ID of the Repository resource.
 
     Returns:
         RepositoryDetail: The Repository resource if found, otherwise None.
@@ -123,6 +127,7 @@ def get_by_id(service_id: str) -> RepositoryDetail | None:
         CredentialsError: If the client credentials are invalid.
         UnexpectedResponseError: If response from mAP Core API is unexpected.
     """
+    service_id = resolve_service_id(repository_id=repository_id)
     try:
         access_token = get_access_token()
         client_secret = get_client_secret()
@@ -234,7 +239,8 @@ def update(repository: RepositoryDetail) -> RepositoryDetail:
         ResourceNotFound: If the Repository resource does not exist.
         UnexpectedResponseError: If response from mAP Core API is unexpected.
     """
-    current = get_by_id(repository.service_id)
+    service_id = resolve_service_id(repository_id=repository.id)
+    current = get_by_id(service_id)
     if current is None:
         error = f"'{repository.service_id}' Not Found"
         raise ResourceNotFound(error)

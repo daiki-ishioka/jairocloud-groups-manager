@@ -4,6 +4,8 @@
 
 """Models for Summary entities for client side."""
 
+import typing as t
+
 from datetime import datetime
 
 from pydantic import BaseModel, EmailStr, HttpUrl
@@ -32,10 +34,6 @@ class RepositorySummary(BaseModel):
 
     entity_ids: list[str] | None = None
     """The entity IDs of the repository. Alias to 'entityIds'."""
-
-    user_role: USER_ROLES | None = None
-    """The role of the user in the repository if this is used in UserDetail.
-    Alias to 'userRole'."""
 
     model_config = camel_case_config | forbid_extra_config
     """Configure to use camelCase aliasing and forbid extra fields."""
@@ -133,7 +131,7 @@ class UserSummary(BaseModel):
             highest_role = get_highest_role([repo.role for repo in roles])
 
         return cls(
-            id=user.id,
+            id=t.cast("str", user.id),
             user_name=user.user_name,
             role=highest_role,
             emails=[email.value for email in user.emails or []],

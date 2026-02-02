@@ -9,7 +9,7 @@ from flask_pydantic import validate
 
 from server.entities.repository_detail import RepositoryDetail
 from server.entities.search_request import SearchResult
-from server.exc import InvalidQueryError, ResourceInvalid
+from server.exc import InvalidQueryError, ResourceInvalid, ResourceNotFound
 from server.services import repositories
 from server.services.permissions import (
     get_permitted_repository_ids,
@@ -94,6 +94,37 @@ def id_get(repository_id: str) -> tuple[RepositoryDetail | ErrorResponse, int]:
         return ErrorResponse(code="", message="repository not found"), 404
 
     return result, 200
+
+
+@bp.put("/<string:repository_id>")
+@validate(response_by_alias=True)
+def id_put(
+    repository_id: str, body: RepositoryDetail
+) -> tuple[RepositoryDetail | ErrorResponse, int]:
+    """Update repository endpoint.
+
+    Args:
+        repository_id(str): Repository id
+        body(RepositoryDetail): Repository information
+
+    Returns:
+        - If succeeded in updating repository, repository information
+            and status code 200
+        - If logged-in user does not have permission, status code 403
+        - If repository not found, status code 404
+        - If other error, status code 500
+    """
+    if not has_permission(repository_id):
+        return ErrorResponse(code="", message="not has permission"), 403
+
+    try:
+        updated = repositories.update(body)
+    except ResourceNotFound as exc:
+        return ErrorResponse(code="", message=str(exc)), 404
+    except ResourceInvalid as exc:
+        return ErrorResponse(code="", message=str(exc)), 409
+
+    return updated, 200
 
 
 def has_permission(repository_id: str | None) -> bool:
