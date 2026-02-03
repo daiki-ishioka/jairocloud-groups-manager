@@ -15,6 +15,7 @@ const onSubmit = async (data: GroupCreatePayload) => {
       title: $t('success.creation.title'),
       description: $t('success.group.created-description'),
       color: 'success',
+      icon: 'i-lucide-circle-check',
     })
     await navigateTo('/groups')
   }
@@ -25,6 +26,7 @@ const onSubmit = async (data: GroupCreatePayload) => {
           title: $t('error.validation.title'),
           description: error?.data?.message ?? $t('error.validation.description'),
           color: 'error',
+          icon: 'i-lucide-circle-x',
         })
       }
       else {
@@ -32,6 +34,7 @@ const onSubmit = async (data: GroupCreatePayload) => {
           title: $t('error.server.title'),
           description: $t('error.server.description'),
           color: 'error',
+          icon: 'i-lucide-circle-x',
         })
       }
     }
@@ -40,6 +43,7 @@ const onSubmit = async (data: GroupCreatePayload) => {
         title: $t('error.unexpected.title'),
         description: $t('error.unexpected.description'),
         color: 'error',
+        icon: 'i-lucide-circle-x',
       })
     }
   }

@@ -16,6 +16,7 @@ const onSubmit = async (data: UserCreatePayload) => {
       title: $t('success.creation.title'),
       description: $t('success.user.created-description'),
       color: 'success',
+      icon: 'i-lucide-circle-check',
     })
     await navigateTo('/users')
   }
@@ -26,6 +27,7 @@ const onSubmit = async (data: UserCreatePayload) => {
           title: $t('error.validation.title'),
           description: error?.data?.message ?? $t('error.validation.description'),
           color: 'error',
+          icon: 'i-lucide-circle-x',
         })
       }
       else if (error.status === 409) {
@@ -33,6 +35,7 @@ const onSubmit = async (data: UserCreatePayload) => {
           title: $t('user.error.conflict-title'),
           description: $t('user.error.conflict-description'),
           color: 'error',
+          icon: 'i-lucide-circle-x',
         })
       }
       else {
@@ -40,6 +43,7 @@ const onSubmit = async (data: UserCreatePayload) => {
           title: $t('error.server.title'),
           description: $t('error.server.description'),
           color: 'error',
+          icon: 'i-lucide-circle-x',
         })
       }
     }
@@ -48,6 +52,7 @@ const onSubmit = async (data: UserCreatePayload) => {
         title: $t('error.unexpected.title'),
         description: $t('error.unexpected.description'),
         color: 'error',
+        icon: 'i-lucide-circle-x',
       })
     }
   }

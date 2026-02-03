@@ -23,6 +23,7 @@ const { data: user } = useFetch<UserDetail>(
         title: $t('error.server.title'),
         description: $t('error.server.description'),
         color: 'error',
+        icon: 'i-lucide-circle-x',
       })
     },
   },

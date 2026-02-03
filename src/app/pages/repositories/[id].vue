@@ -28,6 +28,7 @@ const { data: repository, refresh } = useFetch<RepositoryDetail>(
         title: $t('error.server.title'),
         description: $t('error.server.description'),
         color: 'error',
+        icon: 'i-lucide-circle-x',
       })
     },
   },
@@ -76,6 +77,7 @@ const onSubmit = async (data: RepositoryUpdatePayload) => {
       title: $t('success.updated.title'),
       description: $t('success.repository.updated-description'),
       color: 'success',
+      icon: 'i-lucide-circle-check',
     })
 
     router.push('/repositories')
@@ -87,6 +89,7 @@ const onSubmit = async (data: RepositoryUpdatePayload) => {
           title: $t('error.validation.title'),
           description: error?.data?.message ?? $t('error.validation.description'),
           color: 'error',
+          icon: 'i-lucide-circle-x',
         })
       }
       else if (error.status === 409) {
@@ -94,6 +97,7 @@ const onSubmit = async (data: RepositoryUpdatePayload) => {
           title: $t('error.conflict.title'),
           description: $t('error.conflict.description'),
           color: 'error',
+          icon: 'i-lucide-circle-x',
         })
       }
       else {
@@ -101,6 +105,7 @@ const onSubmit = async (data: RepositoryUpdatePayload) => {
           title: $t('error.server.title'),
           description: $t('error.server.description'),
           color: 'error',
+          icon: 'i-lucide-circle-x',
         })
       }
     }
@@ -109,6 +114,7 @@ const onSubmit = async (data: RepositoryUpdatePayload) => {
         title: $t('error.unexpected.title'),
         description: $t('error.unexpected.description'),
         color: 'error',
+        icon: 'i-lucide-circle-x',
       })
     }
   }

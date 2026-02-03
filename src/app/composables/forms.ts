@@ -424,6 +424,7 @@ const useFormError = () => {
       title: $t('error.validation.title'),
       description: $t('error.validation.description'),
       color: 'error',
+      icon: 'i-lucide-circle-x',
     })
 
     focusFirstError(event)
