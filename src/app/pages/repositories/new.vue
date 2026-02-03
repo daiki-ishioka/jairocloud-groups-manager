@@ -2,14 +2,6 @@
 import { FetchError } from 'ofetch'
 
 const { currentUser } = useAuth()
-
-if (!currentUser.value?.isSystemAdmin) {
-  showError({
-    status: 403,
-    statusText: $t('repository.error.forbidden'),
-  })
-}
-
 const { stateAsCreate: state } = useRepositoryForm()
 
 const onSubmit = async (data: RepositoryCreatePayload) => {
@@ -60,6 +52,15 @@ const onSubmit = async (data: RepositoryCreatePayload) => {
     }
   }
 }
+
+onMounted(() => {
+  if (!currentUser.value?.isSystemAdmin) {
+    showError({
+      status: 403,
+      statusText: $t('repository.error.forbidden'),
+    })
+  }
+})
 </script>
 
 <template>
