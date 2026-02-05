@@ -9,11 +9,19 @@ from server.entities.map_user import EPPN, Email, Group, MapUser, Meta
 from tests.helpers import load_json_data
 
 
-def test_validate():
-    json_data = load_json_data("data/map_user.json")
-
+@pytest.fixture
+def set_map_user_schema():
     schema_field = MapUser.model_fields["schemas"]
+    original_default = schema_field.default
     schema_field.default = [const.MAP_USER_SCHEMA]
+
+    yield
+
+    schema_field.default = original_default
+
+
+def test_validate(set_map_user_schema):
+    json_data = load_json_data("data/map_user.json")
 
     user = MapUser(
         id=json_data["id"],
@@ -56,16 +64,18 @@ def test_validate():
     assert user.edu_person_principal_names
     assert len(user.edu_person_principal_names) == len(json_data["eduPersonPrincipalNames"])
     assert user.edu_person_principal_names[0].value == json_data["eduPersonPrincipalNames"][0]["value"]
-    assert user.edu_person_principal_names[0].idp_entity_id == json_data["eduPersonPrincipalNames"][0]["idpEntityId"]
+    assert user.edu_person_principal_names[0].idp_entity_id == json_data["eduPersonPrincipalNames"][0].pop(
+        "idpEntityId"
+    )
     assert user.emails
     assert len(user.emails) == len(json_data["emails"])
     assert user.emails[0].value == json_data["emails"][0]["value"]
     assert user.groups
     assert len(user.groups) == len(json_data["groups"])
     assert user.groups[0].value == json_data["groups"][0]["value"]
-    assert str(user.groups[0].ref) == json_data["groups"][0]["$ref"]
+    assert str(user.groups[0].ref) == json_data["groups"][0].pop("$ref")
     assert user.groups[1].value == json_data["groups"][1]["value"]
-    assert str(user.groups[1].ref) == json_data["groups"][1]["$ref"]
+    assert str(user.groups[1].ref) == json_data["groups"][1].pop("$ref")
 
     json_user = user.model_dump(mode="json", by_alias=True)
     assert json_user == json_data
@@ -88,16 +98,18 @@ def test_validate_json_data():
     assert user.edu_person_principal_names
     assert len(user.edu_person_principal_names) == len(json_data["eduPersonPrincipalNames"])
     assert user.edu_person_principal_names[0].value == json_data["eduPersonPrincipalNames"][0]["value"]
-    assert user.edu_person_principal_names[0].idp_entity_id == json_data["eduPersonPrincipalNames"][0]["idpEntityId"]
+    assert user.edu_person_principal_names[0].idp_entity_id == json_data["eduPersonPrincipalNames"][0].pop(
+        "idpEntityId"
+    )
     assert user.emails
     assert len(user.emails) == len(json_data["emails"])
     assert user.emails[0].value == json_data["emails"][0]["value"]
     assert user.groups
     assert len(user.groups) == len(json_data["groups"])
     assert user.groups[0].value == json_data["groups"][0]["value"]
-    assert str(user.groups[0].ref) == json_data["groups"][0]["$ref"]
+    assert str(user.groups[0].ref) == json_data["groups"][0].pop("$ref")
     assert user.groups[1].value == json_data["groups"][1]["value"]
-    assert str(user.groups[1].ref) == json_data["groups"][1]["$ref"]
+    assert str(user.groups[1].ref) == json_data["groups"][1].pop("$ref")
 
     json_user = user.model_dump(mode="json", by_alias=True, exclude_unset=True)
     assert json_user == json_data
