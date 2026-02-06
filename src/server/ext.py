@@ -6,6 +6,8 @@
 
 import typing as t
 
+from sqlalchemy_utils import database_exists
+
 from .api.router import create_api_blueprint
 from .auth import login_manager
 from .cli.base import register_cli_commands
@@ -16,6 +18,7 @@ from .db.base import db
 from .db.utils import load_models
 from .exc import ConfigurationError
 from .logger import setup_logger
+from .messages import W
 
 
 if t.TYPE_CHECKING:
@@ -51,10 +54,9 @@ class JAIROCloudGroupsManager:
 
         """
         self.init_config(app)
-        self.init_db_app(app)
-
         setup_logger(app, self.config)
 
+        self.init_db_app(app)
         login_manager.init_app(app)
 
         self.datastore = setup_datastore(app, self.config)
@@ -87,6 +89,10 @@ class JAIROCloudGroupsManager:
             app (Flask): The Flask application instance.
 
         """
+        db_uri = app.config["SQLALCHEMY_DATABASE_URI"]
+        if not database_exists(db_uri):
+            app.logger.warning(W.DATABASE_NOT_EXIST)
+
         db.init_app(app)
         load_models()
 
