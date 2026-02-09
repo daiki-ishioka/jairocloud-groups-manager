@@ -33,7 +33,7 @@ class LoginUser(BaseModel, UserMixin):
     user_name: str
     """The display name of the user."""
 
-    session_id: str
+    session_id: t.Annotated[str, Field(exclude=True)]
     """Session ID associated with the login user."""
 
     model_config = camel_case_config | {"extra": "ignore"}

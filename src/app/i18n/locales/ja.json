@@ -151,6 +151,13 @@
     "user-count": "ユーザー数",
     "view": "表示件数"
   },
+  "login": {
+    "dev-account": "アカウント",
+    "dev-login-button": "ログイン",
+    "dev-login-error": "ログインに失敗しました。",
+    "dev-login-title": "開発者ログイン",
+    "title": "ログイン"
+  },
   "menu": {
     "management": "管理",
     "other": "その他"

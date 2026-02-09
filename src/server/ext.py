@@ -96,13 +96,16 @@ class JAIROCloudGroupsManager:
         db.init_app(app)
         load_models()
 
-    @staticmethod
-    def dev_contrib(app: Flask) -> None:
+    def dev_contrib(self, app: Flask) -> None:
         """Provide development contribution utilities."""
         with app.app_context():
-            from contrib import messages  # noqa: PLC0415
+            from contrib import developers, messages  # noqa: PLC0415
 
             messages.generate_type_stub()
+            app.register_blueprint(
+                developers.create_developer_blueprint(self.config),
+                url_prefix="/api/dev",
+            )
 
     @property
     def config(self) -> RuntimeConfig:

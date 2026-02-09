@@ -154,6 +154,13 @@
     "user-count": "Number of users",
     "view": "Number of items displayed"
   },
+  "login": {
+    "dev-account": "Account",
+    "dev-login-button": "Login",
+    "dev-login-error": "login failed.",
+    "dev-login-title": "Developer Lgin",
+    "title": "Login"
+  },
   "menu": {
     "management": "Management",
     "other": "Other"

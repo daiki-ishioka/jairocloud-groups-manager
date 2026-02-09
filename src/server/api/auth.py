@@ -119,4 +119,4 @@ def logout() -> Response:
 
     logout_user()
 
-    return make_response(redirect("/login"))
+    return make_response(redirect("/"))
