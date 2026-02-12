@@ -3,6 +3,7 @@
  */
 
 import { DateFormatter, getLocalTimeZone, parseDate } from '@internationalized/date'
+import { camelCase } from 'scule'
 
 import { UButton, UCheckbox, UDropdownMenu, UIcon, ULink, UTooltip } from '#components'
 
@@ -128,9 +129,10 @@ const useUsersTable = () => {
     },
   ])
 
-  type badgableRoles = 'systemAdmin' | 'repositoryAdmin' | 'communityAdmin' | 'contributor'
-  const isBadge = (role: UserRole | undefined): role is badgableRoles => {
-    const roles = new Set(['systemAdmin', 'repositoryAdmin', 'communityAdmin', 'contributor'])
+  const badgableRoles = ['systemAdmin', 'repositoryAdmin', 'communityAdmin', 'contributor'] as const
+  type BadgableRoles = (typeof badgableRoles)[number]
+  const hasBadge = (role: UserRole | undefined): role is BadgableRoles => {
+    const roles = new Set<string>(badgableRoles)
     return role ? roles.has(role) : false
   }
 
@@ -163,8 +165,8 @@ const useUsersTable = () => {
       header: () => sortableHeader('userName'),
       cell: ({ row }) => {
         const name = row.original.userName
-        const role = row.original.role
-        const labelMap: Record<badgableRoles, { label: string, icon: string, color: string }> = {
+        const role = camelCase(row.original.role!)
+        const labelMap: Record<BadgableRoles, { label: string, icon: string, color: string }> = {
           systemAdmin: {
             label: $t('users.roles.system-admin'),
             icon: 'i-lucide-shield-check',
@@ -190,20 +192,21 @@ const useUsersTable = () => {
         return h(ULink,
           {
             to: (`/users/${row.original.id}`),
-            class: 'font-bold inline-flex items-center group text-neutral',
+            class: 'font-bold inline-flex items-center group text-neutral space-x-2',
           },
           () => [
+            hasBadge(role)
+              ? h(UTooltip, {
+                  text: labelMap[role].label,
+                  arrow: true,
+                }, () => h(
+                  UIcon, {
+                    name: labelMap[role].icon,
+                    class: ['size-4.5', 'shrink-0', `text-${labelMap[role].color}`],
+                  },
+                ))
+              : h('span', { class: 'size-4.5' }),
             h('span', { class: 'group-hover:underline' }, name),
-            isBadge(role) && h(UTooltip, {
-              text: labelMap[role].label,
-              class: 'ml-2',
-              arrow: true,
-            }, () => h(
-              UIcon, {
-                name: labelMap[role].icon,
-                class: ['size-4.5', 'shrink-0', `text-${labelMap[role].color}`],
-              },
-            )),
           ].filter(Boolean),
         )
       },

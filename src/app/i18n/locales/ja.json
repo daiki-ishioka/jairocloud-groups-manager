@@ -224,6 +224,11 @@
       }
     }
   },
+  "submenu": {
+    "logout": "ログアウト",
+    "manual": "利用者マニュアル",
+    "profile": "プロフィール"
+  },
   "table": {
     "actions": {
       "delete": "削除する",

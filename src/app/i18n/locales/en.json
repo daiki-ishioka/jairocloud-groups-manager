@@ -239,6 +239,11 @@
       }
     }
   },
+  "submenu": {
+    "logout": "Logout",
+    "manual": "User Manual",
+    "profile": "Profile"
+  },
   "success": {
     "creation": {
     },
