@@ -317,6 +317,7 @@ const useGroupSchema = (mode?: MaybeRefOrGetter<FormMode>) => {
   }
 }
 
+/** Provides reactive state and default data for user forms */
 const useUserForm = () => {
   const defaultData: Required<UserDetail> = {
     id: '',
@@ -333,7 +334,7 @@ const useUserForm = () => {
   const { repositoryRoles, groups, ..._defaultForm } = defaultData
   const defaultForm: UserForm = {
     ..._defaultForm,
-    repositoryRoles: [{ id: '', label: '', userRole: undefined }],
+    repositoryRoles: [{ value: undefined, label: undefined, userRole: undefined }],
     groups: [{ id: '', label: '' }],
   }
   const state = reactive<UserForm>({ ...defaultForm })
@@ -341,9 +342,21 @@ const useUserForm = () => {
   const { id, created, lastModified, ...defaultCreateForm } = defaultForm
   const stateAsCreate = reactive<UserCreateForm>({ ...defaultCreateForm })
 
-  return { defaultData, defaultForm, state, stateAsCreate }
+  return {
+    /** Default data for user forms */
+    defaultData,
+    /** Default form state for user forms */
+    defaultForm,
+    /** Default create form state for user forms */
+    defaultCreateForm,
+    /** Reactive state for user forms */
+    state,
+    /** Reactive state for create user forms */
+    stateAsCreate,
+  }
 }
 
+/** Provides options for user forms */
 const useUserFormOptions = () => {
   const { t: $t } = useI18n()
 
@@ -373,9 +386,18 @@ const useUserFormOptions = () => {
     }))
   })
 
-  return { preferredLanguageOptions, userRoleOptions }
+  return {
+    /** Select menu items for preferred language */
+    preferredLanguageOptions,
+    /** Select menu items for user roles */
+    userRoleOptions,
+  }
 }
 
+/**
+ * Provides schema for user forms
+ * @param mode form mode to return the corresponding schema.
+ */
 const useUserSchema = (mode?: MaybeRefOrGetter<FormMode>) => {
   const { t: $t } = useI18n()
   const userRoles = Object.keys(USER_ROLES) as [string, ...string[]]
@@ -394,13 +416,13 @@ const useUserSchema = (mode?: MaybeRefOrGetter<FormMode>) => {
     }).optional(),
     isSystemAdmin: z.boolean().default(false),
     repositoryRoles: z.array(z.object({
-      id: z.string().optional().default(''),
+      value: z.string().optional(),
       userRole: z.enum(userRoles).optional(),
     })),
     groups: z.array(z.object({ id: z.string() })).optional(),
   }).superRefine((data, context) => {
     if (data.isSystemAdmin === true) {
-      const hasFilledRole = data.repositoryRoles.some(role => role.id || role.userRole)
+      const hasFilledRole = data.repositoryRoles.some(role => role.value || role.userRole)
       if (hasFilledRole) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
@@ -410,18 +432,9 @@ const useUserSchema = (mode?: MaybeRefOrGetter<FormMode>) => {
       }
     }
     else {
-      const hasValidRole = data.repositoryRoles.some(role => role.id && role.userRole)
-      if (!hasValidRole) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: $t('user.validation.repositoryRoles.at-least-one'),
-          path: ['repositoryRoles'],
-        })
-      }
-
       for (const [index, role] of data.repositoryRoles.entries()) {
-        if (role.id || role.userRole) {
-          if (!role.id || role.id.length === 0) {
+        if (role.value || role.userRole) {
+          if (!role.value || role.value.length === 0) {
             context.addIssue({
               code: z.ZodIssueCode.custom,
               message: $t('user.validation.repositoryRoles.id.required'),
@@ -437,15 +450,22 @@ const useUserSchema = (mode?: MaybeRefOrGetter<FormMode>) => {
           }
         }
       }
+
+      const hasValidRole = data.repositoryRoles.some(role => role.value && role.userRole)
+      if (!hasValidRole) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: $t('user.validation.repositoryRoles.at-least-one'),
+          path: ['repositoryRoles'],
+        })
+      }
     }
   }))
 
-  const updateSchema = computed(() => ({} as unknown))
+  const updateSchema = computed(() => createSchema.value)
 
   const getSchemaByMode = (m: FormMode) => {
-    return m === 'new'
-      ? createSchema.value
-      : updateSchema.value as Record<keyof UserCreatePayload, z.ZodTypeAny>
+    return m === 'new' ? createSchema.value : updateSchema.value
   }
 
   const schema = mode
@@ -455,9 +475,13 @@ const useUserSchema = (mode?: MaybeRefOrGetter<FormMode>) => {
       })
     : undefined
 
-  return { schema }
+  return {
+    /** Schema for user forms */
+    schema,
+  }
 }
 
+/** Provides form error handling */
 const useFormError = () => {
   const { t: $t } = useI18n()
   const toast = useToast()
@@ -474,6 +498,7 @@ const useFormError = () => {
   }
 
   return {
+    /** Show form error toast and focus the first error field */
     handleFormError,
   }
 }

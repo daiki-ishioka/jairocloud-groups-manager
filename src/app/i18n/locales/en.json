@@ -35,7 +35,8 @@
       "repository-create": "You do not have permission to create a repository.",
       "repository-edit": "You do not have permission to modify information in this repository.",
       "user-access": "You do not have permission to access this user.",
-      "user-create": "You do not have permission to make users belong to the selected repository or group."
+      "user-create": "You do not have permission to make users belong to the selected repository or group.",
+      "user-edit": "You do not have permission to change this user's information."
     },
     "not-found": {
       "group": "No such group found.",
@@ -365,6 +366,9 @@
       },
       "user-created": {
         "description": "Successfully created user."
+      },
+      "user-updated": {
+        "description": "Successfully updated user information.\t"
       }
     }
   },
