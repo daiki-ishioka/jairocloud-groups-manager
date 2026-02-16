@@ -35,7 +35,7 @@ const { data: searchResult, status, refresh } = useFetch<UsersSearchResult>('/ap
   server: false,
 })
 const offset = computed(() => (searchResult.value?.offset ?? 1))
-emptyActions.value[0]!.onClick = () => refresh()
+emptyActions.value[0].onClick = () => refresh()
 
 const {
   data: filterOptions, status: filterOptionsStatus,

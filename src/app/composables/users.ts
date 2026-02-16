@@ -71,7 +71,7 @@ const useUsersTable = () => {
   }))
 
   /** Returns action buttons for a user entry */
-  const creationButtons = computed<ButtonProps[]>(() => [
+  const creationButtons = computed<[ButtonProps, ...ButtonProps[]]>(() => [
     {
       icon: 'i-lucide-user-plus',
       label: $t('button.create-new'),
@@ -89,7 +89,7 @@ const useUsersTable = () => {
   ])
 
   /** Actions to display when the list is empty */
-  const emptyActions = computed<ButtonProps[]>(() => [
+  const emptyActions = computed<[ButtonProps, ...ButtonProps[]]>(() => [
     {
       icon: 'i-lucide-refresh-cw',
       label: $t('button.reload'),
@@ -100,7 +100,7 @@ const useUsersTable = () => {
   ])
 
   /** Actions for selected users */
-  const selectedUsersActions = computed<DropdownMenuItem[]>(() => [
+  const selectedUsersActions = computed<[DropdownMenuItem, ...DropdownMenuItem[]]>(() => [
     {
       icon: 'i-lucide-download',
       label: $t('users.button.selected-users-export'),

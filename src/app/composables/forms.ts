@@ -15,6 +15,7 @@ const hasViewportReference = (
   )
 }
 
+/** Composable to make a select menu support infinite scroll */
 const useSelectMenuInfiniteScroll = <T>(
   options: UseSelectMenuInfiniteScrollOptions<T>,
 ): UseSelectMenuInfiniteScrollReturn => {
@@ -24,10 +25,10 @@ const useSelectMenuInfiniteScroll = <T>(
     transform,
     debounce = 300,
     scrollDistance = 10,
-    params: parameters = {},
+    query = {},
   } = options
 
-  const page = ref(0)
+  const page = ref(1)
   const hasMore = ref(true)
 
   const searchTerm = ref('')
@@ -36,11 +37,11 @@ const useSelectMenuInfiniteScroll = <T>(
   const items = ref<Array<{ label: string, value: string }>>([])
 
   const { data, status, execute } = useFetch<SearchResult<T>>(url, {
-    params: computed(() => ({
+    query: computed(() => ({
+      ...query,
       q: searchTermDebounced.value || undefined,
       p: page.value,
       l: limit,
-      ...parameters,
     })),
     lazy: true,
     immediate: false,
@@ -70,19 +71,18 @@ const useSelectMenuInfiniteScroll = <T>(
   const setupInfiniteScroll = (
     selectMenuReference: Ref<unknown>,
   ) => {
-    onMounted(() => {
-      // eslint-disable-next-line unicorn/consistent-function-scoping
-      const getViewportReference = () => {
-        const reference = selectMenuReference.value
-        if (Array.isArray(reference)) {
-          return reference[0]?.viewportRef
-        }
-        if (hasViewportReference(reference)) {
-          return reference.viewportRef
-        }
-        return
+    const getViewportReference = () => {
+      const reference = selectMenuReference.value
+      if (Array.isArray(reference)) {
+        return reference[0]?.viewportRef
       }
+      if (hasViewportReference(reference)) {
+        return reference.viewportRef
+      }
+      return
+    }
 
+    onMounted(() => {
       useInfiniteScroll(
         getViewportReference(),
         () => {
@@ -100,14 +100,20 @@ const useSelectMenuInfiniteScroll = <T>(
   }
 
   return {
+    /** Items for the select menu */
     items,
+    /** Search term for filtering items */
     searchTerm,
+    /** Status of the fetch request */
     status,
+    /** Callback for when the select menu is opened */
     onOpen,
+    /** Setup select menu infinite scroll */
     setupInfiniteScroll,
   }
 }
 
+/** Provides state and default data for repository forms */
 const useRepositoryForm = () => {
   const defaultData: Required<RepositoryDetail> = {
     id: '',
@@ -126,9 +132,17 @@ const useRepositoryForm = () => {
   const { id, spConnectorId, created, ...defaultCreateForm } = defaultForm
   const stateAsCreate = reactive<RepositoryCreateForm>({ ...defaultCreateForm })
 
-  return { defaultData, state, stateAsCreate }
+  return {
+    /** Default data for repository forms */
+    defaultData,
+    /** Reactive state for repository forms */
+    state,
+    /** Reactive state for create repository forms */
+    stateAsCreate,
+  }
 }
 
+/** Provides schema for repository forms */
 const useRepositorySchema = (mode?: MaybeRefOrGetter<FormMode>) => {
   const { t: $t } = useI18n()
 
@@ -169,9 +183,15 @@ const useRepositorySchema = (mode?: MaybeRefOrGetter<FormMode>) => {
       })
     : undefined
 
-  return { schema, maxUrlLength }
+  return {
+    /** Schema for repository forms */
+    schema,
+    /** Maximum URL length for repository forms */
+    maxUrlLength,
+  }
 }
 
+/** Provides state and default data for group forms */
 const useGroupForm = () => {
   const defaultData: Required<GroupDetail> = {
     id: '',
@@ -198,9 +218,21 @@ const useGroupForm = () => {
   }
   const stateAsCreate = reactive<GroupCreateForm>({ ...defaultCreateForm })
 
-  return { defaultData, defaultForm, defaultCreateForm, state, stateAsCreate }
+  return {
+    /** Default data for group forms */
+    defaultData,
+    /** Default form state for group forms */
+    defaultForm,
+    /** Default create form state for group forms */
+    defaultCreateForm,
+    /** Reactive state for group forms */
+    state,
+    /** Reactive state for create group forms */
+    stateAsCreate,
+  }
 }
 
+/** Provides options for group forms */
 const useGroupFormOptions = () => {
   const { t: $t } = useI18n()
 
@@ -229,9 +261,15 @@ const useGroupFormOptions = () => {
       return { label, value: visibility }
     }))
 
-  return { publicStatusOptions, visibilityOptions }
+  return {
+    /** Select menu items for public status */
+    publicStatusOptions,
+    /** Select menu items for member list visibility */
+    visibilityOptions,
+  }
 }
 
+/** Provides schema for group forms */
 const useGroupSchema = (mode?: MaybeRefOrGetter<FormMode>) => {
   const { t: $t } = useI18n()
 
@@ -271,7 +309,12 @@ const useGroupSchema = (mode?: MaybeRefOrGetter<FormMode>) => {
       })
     : undefined
 
-  return { schema, getMaxIdLength }
+  return {
+    /** Schema for group forms */
+    schema,
+    /** Get the maximum ID length based on the repository ID */
+    getMaxIdLength,
+  }
 }
 
 const useUserForm = () => {
