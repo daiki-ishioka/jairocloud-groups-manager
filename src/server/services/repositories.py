@@ -14,7 +14,7 @@ import requests
 from flask import current_app
 from pydantic_core import ValidationError
 
-from server.clients import services
+from server.clients import groups, services
 from server.const import MAP_NOT_FOUND_PATTERN
 from server.entities.map_error import MapError
 from server.entities.repository_detail import (
@@ -26,6 +26,7 @@ from server.entities.search_request import SearchResponse, SearchResult
 from server.entities.summaries import RepositorySummary
 from server.exc import (
     CredentialsError,
+    InvalidFormError,
     InvalidQueryError,
     OAuthTokenError,
     ResourceInvalid,
@@ -34,7 +35,14 @@ from server.exc import (
 )
 
 from .token import get_access_token, get_client_secret
-from .utils import RepositoriesCriteria, build_patch_operations, build_search_query
+from .users import get_system_admins
+from .utils import (
+    RepositoriesCriteria,
+    build_patch_operations,
+    build_search_query,
+    prepare_role_groups,
+    prepare_service,
+)
 
 
 if t.TYPE_CHECKING:
@@ -219,14 +227,28 @@ def create(repository: RepositoryDetail) -> RepositoryDetail:
     Raises:
         OAuthTokenError: If the access token is invalid or expired.
         CredentialsError: If the client credentials are invalid.
+        InvalidFormError: If failed to prepare MapService from RepositoryDetail.
         ResourceInvalid: If the Repository resource data is invalid.
         UnexpectedResponseError: If response from mAP Core API is unexpected.
     """
+    admins = get_system_admins()
+
+    service = prepare_service(repository, admins)
+    role_groups = prepare_role_groups(
+        t.cast("str", repository.id), repository.service_name, admins
+    )
     try:
+        service = prepare_service(repository, admins)
+
         access_token = get_access_token()
         client_secret = get_client_secret()
+        role_groups = [
+            groups.post(group, access_token=access_token, client_secret=client_secret)
+            for group in role_groups
+        ]
+
         result: MapService | MapError = services.post(
-            repository.to_map_service(),
+            service,
             exclude={"meta"},
             access_token=access_token,
             client_secret=client_secret,
@@ -253,7 +275,7 @@ def create(repository: RepositoryDetail) -> RepositoryDetail:
         error = "Failed to parse response from mAP Core API."
         raise UnexpectedResponseError(error) from exc
 
-    except OAuthTokenError, CredentialsError:
+    except OAuthTokenError, CredentialsError, InvalidFormError:
         raise
 
     if isinstance(result, MapError):

@@ -34,6 +34,7 @@ from .utils import (
     UsersCriteria,
     build_patch_operations,
     build_search_query,
+    make_criteria_object,
 )
 
 
@@ -389,3 +390,30 @@ def update(user: UserDetail) -> UserDetail:
         raise ResourceInvalid(result.detail)
 
     return UserDetail.from_map_user(result)
+
+
+@t.overload
+def get_system_admins() -> set[str]: ...
+@t.overload
+def get_system_admins(*, raw: t.Literal[True]) -> list[MapUser]: ...
+
+
+def get_system_admins(*, raw: bool = False) -> set[str] | list[MapUser]:
+    """Get system administrators.
+
+    Args:
+        raw (bool): If True, return raw MapUser objects. Defaults to False.
+
+    Returns:
+        list: The list of system administrators. The type of items depends on
+            the `raw` argument.
+        - str: The IDs of the system administrators.
+        - MapUser: The raw User objects of system administrators from mAP Core API.
+    """
+    criteria = make_criteria_object("users", a=[0], super=True)
+    result = search(criteria, raw=True)
+
+    if raw:
+        return result.resources
+
+    return {t.cast("str", user.id) for user in result.resources}

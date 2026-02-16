@@ -123,3 +123,10 @@ class InvalidQueryError(JAIROCloudGroupsManagerError):
 
     Errors caused by unexpected query structure or data during query construction.
     """
+
+
+class InvalidFormError(JAIROCloudGroupsManagerError):
+    """Exception for invalid form data errors.
+
+    Errors caused by invalid form data in API requests.
+    """
