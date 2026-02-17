@@ -14,7 +14,7 @@ import requests
 from flask import current_app
 from pydantic_core import ValidationError
 
-from server.clients import services
+from server.clients import groups, services
 from server.const import MAP_NOT_FOUND_PATTERN
 from server.entities.map_error import MapError
 from server.entities.repository_detail import (
@@ -22,10 +22,11 @@ from server.entities.repository_detail import (
     resolve_repository_id,
     resolve_service_id,
 )
-from server.entities.search_request import SearchResult
+from server.entities.search_request import SearchResponse, SearchResult
 from server.entities.summaries import RepositorySummary
 from server.exc import (
     CredentialsError,
+    InvalidFormError,
     InvalidQueryError,
     OAuthTokenError,
     ResourceInvalid,
@@ -34,7 +35,14 @@ from server.exc import (
 )
 
 from .token import get_access_token, get_client_secret
-from .utils import RepositoriesCriteria, build_patch_operations, build_search_query
+from .users import get_system_admins
+from .utils import (
+    RepositoriesCriteria,
+    build_patch_operations,
+    build_search_query,
+    prepare_role_groups,
+    prepare_service,
+)
 
 
 if t.TYPE_CHECKING:
@@ -43,14 +51,32 @@ if t.TYPE_CHECKING:
     from server.entities.patch_request import PatchOperation
 
 
-def search(criteria: RepositoriesCriteria) -> SearchResult[RepositorySummary]:
+@t.overload
+def search(criteria: RepositoriesCriteria) -> SearchResult[RepositorySummary]: ...
+@t.overload
+def search(
+    criteria: RepositoriesCriteria, *, raw: t.Literal[True]
+) -> SearchResponse[MapService]: ...
+
+
+def search(
+    criteria: RepositoriesCriteria, *, raw: bool = False
+) -> SearchResult[RepositorySummary] | SearchResponse[MapService]:
     """Search for repositories based on given criteria.
 
     Args:
         criteria (RepositoriesCriteria): Search criteria for filtering repositories.
+        raw (bool):
+            If True, return raw search response from mAP Core API. Defaults to False.
 
     Returns:
-        SearchResult: Search result containing Repository summaries.
+        object: Search results. The type depends on the `raw` argument.
+        - SearchResult;
+            Search result containing Repository summaries. It has members `total`,
+            `page_size`, `offset`, and `resources`.
+        - SearchResponse;
+            Raw search response from mAP Core API. It has members `schemas`,
+            `total_results`, `start_index`, `items_per_page`, and `resources`.
 
     Raises:
         InvalidQueryError: If the query construction is invalid.
@@ -98,6 +124,9 @@ def search(criteria: RepositoriesCriteria) -> SearchResult[RepositorySummary]:
         current_app.logger.info(results.detail)
         raise InvalidQueryError(results.detail)
 
+    if raw:
+        return results
+
     repository_summaries = [
         RepositorySummary(
             id=resolve_repository_id(service_id=result.id),
@@ -117,14 +146,26 @@ def search(criteria: RepositoriesCriteria) -> SearchResult[RepositorySummary]:
     )
 
 
-def get_by_id(repository_id: str) -> RepositoryDetail | None:
+@t.overload
+def get_by_id(repository_id: str) -> RepositoryDetail | None: ...
+@t.overload
+def get_by_id(repository_id: str, *, raw: t.Literal[True]) -> MapService | None: ...
+
+
+def get_by_id(
+    repository_id: str, *, raw: bool = False
+) -> RepositoryDetail | MapService | None:
     """Get a Repository resource by its ID.
 
     Args:
         repository_id (str): ID of the Repository resource.
+        raw (bool): If True, return raw MapService object. Defaults to False.
 
     Returns:
-        RepositoryDetail: The Repository resource if found, otherwise None.
+        object: The Repository resource if found, otherwise None. The type depends
+            on the `raw` argument.
+        - RepositoryDetail: The Repository detail object.
+        - MapService: The raw Repository object from mAP Core API.
 
     Raises:
         OAuthTokenError: If the access token is invalid or expired.
@@ -168,6 +209,9 @@ def get_by_id(repository_id: str) -> RepositoryDetail | None:
         current_app.logger.info(result.detail)
         return None
 
+    if raw:
+        return result
+
     return RepositoryDetail.from_map_service(result)
 
 
@@ -183,14 +227,28 @@ def create(repository: RepositoryDetail) -> RepositoryDetail:
     Raises:
         OAuthTokenError: If the access token is invalid or expired.
         CredentialsError: If the client credentials are invalid.
+        InvalidFormError: If failed to prepare MapService from RepositoryDetail.
         ResourceInvalid: If the Repository resource data is invalid.
         UnexpectedResponseError: If response from mAP Core API is unexpected.
     """
+    admins = get_system_admins()
+
+    service = prepare_service(repository, admins)
+    role_groups = prepare_role_groups(
+        t.cast("str", repository.id), repository.service_name, admins
+    )
     try:
+        service = prepare_service(repository, admins)
+
         access_token = get_access_token()
         client_secret = get_client_secret()
+        role_groups = [
+            groups.post(group, access_token=access_token, client_secret=client_secret)
+            for group in role_groups
+        ]
+
         result: MapService | MapError = services.post(
-            repository.to_map_service(),
+            service,
             exclude={"meta"},
             access_token=access_token,
             client_secret=client_secret,
@@ -217,7 +275,7 @@ def create(repository: RepositoryDetail) -> RepositoryDetail:
         error = "Failed to parse response from mAP Core API."
         raise UnexpectedResponseError(error) from exc
 
-    except OAuthTokenError, CredentialsError:
+    except OAuthTokenError, CredentialsError, InvalidFormError:
         raise
 
     if isinstance(result, MapError):

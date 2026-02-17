@@ -1,15 +1,23 @@
 <script setup lang="ts">
-import { FetchError } from 'ofetch'
+import type { FetchError } from 'ofetch'
 
 const toast = useToast()
 
 const { stateAsCreate: state } = useUserForm()
 
-const onSubmit = async (data: UserCreatePayload) => {
+const { handleFetchError } = useErrorHandling()
+const onSubmit = async (data: UserCreateForm) => {
+  const payload: UserCreatePayload = {
+    ...data,
+    repositoryRoles: data.repositoryRoles.map(item =>
+      ({ id: item.value!, userRole: item.userRole } as RepositoryRole),
+    ),
+  }
+
   try {
     await $fetch('/api/users', {
       method: 'POST',
-      body: data,
+      body: payload,
     })
 
     toast.add({
@@ -21,39 +29,36 @@ const onSubmit = async (data: UserCreatePayload) => {
     await navigateTo('/users')
   }
   catch (error) {
-    if (error instanceof FetchError) {
-      if (error.status === 400) {
+    switch ((error as FetchError).status) {
+      case 400: {
         toast.add({
           title: $t('toast.error.validation.title'),
-          description: error?.data?.message ?? $t('toast.error.validation.description'),
+          description: $t('toast.error.validation.description'),
           color: 'error',
           icon: 'i-lucide-circle-x',
         })
+        break
       }
-      else if (error.status === 409) {
+      case 403: {
+        showError({
+          status: 403,
+          message: $t('error-page.forbidden.user-create'),
+        })
+        break
+      }
+      case 409: {
         toast.add({
           title: $t('toast.error.conflict.title'),
           description: $t('toast.error.conflict.description'),
           color: 'error',
           icon: 'i-lucide-circle-x',
         })
+        break
       }
-      else {
-        toast.add({
-          title: $t('toast.error.server.title'),
-          description: $t('toast.error.server.description'),
-          color: 'error',
-          icon: 'i-lucide-circle-x',
-        })
+      default: {
+        handleFetchError({ response: (error as FetchError).response! })
+        break
       }
-    }
-    else {
-      toast.add({
-        title: $t('toast.error.unexpected.title'),
-        description: $t('toast.error.unexpected.description'),
-        color: 'error',
-        icon: 'i-lucide-circle-x',
-      })
     }
   }
 }

@@ -130,6 +130,7 @@ def id_put(
     if not has_permission(repository_id):
         return ErrorResponse(code="", message="not has permission"), 403
 
+    body.id = repository_id
     try:
         updated = repositories.update(body)
     except ResourceNotFound as exc:

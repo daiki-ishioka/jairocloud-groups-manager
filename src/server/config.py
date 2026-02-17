@@ -29,7 +29,12 @@ from pydantic_settings import (
 from sqlalchemy.engine import URL, make_url
 from werkzeug.local import LocalProxy
 
-from .const import HAS_REPO_ID_AND_USER_DEFINED_ID_PATTERN, HAS_REPO_ID_PATTERN
+from .const import (
+    HAS_REPO_ID_AND_USER_DEFINED_ID_PATTERN,
+    HAS_REPO_ID_PATTERN,
+    HAS_REPO_NAME_PATTERN,
+    USER_ROLES,
+)
 
 
 class RuntimeConfig(BaseSettings):
@@ -56,6 +61,11 @@ class RuntimeConfig(BaseSettings):
         default_factory=lambda: ApiConfig(),  # noqa: PLW0108
     )
     """API configuration."""
+
+    STORAGE: StorageConfig = Field(
+        default_factory=lambda: StorageConfig(),  # noqa: PLW0108
+    )
+    """Storage configuration."""
 
     MAP_CORE: MapCoreConfig
     """mAP Core service configuration."""
@@ -237,6 +247,28 @@ class ApiConfig(BaseModel):
     """Maximum allowed file upload size (in bytes)."""
 
 
+class StorageConfig(BaseModel):
+    """Schema for storage configuration."""
+
+    type: t.Literal["local"] = "local"
+    """Type of storage backend to use."""
+
+    local: LocalStorageConfig = Field(
+        default_factory=lambda: LocalStorageConfig(),  # noqa: PLW0108
+    )
+    """Configuration for local storage backend."""
+
+
+class LocalStorageConfig(BaseModel):
+    """Schema for local storage configuration."""
+
+    temporary: str = "/var/tmp/jcgroups"  # noqa: S108
+    """Path to the temporary directory."""
+
+    storage: str = "/data/jcgroups"
+    """Path to the storage directory."""
+
+
 class SpConfig(BaseModel):
     """Schema for Service Provider configuration."""
 
@@ -270,6 +302,9 @@ class GroupsConfig(BaseModel):
     id_patterns: GroupIdPatternsConfig
     """Patterns for Group resource IDs."""
 
+    name_patterns: GroupNamePatternsConfig
+    """Patterns for Group resource names."""
+
 
 class GroupIdPatternsConfig(BaseModel):
     """Schema for Group resource ID patterns."""
@@ -291,6 +326,31 @@ class GroupIdPatternsConfig(BaseModel):
 
     user_defined: HasRepoAndUserDefinedId
     """Pattern for user-defined group IDs."""
+
+    def __getitem__(self, key: USER_ROLES | t.Literal["user_defined"]) -> str:  # noqa: D105
+        return getattr(self, key)
+
+
+class GroupNamePatternsConfig(BaseModel):
+    """Schema for Group resource name patterns."""
+
+    system_admin: str
+    """Name of the system administrator group."""
+
+    repository_admin: HasRepoName
+    """Name pattern for repository administrator groups."""
+
+    community_admin: HasRepoName
+    """Name pattern for community administrator groups."""
+
+    contributor: HasRepoName
+    """Name pattern for contributor groups."""
+
+    general_user: HasRepoName
+    """Name pattern for general user groups."""
+
+    def __getitem__(self, key: USER_ROLES) -> str:  # noqa: D105
+        return getattr(self, key)
 
 
 class MapCoreConfig(BaseModel):
@@ -407,6 +467,12 @@ type HasRepoId = t.Annotated[str, StringConstraints(pattern=HAS_REPO_ID_PATTERN)
 """Pattern for role-based group IDs.
 
 It should include `{repository_id}` placeholder.
+"""
+
+type HasRepoName = t.Annotated[str, StringConstraints(pattern=HAS_REPO_NAME_PATTERN)]
+"""Pattern for role-based group names.
+
+It should include `{repository_name}` placeholder.
 """
 
 

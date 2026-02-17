@@ -27,7 +27,7 @@ class RepositoryDetail(BaseModel):
     _fqdn: str | None = PrivateAttr(None)
     """The fully qualified domain name of the repository."""
 
-    id: str
+    id: str | None = None
     """The unique identifier for the repository."""
 
     service_name: str
@@ -140,7 +140,8 @@ class RepositoryDetail(BaseModel):
             MapService: The converted MapService instance.
         """
         service = MapService(
-            id=self.service_id or resolve_service_id(repository_id=self.id)
+            id=self.service_id
+            or resolve_service_id(repository_id=t.cast("str", self.id))
         )
         service.service_name = self.service_name
         service.service_url = self.service_url

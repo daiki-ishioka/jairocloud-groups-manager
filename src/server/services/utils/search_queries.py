@@ -102,7 +102,7 @@ def build_repositories_search_query(
     filter_expr.append(f'{path("groups.value")} eq "{system_admin_group}"')
 
     specified = set(criteria.i or [])
-    if is_current_user_system_admin():
+    if getattr(criteria, "super", False) or is_current_user_system_admin():
         pass  # no additional filter for system admin
     elif permitted := get_permitted_repository_ids():
         # force filter by logged-in user's permitted repository IDs
@@ -209,7 +209,9 @@ def build_groups_search_query(criteria: GroupsCriteria) -> SearchRequestParamete
 def _group_groups_filter(criteria: GroupsCriteria, id_path: str) -> str:
     """Generate a filter string for group IDs based on criteria."""  # noqa:
     criteria = _patch_falsey_to_none(criteria, {"r"})
-    is_system_admin = is_current_user_system_admin()
+    is_system_admin = (
+        getattr(criteria, "super", False) or is_current_user_system_admin()
+    )
 
     if is_system_admin:
         # no additional filter for system admin
@@ -323,7 +325,7 @@ def _user_groups_filter(criteria: UsersCriteria, path: str) -> str:
         if not specified_roles:
             return _empty_filter(path)
 
-    if is_current_user_system_admin():
+    if getattr(criteria, "super", False) or is_current_user_system_admin():
         return _system_admin_user_groups_filter(criteria, path, specified_roles)
 
     # repository admin could not see System Administrator
@@ -774,16 +776,19 @@ user_sortable_keys: set[str] = set(t.get_args(UsersSortableKeys.__value__))
 @t.overload
 def make_criteria_object(
     resource_type: t.Literal["repositories"],
+    *,
     q: str | None = None,
     i: list[str] | None = None,
     k: RepositoriesSortableKeys | None = None,
     d: t.Literal["asc", "desc"] | None = None,
     p: int | None = None,
     l: int | None = None,  # noqa: E741
+    super: bool = False,
 ) -> RepositoriesCriteria: ...
 @t.overload
 def make_criteria_object(
     resource_type: t.Literal["groups"],
+    *,
     q: str | None = None,
     i: list[str] | None = None,
     r: list[str] | None = None,
@@ -794,10 +799,12 @@ def make_criteria_object(
     d: t.Literal["asc", "desc"] | None = None,
     p: int | None = None,
     l: int | None = None,  # noqa: E741
+    super: bool = False,
 ) -> GroupsCriteria: ...
 @t.overload
 def make_criteria_object(
     resource_type: t.Literal["users"],
+    *,
     q: str | None = None,
     i: list[str] | None = None,
     r: list[str] | None = None,
@@ -809,6 +816,7 @@ def make_criteria_object(
     d: t.Literal["asc", "desc"] | None = None,
     p: int | None = None,
     l: int | None = None,  # noqa: E741
+    super: bool = False,
 ) -> UsersCriteria: ...
 
 
@@ -842,6 +850,7 @@ def make_criteria_object(resource_type: str, **kwargs: t.Any) -> Criteria:  # py
         - d: sort direction ("asc" or "desc")
         - p: page number
         - l: page size
+        - super: force search as system admin
 
     Args:
         resource_type (str): The type of resource ("users", "groups", "repositories").
@@ -865,7 +874,6 @@ def make_criteria_object(resource_type: str, **kwargs: t.Any) -> Criteria:  # py
 
     attrs = dict.fromkeys(hints)
     for key, value in kwargs.items():
-        if key in hints:
-            attrs[key] = value
+        attrs[key] = value
 
     return t.cast("Criteria", SimpleNamespace(**attrs))
