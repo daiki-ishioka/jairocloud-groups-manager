@@ -4,12 +4,12 @@ import type { FormErrorEvent, FormSubmitEvent } from '@nuxt/ui'
 interface Properties {
   modelValue: RepositoryForm | RepositoryCreateForm
   mode: FormMode
+  onSubmit: (event: FormSubmitEvent<RepositoryForm | RepositoryCreateForm>) => Promise<void>
 }
 const properties = defineProps<Properties>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: RepositoryForm | RepositoryCreateForm]
-  'submit': [data: RepositoryForm | RepositoryCreateForm]
   'error': [event: FormErrorEvent]
   'cancel': []
 }>()
@@ -33,9 +33,6 @@ const removeEntityId = (index: number) => {
 }
 
 const form = useTemplateRef('form')
-const onSubmit = (event: FormSubmitEvent<RepositoryForm | RepositoryCreateForm>) => {
-  emit('submit', event.data)
-}
 const onError = (event: FormErrorEvent) => {
   handleFormError(event)
   emit('error', event)
@@ -199,11 +196,13 @@ const onCancel = () => {
         v-if="mode === 'new'"
         :label="$t('button.save')"
         type="submit" icon="i-lucide-save" color="info" variant="subtle"
+        loading-auto
       />
       <UButton
         v-else
         :label="$t('button.update')"
         type="submit" icon="i-lucide-save" color="info" variant="subtle"
+        loading-auto
       />
     </div>
   </UForm>

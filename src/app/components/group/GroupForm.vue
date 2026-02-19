@@ -4,12 +4,12 @@ import type { FormErrorEvent, FormSubmitEvent } from '@nuxt/ui'
 interface Properties {
   modelValue: GroupCreateForm | GroupUpdateForm
   mode: FormMode
+  onSubmit: (event: FormSubmitEvent<GroupCreateForm | GroupUpdateForm>) => Promise<void>
 }
 const properties = defineProps<Properties>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: GroupCreateForm | GroupUpdateForm]
-  'submit': [data: GroupCreateForm | GroupUpdateForm]
   'error': [event: FormErrorEvent]
   'cancel': []
 }>()
@@ -58,9 +58,6 @@ const maxIdLength = computed(() => getMaxIdLength(state.value.repository.value |
 )
 
 const form = useTemplateRef('form')
-const onSubmit = (event: FormSubmitEvent<GroupCreateForm | GroupUpdateForm>) => {
-  emit('submit', event.data)
-}
 const onError = (event: FormErrorEvent) => {
   handleFormError(event)
   emit('error', event)
@@ -185,11 +182,13 @@ const onCancel = () => {
         v-if="mode === 'new'"
         :label="$t('button.save')"
         type="submit" icon="i-lucide-save" color="info" variant="subtle"
+        loading-auto
       />
       <UButton
         v-else
         :label="$t('button.update')"
         type="submit" icon="i-lucide-save" color="info" variant="subtle"
+        loading-auto
       />
     </div>
   </UForm>
