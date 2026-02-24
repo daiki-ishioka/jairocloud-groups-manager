@@ -30,6 +30,7 @@
     "forbidden": {
       "group-access": "You do not have permission to access this group.",
       "group-create": "You do not have permission to create groups in the selected repository.",
+      "group-delete": "You do not have permission to delete this group.",
       "group-edit": "You do not have permission to change information for this group.",
       "repository-access": "You do not have permission to access this repository.",
       "repository-create": "You do not have permission to create a repository.",
@@ -80,11 +81,13 @@
     },
     "repository": "@:repositories.title",
     "repository-description": "Select repository to create group",
+    "type-role": "Role type Group",
     "validation": {
       "displayName": {
         "required": "Display name is required field."
       },
       "groupId": {
+        "invalid-format": "Group IDs must consist of half-width alphanumeric characters and symbols (.-_).",
         "max-length": "Group ID must be less than or equal to {max} characters.",
         "required": "Group ID is a required field."
       },
@@ -125,7 +128,8 @@
         "public": "Public Status",
         "users-count": "Users"
       },
-      "search-placeholder": "Seach..."
+      "search-placeholder": "Seach...",
+      "title": "Groups List"
     },
     "title": "Groups"
   },
@@ -189,6 +193,14 @@
     "other": "Other"
   },
   "modal": {
+    "delete-group": {
+      "description": "Once a group is deleted, it cannot be restored.",
+      "title": "Are you sure to delete this group?"
+    },
+    "delete-groups": {
+      "description": "Once groups are deleted, they cannot be restored.",
+      "title": "Are you sure to delete these groups?"
+    },
     "delete-repository": {
       "confirmation": "To confirm, type \"{name}\" in the box below.",
       "description": "Once the SP connector is deleted, it cannot be restored.",
@@ -372,6 +384,9 @@
       },
       "group-created": {
         "description": "Successfully created group."
+      },
+      "group-deleted": {
+        "description": "Successfully deleted group."
       },
       "group-updated": {
         "description": "Successfully updated group information."

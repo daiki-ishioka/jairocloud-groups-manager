@@ -200,6 +200,7 @@ const useGroupForm = () => {
     displayName: '',
     description: '',
     repository: { id: '', serviceName: '' },
+    type: 'group',
     public: false,
     memberListVisibility: 'Private',
     usersCount: 0,
@@ -278,7 +279,9 @@ const useGroupSchema = (mode?: MaybeRefOrGetter<FormMode>) => {
   const getMaxIdLength = (repositoryId: string) => maxIdLength - repositoryId.length
 
   const createSchema = computed(() => z.object({
-    userDefinedId: z.string().min(1, $t('group.validation.groupId.required')),
+    userDefinedId: z.string()
+      .min(1, $t('group.validation.groupId.required'))
+      .regex(/^[a-zA-Z0-9._-]+$/, $t('group.validation.groupId.invalid-format')),
     displayName: z.string().min(1, $t('group.validation.displayName.required')),
     description: z.string().optional(),
     repository: z.object({
