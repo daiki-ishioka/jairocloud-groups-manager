@@ -62,6 +62,36 @@ def test_search_success(app, mocker: MockerFixture, test_config) -> None:
     assert actual.entity_ids == [eid.value for eid in (expected.entity_ids or [])]
 
 
+def test_search_returns_raw_response(app, mocker: MockerFixture, test_config) -> None:
+    """Tests that the raw SearchResponse is returned when raw=True is specified."""
+    criteria = make_criteria_object("repositories", q="test", i=["repo1"])
+    service_id = test_config.REPOSITORIES.id_patterns.sp_connector.format(repository_id="repo1")
+    service_name = test_config.SP.entity_id
+    service_url: HttpUrl = HttpUrl(f"https://{test_config.POSTGRES.host}/repo1")
+    service_schema = const.MAP_SERVICE_SCHEMA
+    map_service = MapService(
+        id=service_id,
+        service_name=service_name,
+        service_url=service_url,
+        schemas=[service_schema],
+        entity_ids=[],
+    )
+    expected_result = SearchResponse[MapService](
+        total_results=1,
+        items_per_page=1,
+        start_index=1,
+        resources=[map_service],
+    )
+    mocker.patch("server.services.repositories.build_search_query", return_value=criteria)
+    mocker.patch("server.services.repositories.get_access_token", return_value="token")
+    mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
+    mocker.patch("server.clients.services.search", return_value=expected_result)
+
+    result = repositories.search(criteria, raw=True)
+
+    assert result is expected_result
+
+
 def test_search_raises_oauth_token_error_on_unauthorized(mocker: MockerFixture) -> None:
     """Tests that OAuthTokenError is raised when search receives an unauthorized response."""
     criteria = make_criteria_object("repositories", q="test", i=["repo1"])
@@ -206,146 +236,8 @@ def test_search_raises_invalid_query_error_on_map_error(app, mocker: MockerFixtu
     assert "invalid query" in str(excinfo.value)
 
 
-def test_search_returns_raw_response(app, mocker: MockerFixture, test_config) -> None:
-    """Tests that the raw SearchResponse is returned when raw=True is specified."""
-    criteria = make_criteria_object("repositories", q="test", i=["repo1"])
-    service_id = test_config.REPOSITORIES.id_patterns.sp_connector.format(repository_id="repo1")
-    service_name = test_config.SP.entity_id
-    service_url: HttpUrl = HttpUrl(f"https://{test_config.POSTGRES.host}/repo1")
-    service_schema = const.MAP_SERVICE_SCHEMA
-    map_service = MapService(
-        id=service_id,
-        service_name=service_name,
-        service_url=service_url,
-        schemas=[service_schema],
-        entity_ids=[],
-    )
-    expected_result = SearchResponse[MapService](
-        total_results=1,
-        items_per_page=1,
-        start_index=1,
-        resources=[map_service],
-    )
-    mocker.patch("server.services.repositories.build_search_query", return_value=criteria)
-    mocker.patch("server.services.repositories.get_access_token", return_value="token")
-    mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
-    mocker.patch("server.clients.services.search", return_value=expected_result)
-
-    result = repositories.search(criteria, raw=True)
-
-    assert result is expected_result
-
-
 def test_get_by_id_success(app, mocker: MockerFixture, test_config) -> None:
     """Tests successful retrieval of a repository by ID with raw response."""
-
-    service_id = test_config.REPOSITORIES.id_patterns.sp_connector.format(repository_id="repo1")
-    service_name = test_config.SP.entity_id
-    service_url: HttpUrl = HttpUrl(f"https://{test_config.POSTGRES.host}/repo1")
-    service_schema = const.MAP_SERVICE_SCHEMA
-    map_service = MapService(
-        id=service_id,
-        service_name=service_name,
-        service_url=service_url,
-        schemas=[service_schema],
-        entity_ids=[],
-    )
-    mocker.patch("server.services.repositories.resolve_service_id", return_value=service_id)
-    mocker.patch("server.services.repositories.get_access_token", return_value="token")
-    mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
-    mocker.patch("server.clients.services.get_by_id", return_value=map_service)
-
-    result = repositories.get_by_id("repo1", raw=True)
-
-    assert result is map_service
-
-
-def test_get_by_id_raises_oauth_token_error_on_unauthorized(mocker: MockerFixture) -> None:
-    """Tests that OAuthTokenError is raised when get_by_id receives an unauthorized response."""
-    mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
-    mocker.patch("server.services.repositories.get_access_token", return_value="token")
-    mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
-    response = Response()
-    response.status_code = HTTPStatus.UNAUTHORIZED
-    http_error = requests.HTTPError(response=response)
-    mocker.patch("server.clients.services.get_by_id", side_effect=http_error)
-
-    with pytest.raises(repositories.OAuthTokenError) as excinfo:
-        repositories.get_by_id("repo1")
-
-    assert "Access token is invalid or expired" in str(excinfo.value)
-
-
-def test_get_by_id_raises_unexpected_response_error_on_internal_server_error(mocker: MockerFixture) -> None:
-    """Tests that UnexpectedResponseError is raised on internal server error during get_by_id."""
-    mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
-    mocker.patch("server.services.repositories.get_access_token", return_value="token")
-    mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
-    response = Response()
-    response.status_code = HTTPStatus.INTERNAL_SERVER_ERROR
-    http_error = requests.HTTPError(response=response)
-    mocker.patch("server.clients.services.get_by_id", side_effect=http_error)
-
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.get_by_id("repo1")
-
-    assert "mAP Core API server error" in str(excinfo.value)
-
-
-def test_get_by_id_raises_unexpected_response_error_on_request_exception(mocker: MockerFixture) -> None:
-    """Tests that UnexpectedResponseError is raised on request exception during get_by_id."""
-    mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
-    mocker.patch("server.services.repositories.get_access_token", return_value="token")
-    mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
-    mocker.patch("server.clients.services.get_by_id", side_effect=requests.RequestException("fail"))
-
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.get_by_id("repo1")
-
-    assert "Failed to connect to mAP Core API" in str(excinfo.value)
-
-
-def test_get_by_id_raises_unexpected_response_error_on_validation_error(mocker: MockerFixture) -> None:
-    """Tests that UnexpectedResponseError is raised on validation error during get_by_id."""
-    mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
-    mocker.patch("server.services.repositories.get_access_token", return_value="token")
-    mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
-    mocker.patch("server.clients.services.get_by_id", side_effect=ValidationError("fail", []))
-
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.get_by_id("repo1")
-
-    assert "Failed to parse response from mAP Core API" in str(excinfo.value)
-
-
-def test_get_by_id_raises_oauth_token_error_direct(mocker: MockerFixture) -> None:
-    """Tests that OAuthTokenError is raised directly from get_by_id."""
-    mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
-    mocker.patch("server.services.repositories.get_access_token", return_value="token")
-    mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
-    mocker.patch("server.clients.services.get_by_id", side_effect=repositories.OAuthTokenError("token error"))
-
-    with pytest.raises(repositories.OAuthTokenError) as excinfo:
-        repositories.get_by_id("repo1")
-
-    assert "token error" in str(excinfo.value)
-
-
-def test_get_by_id_raises_credentials_error_direct(mocker: MockerFixture) -> None:
-    """Tests that CredentialsError is raised directly from get_by_id."""
-    mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
-    mocker.patch("server.services.repositories.get_access_token", return_value="token")
-    mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
-    mocker.patch("server.clients.services.get_by_id", side_effect=repositories.CredentialsError("cred error"))
-
-    with pytest.raises(repositories.CredentialsError) as excinfo:
-        repositories.get_by_id("repo1")
-
-    assert "cred error" in str(excinfo.value)
-
-
-def test_get_by_id_returns_raw_response(app, mocker: MockerFixture, test_config) -> None:
-    """Tests that the raw MapService is returned when raw=True is specified for get_by_id."""
 
     service_id = test_config.REPOSITORIES.id_patterns.sp_connector.format(repository_id="repo1")
     service_name = test_config.SP.entity_id
@@ -437,6 +329,90 @@ def test_get_by_id_returns_none_on_map_error(app, mocker: MockerFixture, test_co
 
     assert result is None
     assert mock_logger.called
+
+
+def test_get_by_id_raises_oauth_token_error_on_unauthorized(mocker: MockerFixture) -> None:
+    """Tests that OAuthTokenError is raised when get_by_id receives an unauthorized response."""
+    mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
+    mocker.patch("server.services.repositories.get_access_token", return_value="token")
+    mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
+    response = Response()
+    response.status_code = HTTPStatus.UNAUTHORIZED
+    http_error = requests.HTTPError(response=response)
+    mocker.patch("server.clients.services.get_by_id", side_effect=http_error)
+
+    with pytest.raises(repositories.OAuthTokenError) as excinfo:
+        repositories.get_by_id("repo1")
+
+    assert "Access token is invalid or expired" in str(excinfo.value)
+
+
+def test_get_by_id_raises_unexpected_response_error_on_internal_server_error(mocker: MockerFixture) -> None:
+    """Tests that UnexpectedResponseError is raised on internal server error during get_by_id."""
+    mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
+    mocker.patch("server.services.repositories.get_access_token", return_value="token")
+    mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
+    response = Response()
+    response.status_code = HTTPStatus.INTERNAL_SERVER_ERROR
+    http_error = requests.HTTPError(response=response)
+    mocker.patch("server.clients.services.get_by_id", side_effect=http_error)
+
+    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
+        repositories.get_by_id("repo1")
+
+    assert "mAP Core API server error" in str(excinfo.value)
+
+
+def test_get_by_id_raises_unexpected_response_error_on_request_exception(mocker: MockerFixture) -> None:
+    """Tests that UnexpectedResponseError is raised on request exception during get_by_id."""
+    mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
+    mocker.patch("server.services.repositories.get_access_token", return_value="token")
+    mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
+    mocker.patch("server.clients.services.get_by_id", side_effect=requests.RequestException("fail"))
+
+    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
+        repositories.get_by_id("repo1")
+
+    assert "Failed to connect to mAP Core API" in str(excinfo.value)
+
+
+def test_get_by_id_raises_unexpected_response_error_on_validation_error(mocker: MockerFixture) -> None:
+    """Tests that UnexpectedResponseError is raised on validation error during get_by_id."""
+    mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
+    mocker.patch("server.services.repositories.get_access_token", return_value="token")
+    mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
+    mocker.patch("server.clients.services.get_by_id", side_effect=ValidationError("fail", []))
+
+    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
+        repositories.get_by_id("repo1")
+
+    assert "Failed to parse response from mAP Core API" in str(excinfo.value)
+
+
+def test_get_by_id_raises_oauth_token_error_direct(mocker: MockerFixture) -> None:
+    """Tests that OAuthTokenError is raised directly from get_by_id."""
+    mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
+    mocker.patch("server.services.repositories.get_access_token", return_value="token")
+    mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
+    mocker.patch("server.clients.services.get_by_id", side_effect=repositories.OAuthTokenError("token error"))
+
+    with pytest.raises(repositories.OAuthTokenError) as excinfo:
+        repositories.get_by_id("repo1")
+
+    assert "token error" in str(excinfo.value)
+
+
+def test_get_by_id_raises_credentials_error_direct(mocker: MockerFixture) -> None:
+    """Tests that CredentialsError is raised directly from get_by_id."""
+    mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
+    mocker.patch("server.services.repositories.get_access_token", return_value="token")
+    mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
+    mocker.patch("server.clients.services.get_by_id", side_effect=repositories.CredentialsError("cred error"))
+
+    with pytest.raises(repositories.CredentialsError) as excinfo:
+        repositories.get_by_id("repo1")
+
+    assert "cred error" in str(excinfo.value)
 
 
 def test_get_by_id_raises_unexpected_response_error_on_other_http_error(mocker: MockerFixture) -> None:
@@ -709,6 +685,19 @@ def test_update_success(app, mocker: MockerFixture, test_config) -> None:
     assert str(result.service_url) == str(service_url)
 
 
+def test_update_calls_update_put_when_strategy_put(app, mocker: MockerFixture, test_config) -> None:
+    """Tests that update delegates to update_put when config.MAP_CORE.update_strategy == 'put'."""
+    service_url: HttpUrl = HttpUrl(test_config.MAP_CORE.base_url)
+    repo = RepositoryDetail(id="repo1", service_name="s", service_url=service_url, entity_ids=[])
+    mocker.patch("server.config.config.MAP_CORE.update_strategy", "put")
+    mock_update_put = mocker.patch("server.services.repositories.update_put", return_value="called")
+
+    result = repositories.update(repo)
+
+    assert result == "called"
+    assert mock_update_put.called
+
+
 def test_update_raises_oauth_token_error_on_unauthorized(app, mocker: MockerFixture, test_config) -> None:
     """Tests that OAuthTokenError is raised when update receives an unauthorized response."""
 
@@ -916,19 +905,6 @@ def test_update_raises_resource_not_found_on_map_error(app, mocker: MockerFixtur
     assert "not found" in str(excinfo.value).lower()
 
 
-def test_update_calls_update_put_when_strategy_put(app, mocker: MockerFixture, test_config) -> None:
-    """Tests that update delegates to update_put when config.MAP_CORE.update_strategy == 'put'."""
-    service_url: HttpUrl = HttpUrl(test_config.MAP_CORE.base_url)
-    repo = RepositoryDetail(id="repo1", service_name="s", service_url=service_url, entity_ids=[])
-    mocker.patch("server.config.config.MAP_CORE.update_strategy", "put")
-    mock_update_put = mocker.patch("server.services.repositories.update_put", return_value="called")
-
-    result = repositories.update(repo)
-
-    assert result == "called"
-    assert mock_update_put.called
-
-
 def test_update_put_success(app, mocker: MockerFixture, test_config) -> None:
     """Tests successful update (PUT) of a repository and validates the returned RepositoryDetail."""
 
@@ -952,6 +928,19 @@ def test_update_put_success(app, mocker: MockerFixture, test_config) -> None:
     assert result.id == repository_id
     assert result.service_name == service_name
     assert str(result.service_url) == str(service_url)
+
+
+def test_update_put_calls_update_when_strategy_patch(app, mocker: MockerFixture, test_config) -> None:
+    """Tests that update_put delegates to update when config.MAP_CORE.update_strategy == 'patch'."""
+    service_url: HttpUrl = HttpUrl(test_config.MAP_CORE.base_url)
+    repo = RepositoryDetail(id="repo1", service_name="s", service_url=service_url, entity_ids=[])
+    mocker.patch("server.config.config.MAP_CORE.update_strategy", "patch")
+    mock_update = mocker.patch("server.services.repositories.update", return_value="called")
+
+    result = repositories.update_put(repo)
+
+    assert result == "called"
+    assert mock_update.called
 
 
 def test_update_put_raises_oauth_token_error_on_unauthorized(app, mocker: MockerFixture, test_config) -> None:
@@ -1169,19 +1158,6 @@ def test_update_put_raises_resource_not_found_on_map_error(app, mocker: MockerFi
 
     assert mock_logger.called
     assert "not found" in str(excinfo.value).lower()
-
-
-def test_update_put_calls_update_when_strategy_patch(app, mocker: MockerFixture, test_config) -> None:
-    """Tests that update_put delegates to update when config.MAP_CORE.update_strategy == 'patch'."""
-    service_url: HttpUrl = HttpUrl(test_config.MAP_CORE.base_url)
-    repo = RepositoryDetail(id="repo1", service_name="s", service_url=service_url, entity_ids=[])
-    mocker.patch("server.config.config.MAP_CORE.update_strategy", "patch")
-    mock_update = mocker.patch("server.services.repositories.update", return_value="called")
-
-    result = repositories.update_put(repo)
-
-    assert result == "called"
-    assert mock_update.called
 
 
 def test_delete_by_id_success(app, test_config, mocker: MockerFixture) -> None:

@@ -71,6 +71,21 @@ def test_get_client_credentials_db_error(mocker: MockerFixture):
     assert "Failed to get client credentials from database." in str(exc_info.value)
 
 
+def test_save_client_credentials(mocker: MockerFixture):
+    creds = ClientCredentials(
+        client_id="save_client_id",
+        client_secret="save_client_secret",
+    )
+    mock_save = mocker.patch("server.services.service_settings._save_setting")
+
+    save_client_credentials(creds)
+
+    mock_save.assert_called_once_with("client_credentials", ANY)
+    json_value = mock_save.call_args[0][1]
+    assert json_value["client_id"] == "save_client_id"
+    assert json_value["client_secret"] == "save_client_secret"
+
+
 def test_save_client_credentials_db_error(mocker: MockerFixture):
     creds = ClientCredentials(client_id="cid", client_secret="secret")
     mocker.patch("server.services.service_settings._save_setting", side_effect=Exception)
@@ -168,21 +183,6 @@ def test_save_oauth_token_serialization_error(mocker: MockerFixture):
         save_oauth_token(token_obj)
 
     assert "Invalid OAuth token to save." in str(exc_info.value)
-
-
-def test_save_client_credentials(mocker: MockerFixture):
-    creds = ClientCredentials(
-        client_id="save_client_id",
-        client_secret="save_client_secret",
-    )
-    mock_save = mocker.patch("server.services.service_settings._save_setting")
-
-    save_client_credentials(creds)
-
-    mock_save.assert_called_once_with("client_credentials", ANY)
-    json_value = mock_save.call_args[0][1]
-    assert json_value["client_id"] == "save_client_id"
-    assert json_value["client_secret"] == "save_client_secret"
 
 
 def test__get_setting(app, mocker: MockerFixture):
