@@ -16,6 +16,7 @@ from server.entities.search_request import SearchRequestParameter, SearchRespons
 from server.entities.summaries import GroupSummary
 from server.exc import (
     CredentialsError,
+    InvalidFormError,
     InvalidQueryError,
     OAuthTokenError,
     RequestConflict,
@@ -33,6 +34,9 @@ if t.TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
     from server.config import RuntimeConfig
+import typing as t
+
+from unittest.mock import MagicMock
 
 
 def test_search_successa(gen_group_id, mocker: MockerFixture) -> None:
@@ -564,6 +568,7 @@ def test_create_raises_oauth_token_error_propagation(gen_group_id, mocker: Mocke
     mocker.patch("server.services.repositories.get_by_id", return_value=None)
     mocker.patch("server.services.token.get_oauth_token", return_value=None)
     mocker.patch("server.services.groups.prepare_group")
+    mocker.patch("server.services.utils.detect_affiliation", return_value=None)
     mocker.patch("server.services.users.get_system_admins", return_value=[sysadmin_id])
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
@@ -2088,3 +2093,227 @@ def gen_group_id(test_config: RuntimeConfig) -> t.Callable[[str], str]:
         return pattern.format(repository_id="repo_id", user_defined_id=user_defined_id)
 
     return _gen_group_id
+
+
+def test_search_raw_true_success(gen_group_id, mocker):
+    criteria = make_criteria_object("groups", q="Test")
+    query_param = SearchRequestParameter(filter='displayName co "Test"')
+    mocker.patch("server.services.groups.build_search_query", return_value=query_param)
+    mocker.patch("server.services.groups.get_access_token", return_value="token")
+    mocker.patch("server.services.groups.get_client_secret", return_value="secret")
+    mock_groups_search = mocker.patch("server.services.groups.groups.search")
+    resources = [
+        MapGroup(id=gen_group_id("g2"), display_name="TestGroup2", public=False, member_list_visibility="Private")
+    ]
+    mock_groups_search.return_value = SearchResponse[MapGroup](
+        total_results=1, items_per_page=1, start_index=1, resources=resources
+    )
+    result = groups.search(criteria, raw=True)
+    assert isinstance(result, SearchResponse)
+    assert result.resources == resources
+
+
+def test_search_map_error_invalid_query(app: Flask, mocker: MockerFixture) -> None:
+    criteria = make_criteria_object("groups", q="Test")
+    query_param = SearchRequestParameter(filter='displayName co "Test"')
+    mocker.patch("server.services.groups.build_search_query", return_value=query_param)
+    mocker.patch("server.services.groups.get_access_token", return_value="token")
+    mocker.patch("server.services.groups.get_client_secret", return_value="secret")
+    mocker.patch(
+        "server.services.groups.groups.search",
+        return_value=MapError(detail="invalid query", status="400", scim_type="invalidSyntax"),
+    )
+    with pytest.raises(InvalidQueryError):
+        groups.search(criteria)
+
+
+def test_get_by_id_raw_true_success(gen_group_id, mocker):
+    group_id = gen_group_id("g100")
+    map_group = MapGroup(id=group_id, display_name="TestGroupById", public=True, member_list_visibility="Hidden")
+    mocker.patch("server.services.groups.get_access_token", return_value="token")
+    mocker.patch("server.services.groups.get_client_secret", return_value="secret")
+    mocker.patch("server.services.repositories.get_by_id", return_value=None)
+    mocker.patch("server.clients.groups.get_by_id", return_value=map_group)
+    result = groups.get_by_id(group_id, raw=True)
+    assert result == map_group
+
+
+def test_create_invalid_form_error(app, gen_group_id, mocker):
+    repository = Repository(id="repo1", service_name="jairocloud-groups-manager_dev")
+    group_info = GroupDetail(
+        id=gen_group_id("g7"),
+        display_name="NoSysAdminGroup",
+        user_defined_id="arb006",
+        description="A test group for no sysadmin.",
+        public=True,
+        member_list_visibility="Public",
+        repository=repository,
+        created=None,
+        last_modified=None,
+        users_count=2,
+        type="group",
+    )
+    mocker.patch("server.services.users.get_system_admins", return_value=["sysadmin"])
+    mocker.patch("server.services.groups.prepare_group", side_effect=InvalidFormError("invalid form"))
+    with pytest.raises(InvalidFormError):
+        groups.create(group_info)
+
+
+def test_update_delegates_to_update_put(app, gen_group_id, mocker):
+    group = MagicMock(spec=GroupDetail)
+    mocker.patch.object(groups.config.MAP_CORE, "update_strategy", new="put")
+    mock_update_put = mocker.patch("server.services.groups.update_put", return_value="put_result")
+    result = groups.update(group)
+    assert result == "put_result"
+    mock_update_put.assert_called_once_with(group)
+
+
+def test_update_invalid_form_error(app, gen_group_id, mocker):
+    group_id = gen_group_id("g200")
+    group = GroupDetail(
+        id=group_id,
+        display_name="UpdatedGroup",
+        user_defined_id=None,
+        description=None,
+        public=True,
+        member_list_visibility="Public",
+        repository=None,
+        created=None,
+        last_modified=None,
+        users_count=1,
+        type="group",
+    )
+    mocker.patch.object(groups.config.MAP_CORE, "update_strategy", new="patch")
+    mocker.patch("server.services.groups.get_by_id", return_value=group)
+    mocker.patch("server.services.groups.get_access_token", return_value="token")
+    mocker.patch("server.services.groups.get_client_secret", return_value="secret")
+    mocker.patch("server.clients.groups.patch_by_id", side_effect=InvalidFormError("invalid form"))
+    with pytest.raises(InvalidFormError):
+        groups.update(group)
+
+
+def test_update_put_direct_success(app, gen_group_id, mocker):
+    group_id = gen_group_id("g200")
+
+    map_group = MapGroup(
+        id=group_id,
+        display_name="UpdatedGroup",
+        public=True,
+        member_list_visibility="Public",
+        members=[],
+        administrators=[],
+        services=[],
+    )
+    group = GroupDetail(
+        id=group_id,
+        display_name="UpdatedGroup",
+        user_defined_id=None,
+        description=None,
+        public=True,
+        member_list_visibility="Public",
+        repository=None,
+        created=None,
+        last_modified=None,
+        users_count=None,
+        type="group",
+    )
+    mocker.patch("server.services.groups.get_access_token", return_value="token")
+    mocker.patch("server.services.groups.get_client_secret", return_value="secret")
+    mocker.patch("server.services.groups.prepare_group", return_value=group)
+    mocker.patch("server.clients.groups.put_by_id", return_value=group)
+    mocker.patch("server.services.groups.get_by_id", return_value=group)
+    mocker.patch("server.clients.groups.patch_by_id", return_value=map_group)
+    result = groups.update_put(group)
+    assert isinstance(result, GroupDetail)
+    assert result.model_dump() == group.model_dump()
+
+
+def test_delete_by_id_map_error_not_found(gen_group_id, mocker):
+    group_id = gen_group_id("g200")
+    mocker.patch("server.services.groups.get_access_token", return_value="token")
+    mocker.patch("server.services.groups.get_client_secret", return_value="secret")
+    mocker.patch(
+        "server.clients.groups.delete_by_id",
+        return_value=MapError(detail=f"Group '{group_id}' Not Found", status="404", scim_type="noTarget"),
+    )
+    with pytest.raises(ResourceNotFound):
+        groups.delete_by_id(group_id)
+
+
+def test_update_member_delegates_to_update_member_put(app, gen_group_id, mocker):
+    group_id = gen_group_id("g300")
+    mocker.patch.object(groups.config.MAP_CORE, "update_strategy", new="put")
+    mock_update_member_put = mocker.patch("server.services.groups.update_member_put", return_value="put_result")
+    result = groups.update_member(group_id, {"u1"}, {"u2"})
+    assert result == "put_result"
+    mock_update_member_put.assert_called_once_with(group_id, {"u1"}, {"u2"})
+
+
+def test_update_member_get_by_id_none(app, gen_group_id, mocker):
+    group_id = gen_group_id("g301")
+    mocker.patch.object(groups.config.MAP_CORE, "update_strategy", new="patch")
+    mocker.patch("server.services.groups.get_by_id", return_value=None)
+    with pytest.raises(ResourceNotFound):
+        groups.update_member(group_id, add={"u1"}, remove={"u2"})
+
+
+def test_update_member_map_error(app, gen_group_id, mocker):
+    group_id = gen_group_id("g302")
+    group = MapGroup(
+        id=group_id,
+        display_name="UpdatedGroup",
+        public=True,
+        member_list_visibility="Public",
+        members=[],
+        administrators=[],
+        services=[],
+    )
+    mocker.patch.object(groups.config.MAP_CORE, "update_strategy", new="patch")
+    mocker.patch("server.services.groups.get_by_id", return_value=group)
+    mocker.patch("server.services.groups.get_access_token", return_value="token")
+    mocker.patch("server.services.groups.get_client_secret", return_value="secret")
+    mocker.patch("server.services.users.get_system_admins", return_value=["sysadmin"])
+    mocker.patch(
+        "server.clients.groups.patch_by_id",
+        return_value=MapError(detail="invalid", status="400", scim_type="invalidValue"),
+    )
+    with pytest.raises(ResourceInvalid):
+        groups.update_member(group_id, add={"u1"}, remove={"u2"})
+
+
+def test_update_member_put_direct_success(app, gen_group_id, mocker):
+    group_id = gen_group_id("g400")
+    group = MapGroup(
+        id=group_id,
+        display_name="UpdatedGroup",
+        public=True,
+        member_list_visibility="Public",
+        members=[],
+        administrators=[],
+        services=[],
+    )
+    group.members = []
+    mocker.patch("server.services.groups.get_access_token", return_value="token")
+    mocker.patch("server.services.groups.get_client_secret", return_value="secret")
+    mocker.patch("server.services.groups.get_by_id", return_value=group)
+    mocker.patch("server.clients.groups.patch_by_id", return_value=group)
+    mocker.patch("server.services.users.get_system_admins", return_value=["sysadmin"])
+    mocker.patch("server.clients.groups.put_by_id", return_value=group)
+    result = groups.update_member_put(group_id, {"u1"}, {"u2"})
+    assert isinstance(result, GroupDetail)
+    assert (
+        result.model_dump()
+        == GroupDetail(
+            id=group_id,
+            user_defined_id=None,
+            display_name="UpdatedGroup",
+            description=None,
+            public=True,
+            member_list_visibility="Public",
+            repository=None,
+            type="group",
+            created=None,
+            last_modified=None,
+            users_count=None,
+        ).model_dump()
+    )
