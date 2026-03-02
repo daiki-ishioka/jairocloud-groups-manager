@@ -714,149 +714,6 @@ def test_update_raises_resource_invalid_on_map_error(app, mocker: MockerFixture)
     assert mock_logger.called
 
 
-def test_get_system_admins_success(mocker: MockerFixture) -> None:
-
-    map_user1 = MapUser(id="u1", user_name="u1", schemas=["a"], emails=[])
-    map_user2 = MapUser(id="u2", user_name="u2", schemas=["a"], emails=[])
-    mocker.patch("server.services.users.search", return_value=type("obj", (), {"resources": [map_user1, map_user2]})())
-    result = users.get_system_admins()
-    assert isinstance(result, set)
-    assert result == {"u1", "u2"}
-
-
-def test_get_system_admins_success_raw(mocker: MockerFixture) -> None:
-
-    map_user1 = MapUser(id="u1", user_name="u1", schemas=["a"], emails=[])
-    map_user2 = MapUser(id="u2", user_name="u2", schemas=["a"], emails=[])
-    mocker.patch("server.services.users.search", return_value=type("obj", (), {"resources": [map_user1, map_user2]})())
-    result = users.get_system_admins(raw=True)
-    assert isinstance(result, list)
-    assert all(isinstance(u, MapUser) for u in result)
-    assert {u.id for u in result} == {"u1", "u2"}
-
-
-def test_count_success(mocker: MockerFixture) -> None:
-    """Test count returns total_results on success."""
-    total_results = 42
-    criteria = make_criteria_object("users", q='userName eq "u"')
-    mocker.patch("server.services.users.build_search_query", return_value="query")
-    mocker.patch("server.services.users.get_access_token", return_value="token")
-    mocker.patch("server.services.users.get_client_secret", return_value="secret")
-    mock_result = type("obj", (), {"total_results": total_results})()
-    mocker.patch("server.clients.users.search", return_value=mock_result)
-    result = users.count(criteria)
-    assert result == total_results
-
-
-def test_count_raises_oauth_token_error_on_unauthorized(mocker: MockerFixture) -> None:
-    """Test count raises OAuthTokenError on HTTP 401."""
-    criteria = make_criteria_object("users", q='userName eq "u"')
-    mocker.patch("server.services.users.build_search_query", return_value="query")
-    mocker.patch("server.services.users.get_access_token", return_value="token")
-    mocker.patch("server.services.users.get_client_secret", return_value="secret")
-    response = Response()
-    response.status_code = HTTPStatus.UNAUTHORIZED
-    http_error = requests.HTTPError(response=response)
-    mocker.patch("server.clients.users.search", side_effect=http_error)
-    with pytest.raises(OAuthTokenError):
-        users.count(criteria)
-
-
-def test_count_raises_unexpected_response_error_on_internal_server_error(mocker: MockerFixture) -> None:
-    """Test count raises UnexpectedResponseError on HTTP 500."""
-    criteria = make_criteria_object("users", q='userName eq "u"')
-    mocker.patch("server.services.users.build_search_query", return_value="query")
-    mocker.patch("server.services.users.get_access_token", return_value="token")
-    mocker.patch("server.services.users.get_client_secret", return_value="secret")
-    response = Response()
-    response.status_code = HTTPStatus.INTERNAL_SERVER_ERROR
-    http_error = requests.HTTPError(response=response)
-    mocker.patch("server.clients.users.search", side_effect=http_error)
-    with pytest.raises(UnexpectedResponseError):
-        users.count(criteria)
-
-
-def test_count_raises_unexpected_response_error_on_other_http_error(mocker: MockerFixture) -> None:
-    """Test count raises UnexpectedResponseError on other HTTP errors."""
-    criteria = make_criteria_object("users", q='userName eq "u"')
-    mocker.patch("server.services.users.build_search_query", return_value="query")
-    mocker.patch("server.services.users.get_access_token", return_value="token")
-    mocker.patch("server.services.users.get_client_secret", return_value="secret")
-    response = Response()
-    response.status_code = HTTPStatus.BAD_REQUEST
-    http_error = requests.HTTPError(response=response)
-    mocker.patch("server.clients.users.search", side_effect=http_error)
-    with pytest.raises(UnexpectedResponseError):
-        users.count(criteria)
-
-
-def test_count_raises_unexpected_response_error_on_request_exception(mocker: MockerFixture) -> None:
-    """Test count raises UnexpectedResponseError on requests.RequestException."""
-    criteria = make_criteria_object("users", q='userName eq "u"')
-    mocker.patch("server.services.users.build_search_query", return_value="query")
-    mocker.patch("server.services.users.get_access_token", return_value="token")
-    mocker.patch("server.services.users.get_client_secret", return_value="secret")
-    mocker.patch("server.clients.users.search", side_effect=requests.RequestException("fail"))
-    with pytest.raises(UnexpectedResponseError):
-        users.count(criteria)
-
-
-def test_count_raises_unexpected_response_error_on_validation_error(mocker: MockerFixture) -> None:
-    """Test count raises UnexpectedResponseError on ValidationError."""
-    criteria = make_criteria_object("users", q='userName eq "u"')
-    mocker.patch("server.services.users.build_search_query", return_value="query")
-    mocker.patch("server.services.users.get_access_token", return_value="token")
-    mocker.patch("server.services.users.get_client_secret", return_value="secret")
-    mocker.patch("server.clients.users.search", side_effect=ValidationError("fail", []))
-    with pytest.raises(UnexpectedResponseError):
-        users.count(criteria)
-
-
-def test_count_reraises_invalid_query_error(mocker: MockerFixture) -> None:
-    """Test count re-raises InvalidQueryError directly from try block."""
-    criteria = make_criteria_object("users", q='userName eq "u"')
-    mocker.patch("server.services.users.build_search_query", side_effect=InvalidQueryError("fail"))
-    with pytest.raises(InvalidQueryError):
-        users.count(criteria)
-
-
-def test_count_reraises_oauth_token_error(mocker: MockerFixture) -> None:
-    """Test count re-raises OAuthTokenError directly from try block."""
-    criteria = make_criteria_object("users", q='userName eq "u"')
-    mocker.patch("server.services.users.build_search_query", side_effect=OAuthTokenError("fail"))
-    with pytest.raises(OAuthTokenError):
-        users.count(criteria)
-
-
-def test_count_reraises_credentials_error(mocker: MockerFixture) -> None:
-    """Test count re-raises CredentialsError directly from try block."""
-    criteria = make_criteria_object("users", q='userName eq "u"')
-    mocker.patch("server.services.users.build_search_query", side_effect=users.CredentialsError("fail"))
-    with pytest.raises(users.CredentialsError):
-        users.count(criteria)
-
-
-def test_count_raises_invalid_query_error_on_map_error(app, mocker: MockerFixture) -> None:
-    """Test count raises InvalidQueryError and logs when MapError is returned."""
-    criteria = make_criteria_object("users", q='userName eq "u"')
-    mocker.patch("server.services.users.build_search_query", return_value="query")
-    mocker.patch("server.services.users.get_access_token", return_value="token")
-    mocker.patch("server.services.users.get_client_secret", return_value="secret")
-    map_error = MapError(detail="invalid query", status="400", scim_type="invalidSyntax")
-    mocker.patch("server.clients.users.search", return_value=map_error)
-    mock_logger = mocker.patch("flask.current_app.logger.info")
-    with pytest.raises(InvalidQueryError):
-        users.count(criteria)
-    assert mock_logger.called
-
-
-@pytest.fixture
-def user_data() -> tuple[dict[str, t.Any], MapUser]:
-    json_data = load_json_data("data/map_user.json")
-    user = MapUser.model_validate(json_data)
-    return json_data, user
-
-
 @pytest.mark.parametrize(
     ("editable", "strategy"), [(False, "patch"), (False, "put")], ids=["editable_false_patch", "editable_false_put"]
 )
@@ -1124,3 +981,146 @@ def test_update_affiliations_remove_op_regex_fail(app, mocker):
     update_affiliations(user)
     mock_groups.assert_not_called()
     assert mock_logger.called
+
+
+def test_get_system_admins_success(mocker: MockerFixture) -> None:
+
+    map_user1 = MapUser(id="u1", user_name="u1", schemas=["a"], emails=[])
+    map_user2 = MapUser(id="u2", user_name="u2", schemas=["a"], emails=[])
+    mocker.patch("server.services.users.search", return_value=type("obj", (), {"resources": [map_user1, map_user2]})())
+    result = users.get_system_admins()
+    assert isinstance(result, set)
+    assert result == {"u1", "u2"}
+
+
+def test_get_system_admins_success_raw(mocker: MockerFixture) -> None:
+
+    map_user1 = MapUser(id="u1", user_name="u1", schemas=["a"], emails=[])
+    map_user2 = MapUser(id="u2", user_name="u2", schemas=["a"], emails=[])
+    mocker.patch("server.services.users.search", return_value=type("obj", (), {"resources": [map_user1, map_user2]})())
+    result = users.get_system_admins(raw=True)
+    assert isinstance(result, list)
+    assert all(isinstance(u, MapUser) for u in result)
+    assert {u.id for u in result} == {"u1", "u2"}
+
+
+def test_count_success(mocker: MockerFixture) -> None:
+    """Test count returns total_results on success."""
+    total_results = 42
+    criteria = make_criteria_object("users", q='userName eq "u"')
+    mocker.patch("server.services.users.build_search_query", return_value="query")
+    mocker.patch("server.services.users.get_access_token", return_value="token")
+    mocker.patch("server.services.users.get_client_secret", return_value="secret")
+    mock_result = type("obj", (), {"total_results": total_results})()
+    mocker.patch("server.clients.users.search", return_value=mock_result)
+    result = users.count(criteria)
+    assert result == total_results
+
+
+def test_count_raises_oauth_token_error_on_unauthorized(mocker: MockerFixture) -> None:
+    """Test count raises OAuthTokenError on HTTP 401."""
+    criteria = make_criteria_object("users", q='userName eq "u"')
+    mocker.patch("server.services.users.build_search_query", return_value="query")
+    mocker.patch("server.services.users.get_access_token", return_value="token")
+    mocker.patch("server.services.users.get_client_secret", return_value="secret")
+    response = Response()
+    response.status_code = HTTPStatus.UNAUTHORIZED
+    http_error = requests.HTTPError(response=response)
+    mocker.patch("server.clients.users.search", side_effect=http_error)
+    with pytest.raises(OAuthTokenError):
+        users.count(criteria)
+
+
+def test_count_raises_unexpected_response_error_on_internal_server_error(mocker: MockerFixture) -> None:
+    """Test count raises UnexpectedResponseError on HTTP 500."""
+    criteria = make_criteria_object("users", q='userName eq "u"')
+    mocker.patch("server.services.users.build_search_query", return_value="query")
+    mocker.patch("server.services.users.get_access_token", return_value="token")
+    mocker.patch("server.services.users.get_client_secret", return_value="secret")
+    response = Response()
+    response.status_code = HTTPStatus.INTERNAL_SERVER_ERROR
+    http_error = requests.HTTPError(response=response)
+    mocker.patch("server.clients.users.search", side_effect=http_error)
+    with pytest.raises(UnexpectedResponseError):
+        users.count(criteria)
+
+
+def test_count_raises_unexpected_response_error_on_other_http_error(mocker: MockerFixture) -> None:
+    """Test count raises UnexpectedResponseError on other HTTP errors."""
+    criteria = make_criteria_object("users", q='userName eq "u"')
+    mocker.patch("server.services.users.build_search_query", return_value="query")
+    mocker.patch("server.services.users.get_access_token", return_value="token")
+    mocker.patch("server.services.users.get_client_secret", return_value="secret")
+    response = Response()
+    response.status_code = HTTPStatus.BAD_REQUEST
+    http_error = requests.HTTPError(response=response)
+    mocker.patch("server.clients.users.search", side_effect=http_error)
+    with pytest.raises(UnexpectedResponseError):
+        users.count(criteria)
+
+
+def test_count_raises_unexpected_response_error_on_request_exception(mocker: MockerFixture) -> None:
+    """Test count raises UnexpectedResponseError on requests.RequestException."""
+    criteria = make_criteria_object("users", q='userName eq "u"')
+    mocker.patch("server.services.users.build_search_query", return_value="query")
+    mocker.patch("server.services.users.get_access_token", return_value="token")
+    mocker.patch("server.services.users.get_client_secret", return_value="secret")
+    mocker.patch("server.clients.users.search", side_effect=requests.RequestException("fail"))
+    with pytest.raises(UnexpectedResponseError):
+        users.count(criteria)
+
+
+def test_count_raises_unexpected_response_error_on_validation_error(mocker: MockerFixture) -> None:
+    """Test count raises UnexpectedResponseError on ValidationError."""
+    criteria = make_criteria_object("users", q='userName eq "u"')
+    mocker.patch("server.services.users.build_search_query", return_value="query")
+    mocker.patch("server.services.users.get_access_token", return_value="token")
+    mocker.patch("server.services.users.get_client_secret", return_value="secret")
+    mocker.patch("server.clients.users.search", side_effect=ValidationError("fail", []))
+    with pytest.raises(UnexpectedResponseError):
+        users.count(criteria)
+
+
+def test_count_reraises_invalid_query_error(mocker: MockerFixture) -> None:
+    """Test count re-raises InvalidQueryError directly from try block."""
+    criteria = make_criteria_object("users", q='userName eq "u"')
+    mocker.patch("server.services.users.build_search_query", side_effect=InvalidQueryError("fail"))
+    with pytest.raises(InvalidQueryError):
+        users.count(criteria)
+
+
+def test_count_reraises_oauth_token_error(mocker: MockerFixture) -> None:
+    """Test count re-raises OAuthTokenError directly from try block."""
+    criteria = make_criteria_object("users", q='userName eq "u"')
+    mocker.patch("server.services.users.build_search_query", side_effect=OAuthTokenError("fail"))
+    with pytest.raises(OAuthTokenError):
+        users.count(criteria)
+
+
+def test_count_reraises_credentials_error(mocker: MockerFixture) -> None:
+    """Test count re-raises CredentialsError directly from try block."""
+    criteria = make_criteria_object("users", q='userName eq "u"')
+    mocker.patch("server.services.users.build_search_query", side_effect=users.CredentialsError("fail"))
+    with pytest.raises(users.CredentialsError):
+        users.count(criteria)
+
+
+def test_count_raises_invalid_query_error_on_map_error(app, mocker: MockerFixture) -> None:
+    """Test count raises InvalidQueryError and logs when MapError is returned."""
+    criteria = make_criteria_object("users", q='userName eq "u"')
+    mocker.patch("server.services.users.build_search_query", return_value="query")
+    mocker.patch("server.services.users.get_access_token", return_value="token")
+    mocker.patch("server.services.users.get_client_secret", return_value="secret")
+    map_error = MapError(detail="invalid query", status="400", scim_type="invalidSyntax")
+    mocker.patch("server.clients.users.search", return_value=map_error)
+    mock_logger = mocker.patch("flask.current_app.logger.info")
+    with pytest.raises(InvalidQueryError):
+        users.count(criteria)
+    assert mock_logger.called
+
+
+@pytest.fixture
+def user_data() -> tuple[dict[str, t.Any], MapUser]:
+    json_data = load_json_data("data/map_user.json")
+    user = MapUser.model_validate(json_data)
+    return json_data, user

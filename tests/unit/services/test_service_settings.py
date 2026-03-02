@@ -4,6 +4,8 @@ from unittest.mock import ANY
 
 import pytest
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from server.db.service_settings import ServiceSettings
 from server.entities.auth import ClientCredentials, OAuthToken
 from server.exc import (
@@ -26,17 +28,14 @@ if t.TYPE_CHECKING:
 
 
 def test_get_client_credentials(mocker: MockerFixture):
-    setting = {
-        "client_id": "test_client_id",
-        "client_secret": "test_client_secret",
-    }
+    setting = {"client_id": "351cd8d67ea4ae85", "client_secret": "0a7c880772cec76485e0634370013af0"}
     mock_get = mocker.patch("server.services.service_settings._get_setting", return_value=setting)
 
     creds = get_client_credentials()
 
     assert creds is not None
-    assert creds.client_id == "test_client_id"
-    assert creds.client_secret == "test_client_secret"
+    assert creds.client_id == "351cd8d67ea4ae85"
+    assert creds.client_secret == "0a7c880772cec76485e0634370013af0"
     mock_get.assert_called_once_with("client_credentials")
 
 
@@ -50,7 +49,6 @@ def test_get_client_credentials_no_setting(mocker: MockerFixture):
 def test_get_client_credentials_invalid_setting(mocker: MockerFixture):
     setting = {
         "client_id": "test_client_id",
-        # Missing client_secret
     }
     mock_get = mocker.patch("server.services.service_settings._get_setting", return_value=setting)
 
@@ -62,8 +60,8 @@ def test_get_client_credentials_invalid_setting(mocker: MockerFixture):
 
 
 def test_get_client_credentials_db_error(mocker: MockerFixture):
-    mocker.patch("server.services.service_settings._get_setting", side_effect=Exception)
-    mocker.patch("server.services.service_settings.SQLAlchemyError", Exception)
+
+    mocker.patch("server.services.service_settings._get_setting", side_effect=SQLAlchemyError("DB error"))
 
     with pytest.raises(DatabaseError) as exc_info:
         get_client_credentials()
@@ -111,13 +109,19 @@ def test_save_client_credentials_serialization_error(mocker: MockerFixture):
 
 
 def test_get_oauth_token_success(mocker: MockerFixture):
-    setting = {"access_token": "tok", "token_type": "bearer", "expires_in": 3600, "refresh_token": None, "scope": ""}
+    setting = {
+        "scope": None,
+        "expires_in": 3600,
+        "token_type": "Bearer",
+        "access_token": "63bca9bba857b54c4ccd6bf11ea8d2b600440f35",
+        "refresh_token": "04de2e30f9101e13b7f7cc460309d8931b7643ed",
+    }
     mock_get = mocker.patch("server.services.service_settings._get_setting", return_value=setting)
 
     token = get_oauth_token()
 
     assert token is not None
-    assert token.access_token == "tok"
+    assert token.access_token == "63bca9bba857b54c4ccd6bf11ea8d2b600440f35"
     mock_get.assert_called_once_with("oauth_token")
 
 

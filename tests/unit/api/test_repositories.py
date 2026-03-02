@@ -41,7 +41,7 @@ def test_get_invalid_query_error(app, mocker: MockerFixture) -> None:
 
     original_func = inspect.unwrap(repositories.get)
 
-    response = original_func(RepositoriesQuery(q=None, i=None, k=None, d=None, p=None))
+    response = original_func(RepositoriesQuery(q="search", i=["repo1"], k="created", d="desc", p=3, l=20))
     data, status, *_ = response
     assert status == expected_status
     assert isinstance(data, repositories.ErrorResponse)

@@ -4,6 +4,7 @@ import pytest
 
 from server.services import filter_options
 from server.services.utils.search_queries import (
+    Criteria,
     UsersCriteria,
 )
 
@@ -48,7 +49,7 @@ def test_search_repositories_options_normal(mocker: MockerFixture) -> None:
 def test_search_groups_options_normal(mocker: MockerFixture) -> None:
 
     expected = [
-        filter_options.FilterOption(key="q", description="query", type="string", multiple=False, items=None),
+        filter_options.FilterOption(key="q", description="query", type="date", multiple=False, items=None),
         filter_options.FilterOption(key="r", description="sort key", type="string", multiple=True, items=[]),
         filter_options.FilterOption(key="u", description="sort key", type="string", multiple=True, items=None),
         filter_options.FilterOption(
@@ -78,7 +79,7 @@ def test_search_groups_options_normal(mocker: MockerFixture) -> None:
     mocker.patch.object(filter_options.FilterOption, "_alias_generator", side_effect=lambda x: x)
     mocker.patch(
         "server.services.filter_options._initial_options",
-        return_value=[filter_options.FilterOption(key="q", description="query", type="string", multiple=False)],
+        return_value=[filter_options.FilterOption(key="q", description="query", type="date", multiple=False)],
     )
     mocker.patch(
         "server.services.filter_options._common_options",
@@ -236,6 +237,12 @@ def test__get_type_variants() -> None:
     assert filter_options._get_type(UsersCriteria, "a") == "number"  # noqa: SLF001
     assert filter_options._get_type(UsersCriteria, "s") == "date"  # noqa: SLF001
     assert filter_options._get_type(UsersCriteria, "e") == "date"  # noqa: SLF001
+    assert filter_options._get_type(Criteria, "q") == "string"  # noqa: SLF001
+    assert filter_options._get_type(Criteria, "i") == "string"  # noqa: SLF001
+    assert filter_options._get_type(Criteria, "k") == "string"  # noqa: SLF001
+    assert filter_options._get_type(Criteria, "d") == "string"  # noqa: SLF001
+    assert filter_options._get_type(Criteria, "p") == "number"  # noqa: SLF001
+    assert filter_options._get_type(Criteria, "l") == "number"  # noqa: SLF001
 
 
 def test__allow_multiple_variants() -> None:
