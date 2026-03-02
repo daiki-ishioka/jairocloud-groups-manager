@@ -20,6 +20,7 @@ from server.const import MAP_NOT_FOUND_PATTERN
 from server.entities.bulk_request import BulkOperation
 from server.entities.group_detail import GroupDetail
 from server.entities.map_error import MapError
+from server.entities.map_group import MapGroup, MemberUser
 from server.entities.search_request import SearchResponse, SearchResult
 from server.entities.summaries import GroupSummary
 from server.exc import (
@@ -47,7 +48,6 @@ from .utils import (
 
 if t.TYPE_CHECKING:
     from server.clients.groups import GroupsSearchResponse
-    from server.entities.map_group import MapGroup
     from server.entities.patch_request import PatchOperation
 
 
@@ -152,16 +152,19 @@ def search(
 
 
 @t.overload
-def get_by_id(group_id: str) -> GroupDetail | None: ...
+def get_by_id(group_id: str, *, more_detail: bool = False) -> GroupDetail | None: ...
 @t.overload
 def get_by_id(group_id: str, *, raw: t.Literal[True]) -> MapGroup | None: ...
 
 
-def get_by_id(group_id: str, *, raw: bool = False) -> GroupDetail | MapGroup | None:
+def get_by_id(
+    group_id: str, *, raw: bool = False, more_detail: bool = False
+) -> GroupDetail | MapGroup | None:
     """Get group from mAP Core API by group_id.
 
     Args:
         group_id (str): ID of the Group resource.
+        more_detail (bool): If True, include more detail sach as repository name.
         raw (bool): If True, return raw MapGroup object. Defaults to False.
 
     Returns:
@@ -212,7 +215,7 @@ def get_by_id(group_id: str, *, raw: bool = False) -> GroupDetail | MapGroup | N
     if raw:
         return result
 
-    return GroupDetail.from_map_group(result)
+    return GroupDetail.from_map_group(result, more_detail=more_detail)
 
 
 def create(group: GroupDetail) -> GroupDetail:
@@ -302,7 +305,7 @@ def update(group: GroupDetail) -> GroupDetail:
         group_id = t.cast("str", group.id)
         current: GroupDetail | None = get_by_id(group_id)
         if current is None:
-            error = f"'Group {group_id}' Not Found"
+            error = f"Group '{group_id}' Not Found"
             raise ResourceNotFound(error)
 
         operations: list[PatchOperation[MapGroup]] = build_patch_operations(
@@ -526,7 +529,9 @@ def delete_by_id(group_id: str) -> None:
     raise ResourceInvalid(result.detail)
 
 
-def update_member(group_id: str, add: set[str], remove: set[str]) -> GroupDetail:
+def update_member(  # noqa: C901
+    group_id: str, add: set[str] | None = None, remove: set[str] | None = None
+) -> GroupDetail:
     """Update group members by group_id in mAP Core API .
 
     Args:
@@ -541,23 +546,31 @@ def update_member(group_id: str, add: set[str], remove: set[str]) -> GroupDetail
         OAuthTokenError: If the access token is invalid or expired.
         CredentialsError: If the client credentials are invalid.
         ResourceInvalid: If the Group resource data is invalid.
+        ResourceNotFound: If the Group resource is not found.
         RequestConflict: If the User id exists in both "add" and "remove".
         UnexpectedResponseError: If response from mAP Core API is unexpected.
     """
+    if config.MAP_CORE.update_strategy == "put":
+        return update_member_put(group_id, add, remove)
+
+    add = add or set()
+    remove = remove or set()
+
     if add & remove:
-        error = "cannot add and remove the same user."
+        error = "Conflict user IDs in add and remove."
         raise RequestConflict(error)
+
+    current = get_by_id(group_id, raw=True)
+    if current is None:
+        error = f"Group '{group_id}' Not Found"
+        raise ResourceNotFound(error)
+
     try:
         access_token = get_access_token()
         client_secret = get_client_secret()
-        target = groups.get_by_id(
-            group_id, access_token=access_token, client_secret=client_secret
-        )
-        if isinstance(target, MapError):
-            current_app.logger.info(target.detail)
-            raise ResourceInvalid(target.detail)
+
         user_list: set[str] = {
-            u.value for u in (target.members or []) if u.type == "User"
+            u.value for u in (current.members or []) if u.type == "User"
         }
         system_admins = users.get_system_admins()
         operations = build_update_member_operations(
@@ -597,6 +610,94 @@ def update_member(group_id: str, add: set[str], remove: set[str]) -> GroupDetail
 
     if isinstance(result, MapError):
         current_app.logger.info(result.detail)
+        raise ResourceInvalid(result.detail)
+
+    return GroupDetail.from_map_group(result)
+
+
+def update_member_put(  # noqa: C901
+    group_id: str, add: set[str] | None = None, remove: set[str] | None = None
+) -> GroupDetail:
+    """Update group members by group_id in mAP Core API (replace with PUT).
+
+    Args:
+        group_id (str): ID of the Group resource.
+        add (list[str]): List of user IDs to add .
+        remove (list[str]): List of user IDs to remove.
+
+    Returns:
+        GroupDetail: updated group detail
+
+    Raises:
+        OAuthTokenError: If the access token is invalid or expired.
+        CredentialsError: If the client credentials are invalid.
+        ResourceInvalid: If the Group resource data is invalid.
+        ResourceNotFound: If the Group resource is not found.
+        RequestConflict: If the User id exists in both "add" and "remove".
+        UnexpectedResponseError: If response from mAP Core API is unexpected.
+    """
+    if config.MAP_CORE.update_strategy == "patch":
+        return update_member(group_id, add, remove)
+
+    add = add or set()
+    remove = remove or set()
+
+    if add & remove:
+        error = "Conflict user IDs in add and remove."
+        raise RequestConflict(error)
+
+    current = get_by_id(group_id, raw=True)
+    if current is None:
+        error = f"Group '{group_id}' Not Found"
+        raise ResourceNotFound(error)
+
+    existing = {m.value for m in current.members or [] if m.type == "User"}
+    current.members = [
+        m for m in (current.members or []) if m.type == "Group" or m.value not in remove
+    ]
+    current.members.extend(
+        MemberUser(type="User", value=uid) for uid in add if uid not in existing
+    )
+
+    try:
+        access_token = get_access_token()
+        client_secret = get_client_secret()
+
+        result: MapGroup | MapError = groups.put_by_id(
+            current,
+            exclude=({"external_id", "meta"}),
+            access_token=access_token,
+            client_secret=client_secret,
+        )
+    except requests.HTTPError as exc:
+        code = exc.response.status_code
+        if code == HTTPStatus.UNAUTHORIZED:
+            error = "Access token is invalid or expired."
+            raise OAuthTokenError(error) from exc
+
+        if code == HTTPStatus.INTERNAL_SERVER_ERROR:
+            error = "mAP Core API server error."
+            raise UnexpectedResponseError(error) from exc
+
+        error = "Failed to update Group resource from mAP Core API."
+        raise UnexpectedResponseError(error) from exc
+
+    except requests.RequestException as exc:
+        error = "Failed to communicate with mAP Core API."
+        raise UnexpectedResponseError(error) from exc
+
+    except ValidationError as exc:
+        error = "Failed to parse Group resource from mAP Core API."
+        raise UnexpectedResponseError(error) from exc
+
+    except OAuthTokenError, CredentialsError:
+        raise
+
+    if isinstance(result, MapError):
+        current_app.logger.info(result.detail)
+        if re.search(MAP_NOT_FOUND_PATTERN, result.detail):
+            raise ResourceNotFound(result.detail)
+
         raise ResourceInvalid(result.detail)
 
     return GroupDetail.from_map_group(result)

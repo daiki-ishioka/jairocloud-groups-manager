@@ -124,7 +124,7 @@ class RuntimeConfig(BaseSettings):
         elif cache_type == "RedisSentinelCache" and self.REDIS.sentinel:
             sentinels = [
                 f"sentinel://{node.host}:{node.port}"
-                for node in self.REDIS.sentinel.sentinels
+                for node in self.REDIS.sentinel.nodes
             ]
             master_name = self.REDIS.sentinel.master_name
             config["result_backend"] = f"{';'.join(sentinels)}/{database}"
@@ -421,6 +421,9 @@ class MapCoreConfig(BaseModel):
     update_strategy: t.Literal["put", "patch"] = "patch"
     """Update strategy for mAP Core service."""
 
+    user_editable: bool = True
+    """Whether the user information is editable via this application."""
+
 
 class PostgresConfig(BaseModel):
     """Schema for PostgreSQL database configuration."""
@@ -450,7 +453,10 @@ class RedisConfig(BaseModel):
     Possible values are 'RedisCache' and 'RedisSentinelCache'.
     """
 
-    default_timeout: t.Annotated[int, "seconds"] = 300
+    socket_timeout: float = 1.0
+    """Socket timeout (in seconds) for Redis connections."""
+
+    cache_timeout: t.Annotated[int, "seconds"] = 300
     """Default timeout (in seconds) for cached items."""
 
     key_prefix: str = "jcgroups_"
@@ -502,7 +508,7 @@ class RedisSentinelCacheConfig(BaseModel):
     master_name: str = "mymaster"
     """Name of the Redis Sentinel master node."""
 
-    sentinels: list[SentinelNodeConfig] = Field(default_factory=list)
+    nodes: list[SentinelNodeConfig] = Field(default_factory=list)
 
 
 class SentinelNodeConfig(BaseModel):
