@@ -437,6 +437,7 @@ def test_create_success(app, mocker: MockerFixture) -> None:
     map_user = MapUser(id="u1", user_name="u", schemas=["a"], emails=[])
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
+    mocker.patch("server.services.users.prepare_user", return_value=map_user)
     mocker.patch("server.clients.users.post", return_value=map_user)
     result = users.create(user)
     assert isinstance(result, UserDetail)
@@ -446,6 +447,8 @@ def test_create_success(app, mocker: MockerFixture) -> None:
 def test_create_raises_oauth_token_error_on_unauthorized(mocker: MockerFixture) -> None:
 
     user = UserDetail(id="u1", user_name="u", emails=[])
+    map_user = MapUser(id="u1", user_name="u", schemas=["a"], emails=[])
+    mocker.patch("server.services.users.prepare_user", return_value=map_user)
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
     response = Response()
@@ -459,6 +462,8 @@ def test_create_raises_oauth_token_error_on_unauthorized(mocker: MockerFixture) 
 def test_create_raises_unexpected_response_error_on_internal_server_error(mocker: MockerFixture) -> None:
 
     user = UserDetail(id="u1", user_name="u", emails=[])
+    map_user = MapUser(id="u1", user_name="u", schemas=["a"], emails=[])
+    mocker.patch("server.services.users.prepare_user", return_value=map_user)
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
     response = Response()
@@ -472,6 +477,8 @@ def test_create_raises_unexpected_response_error_on_internal_server_error(mocker
 def test_create_raises_unexpected_response_error_on_other_http_error(mocker: MockerFixture) -> None:
 
     user = UserDetail(id="u1", user_name="u", emails=[])
+    map_user = MapUser(id="u1", user_name="u", schemas=["a"], emails=[])
+    mocker.patch("server.services.users.prepare_user", return_value=map_user)
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
     response = Response()
@@ -485,6 +492,8 @@ def test_create_raises_unexpected_response_error_on_other_http_error(mocker: Moc
 def test_create_raises_unexpected_response_error_on_request_exception(mocker: MockerFixture) -> None:
 
     user = UserDetail(id="u1", user_name="u", emails=[])
+    map_user = MapUser(id="u1", user_name="u", schemas=["a"], emails=[])
+    mocker.patch("server.services.users.prepare_user", return_value=map_user)
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
     mocker.patch("server.clients.users.post", side_effect=requests.RequestException("fail"))
@@ -495,6 +504,8 @@ def test_create_raises_unexpected_response_error_on_request_exception(mocker: Mo
 def test_create_raises_unexpected_response_error_on_validation_error(mocker: MockerFixture) -> None:
 
     user = UserDetail(id="u1", user_name="u", emails=[])
+    map_user = MapUser(id="u1", user_name="u", schemas=["a"], emails=[])
+    mocker.patch("server.services.users.prepare_user", return_value=map_user)
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
     mocker.patch("server.clients.users.post", side_effect=ValidationError("fail", []))
@@ -505,6 +516,8 @@ def test_create_raises_unexpected_response_error_on_validation_error(mocker: Moc
 def test_create_reraises_oauth_token_error(mocker: MockerFixture) -> None:
     """Test create re-raises OAuthTokenError directly from try block."""
     user = UserDetail(id="u1", user_name="u", emails=[])
+    map_user = MapUser(id="u1", user_name="u", schemas=["a"], emails=[])
+    mocker.patch("server.services.users.prepare_user", return_value=map_user)
     mocker.patch("server.services.users.get_access_token", side_effect=OAuthTokenError("fail"))
     with pytest.raises(OAuthTokenError):
         users.create(user)
@@ -513,6 +526,8 @@ def test_create_reraises_oauth_token_error(mocker: MockerFixture) -> None:
 def test_create_reraises_credentials_error(mocker: MockerFixture) -> None:
     """Test create re-raises CredentialsError directly from try block."""
     user = UserDetail(id="u1", user_name="u", emails=[])
+    map_user = MapUser(id="u1", user_name="u", schemas=["a"], emails=[])
+    mocker.patch("server.services.users.prepare_user", return_value=map_user)
     mocker.patch("server.services.users.get_access_token", side_effect=users.CredentialsError("fail"))
     with pytest.raises(users.CredentialsError):
         users.create(user)
@@ -521,7 +536,9 @@ def test_create_reraises_credentials_error(mocker: MockerFixture) -> None:
 def test_create_raises_resource_invalid_on_map_error(app, mocker: MockerFixture) -> None:
 
     user = UserDetail(id="u1", user_name="u", emails=[])
+    map_user = MapUser(id="u1", user_name="u", schemas=["a"], emails=[])
     map_error = MapError(detail="invalid", status="400", scim_type="invalidSyntax")
+    mocker.patch("server.services.users.prepare_user", return_value=map_user)
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
     mocker.patch("server.clients.users.post", return_value=map_error)
@@ -538,13 +555,15 @@ def test_update_success(app, mocker: MockerFixture) -> None:
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
     mocker.patch("server.services.users.get_by_id", return_value=user)
+    mocker.patch("server.services.users.validate_user_to_map_user", return_value=map_user)
+    mocker.patch("server.services.users.build_patch_operations", return_value=["patchop"])
     mocker.patch("server.clients.users.patch_by_id", return_value=map_user)
     result = users.update(user)
     assert isinstance(result, UserDetail)
     assert result.id == "u1"
 
 
-def test_update_raises_resource_not_found_on_none(mocker: MockerFixture) -> None:
+def test_update_raises_resource_not_found_on_none(app, mocker: MockerFixture) -> None:
 
     user = UserDetail(id="u1", user_name="u", emails=[])
     mocker.patch("server.services.users.get_by_id", return_value=None)
@@ -552,12 +571,15 @@ def test_update_raises_resource_not_found_on_none(mocker: MockerFixture) -> None
         users.update(user)
 
 
-def test_update_raises_oauth_token_error_on_unauthorized(mocker: MockerFixture) -> None:
+def test_update_raises_oauth_token_error_on_unauthorized(app, mocker: MockerFixture) -> None:
 
     user = UserDetail(id="u1", user_name="u", emails=[])
+    map_user = MapUser(id="u1", user_name="u", schemas=["a"], emails=[])
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
     mocker.patch("server.services.users.get_by_id", return_value=user)
+    mocker.patch("server.services.users.validate_user_to_map_user", return_value=map_user)
+    mocker.patch("server.services.users.build_patch_operations", return_value=["patchop"])
     response = Response()
     response.status_code = HTTPStatus.UNAUTHORIZED
     http_error = requests.HTTPError(response=response)
@@ -566,12 +588,15 @@ def test_update_raises_oauth_token_error_on_unauthorized(mocker: MockerFixture) 
         users.update(user)
 
 
-def test_update_raises_unexpected_response_error_on_internal_server_error(mocker: MockerFixture) -> None:
+def test_update_raises_unexpected_response_error_on_internal_server_error(app, mocker: MockerFixture) -> None:
 
     user = UserDetail(id="u1", user_name="u", emails=[])
+    map_user = MapUser(id="u1", user_name="u", schemas=["a"], emails=[])
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
     mocker.patch("server.services.users.get_by_id", return_value=user)
+    mocker.patch("server.services.users.validate_user_to_map_user", return_value=map_user)
+    mocker.patch("server.services.users.build_patch_operations", return_value=["patchop"])
     response = Response()
     response.status_code = HTTPStatus.INTERNAL_SERVER_ERROR
     http_error = requests.HTTPError(response=response)
@@ -580,12 +605,15 @@ def test_update_raises_unexpected_response_error_on_internal_server_error(mocker
         users.update(user)
 
 
-def test_update_raises_unexpected_response_error_on_other_http_error(mocker: MockerFixture) -> None:
+def test_update_raises_unexpected_response_error_on_other_http_error(app, mocker: MockerFixture) -> None:
 
     user = UserDetail(id="u1", user_name="u", emails=[])
+    map_user = MapUser(id="u1", user_name="u", schemas=["a"], emails=[])
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
     mocker.patch("server.services.users.get_by_id", return_value=user)
+    mocker.patch("server.services.users.validate_user_to_map_user", return_value=map_user)
+    mocker.patch("server.services.users.build_patch_operations", return_value=["patchop"])
     response = Response()
     response.status_code = HTTPStatus.BAD_REQUEST
     http_error = requests.HTTPError(response=response)
@@ -594,41 +622,53 @@ def test_update_raises_unexpected_response_error_on_other_http_error(mocker: Moc
         users.update(user)
 
 
-def test_update_raises_unexpected_response_error_on_request_exception(mocker: MockerFixture) -> None:
+def test_update_raises_unexpected_response_error_on_request_exception(app, mocker: MockerFixture) -> None:
 
     user = UserDetail(id="u1", user_name="u", emails=[])
+    map_user = MapUser(id="u1", user_name="u", schemas=["a"], emails=[])
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
     mocker.patch("server.services.users.get_by_id", return_value=user)
+    mocker.patch("server.services.users.validate_user_to_map_user", return_value=map_user)
+    mocker.patch("server.services.users.build_patch_operations", return_value=["patchop"])
     mocker.patch("server.clients.users.patch_by_id", side_effect=requests.RequestException("fail"))
     with pytest.raises(UnexpectedResponseError):
         users.update(user)
 
 
-def test_update_raises_unexpected_response_error_on_validation_error(mocker: MockerFixture) -> None:
+def test_update_raises_unexpected_response_error_on_validation_error(app, mocker: MockerFixture) -> None:
 
     user = UserDetail(id="u1", user_name="u", emails=[])
+    map_user = MapUser(id="u1", user_name="u", schemas=["a"], emails=[])
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
     mocker.patch("server.services.users.get_by_id", return_value=user)
+    mocker.patch("server.services.users.validate_user_to_map_user", return_value=map_user)
+    mocker.patch("server.services.users.build_patch_operations", return_value=["patchop"])
     mocker.patch("server.clients.users.patch_by_id", side_effect=ValidationError("fail", []))
     with pytest.raises(UnexpectedResponseError):
         users.update(user)
 
 
-def test_update_reraises_oauth_token_error(mocker: MockerFixture) -> None:
+def test_update_reraises_oauth_token_error(app, mocker: MockerFixture) -> None:
     """Test update re-raises OAuthTokenError directly from try block."""
     user = UserDetail(id="u1", user_name="u", emails=[])
+    map_user = MapUser(id="u1", user_name="u", schemas=["a"], emails=[])
     mocker.patch("server.services.users.get_by_id", return_value=user)
+    mocker.patch("server.services.users.validate_user_to_map_user", return_value=map_user)
+    mocker.patch("server.services.users.build_patch_operations", return_value=["patchop"])
     mocker.patch("server.services.users.get_access_token", side_effect=OAuthTokenError("fail"))
     with pytest.raises(OAuthTokenError):
         users.update(user)
 
 
-def test_update_reraises_credentials_error(mocker: MockerFixture) -> None:
+def test_update_reraises_credentials_error(app, mocker: MockerFixture) -> None:
     """Test update re-raises CredentialsError directly from try block."""
     user = UserDetail(id="u1", user_name="u", emails=[])
+    map_user = MapUser(id="u1", user_name="u", schemas=["a"], emails=[])
     mocker.patch("server.services.users.get_by_id", return_value=user)
+    mocker.patch("server.services.users.validate_user_to_map_user", return_value=map_user)
+    mocker.patch("server.services.users.build_patch_operations", return_value=["patchop"])
     mocker.patch("server.services.users.get_access_token", side_effect=users.CredentialsError("fail"))
     with pytest.raises(users.CredentialsError):
         users.update(user)
@@ -637,12 +677,15 @@ def test_update_reraises_credentials_error(mocker: MockerFixture) -> None:
 def test_update_raises_resource_not_found_on_map_error_with_not_found_pattern(app, mocker: MockerFixture) -> None:
 
     user = UserDetail(id="u1", user_name="u", emails=[])
+    map_user = MapUser(id="u1", user_name="u", schemas=["a"], emails=[])
     map_error = MapError(detail="'u1' Not Found", status="404", scim_type="noTarget")
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
     mocker.patch("server.services.users.get_by_id", return_value=user)
-    mocker.patch("server.clients.users.patch_by_id", return_value=map_error)
+    mocker.patch("server.services.users.validate_user_to_map_user", return_value=map_user)
+    mocker.patch("server.services.users.build_patch_operations", return_value=["patchop"])
     mock_logger = mocker.patch("flask.current_app.logger.info")
+    mocker.patch("server.clients.users.patch_by_id", return_value=map_error)
     with pytest.raises(users.ResourceNotFound):
         users.update(user)
     assert mock_logger.called
@@ -651,12 +694,15 @@ def test_update_raises_resource_not_found_on_map_error_with_not_found_pattern(ap
 def test_update_raises_resource_invalid_on_map_error(app, mocker: MockerFixture) -> None:
 
     user = UserDetail(id="u1", user_name="u", emails=[])
+    map_user = MapUser(id="u1", user_name="u", schemas=["a"], emails=[])
     map_error = MapError(detail="invalid", status="400", scim_type="invalidSyntax")
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
     mocker.patch("server.services.users.get_by_id", return_value=user)
-    mocker.patch("server.clients.users.patch_by_id", return_value=map_error)
+    mocker.patch("server.services.users.validate_user_to_map_user", return_value=map_user)
+    mocker.patch("server.services.users.build_patch_operations", return_value=["patchop"])
     mock_logger = mocker.patch("flask.current_app.logger.info")
+    mocker.patch("server.clients.users.patch_by_id", return_value=map_error)
     with pytest.raises(users.ResourceInvalid):
         users.update(user)
     assert mock_logger.called

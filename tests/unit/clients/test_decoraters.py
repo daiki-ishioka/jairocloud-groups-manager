@@ -26,7 +26,7 @@ def test_cache_resource_with_callable(app, mocker):
         dummy_json = DummyModel(value=ex_num).model_dump_json()
         app_cache_mock.get.side_effect = [None, dummy_json]
         mocker.patch("server.clients.decoraters.config.REDIS.key_prefix", "prefix")
-        mocker.patch("server.clients.decoraters.config.REDIS.default_timeout", 10)
+        mocker.patch("server.clients.decoraters.config.REDIS.cache_timeout", 10)
 
         call_count = {"count": 0}
 
@@ -47,7 +47,7 @@ def test_cache_resource_func_raises(app, mocker):
         app_cache_mock = mocker.patch("server.clients.decoraters.app_cache", new_callable=mocker.MagicMock)
         app_cache_mock.get.return_value = None
         mocker.patch("server.clients.decoraters.config.REDIS.key_prefix", "prefix")
-        mocker.patch("server.clients.decoraters.config.REDIS.default_timeout", 10)
+        mocker.patch("server.clients.decoraters.config.REDIS.cache_timeout", 10)
 
         def func(x: int) -> DummyModel:
             raise ValueError(ex_str)
@@ -63,7 +63,7 @@ def test_cache_resource_maperror_timeout(app, mocker):
         app_cache_mock = mocker.patch("server.clients.decoraters.app_cache", new_callable=mocker.MagicMock)
         app_cache_mock.get.return_value = None
         mocker.patch("server.clients.decoraters.config.REDIS.key_prefix", "prefix")
-        mocker.patch("server.clients.decoraters.config.REDIS.default_timeout", ex_num)
+        mocker.patch("server.clients.decoraters.config.REDIS.cache_timeout", ex_num)
 
         class FakeMapError(BaseModel):
             pass
@@ -117,7 +117,7 @@ def test_cache_resource_timeout_none(app, mocker: MockerFixture) -> None:
         def func(resource_id: str) -> DummyModel:
             return DummyModel(value=expected_value)
 
-        mocker.patch.object(decoraters.config.REDIS, "default_timeout", 99)
+        mocker.patch.object(decoraters.config.REDIS, "cache_timeout", 99)
         app_cache_mock = mocker.patch("src.server.clients.decoraters.app_cache", new=mocker.MagicMock())
         dummy_json = DummyModel(value=expected_value).model_dump_json()
         app_cache_mock.get.side_effect = [None, dummy_json.encode("utf-8")]
@@ -135,7 +135,7 @@ def test_cache_resource_result_maperror_sets_timeout(app, mocker: MockerFixture)
         def func(resource_id: str) -> MapError:
             return MapError(status="400", scim_type="invalidFilter", detail="error detail")
 
-        mocker.patch.object(decoraters.config.REDIS, "default_timeout", 99)
+        mocker.patch.object(decoraters.config.REDIS, "cache_timeout", 99)
         app_cache_mock = mocker.patch("src.server.clients.decoraters.app_cache", new=mocker.MagicMock())
         app_cache_mock.get.return_value = None
 

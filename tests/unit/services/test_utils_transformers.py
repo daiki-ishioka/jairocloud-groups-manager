@@ -22,20 +22,22 @@ def test_prepare_service_normal(app, mocker, test_config):
 
     service_url: HttpUrl = HttpUrl(test_config.MAP_CORE.base_url)
     repo = RepositoryDetail(id="repo1", service_name="svc", service_url=service_url, entity_ids=["eid"])
-    expected = MapService(
+    expected_service = MapService(
         id="svc1",
         administrators=[ServiceAdministrator.model_validate({"value": "user1"})],
         groups=[Group(value="admin-repo1")],
     )
+    expected_repository_id = "repo1"
     mocker.patch(
         "server.services.utils.transformers.validate_repository_to_map_service", return_value=MapService(id="svc1")
     )
     mocker.patch("server.services.utils.transformers.resolve_repository_id", return_value="repo1")
     mocker.patch("server.services.utils.transformers.config.GROUPS.id_patterns", {"admin": "admin-{repository_id}"})
     mocker.patch("server.services.utils.transformers.USER_ROLES", ["admin"])
-    result = transformers.prepare_service(repo, {"user1"})
+    result_service, result_repository_id = transformers.prepare_service(repo, {"user1"})
 
-    assert result == expected
+    assert result_service == expected_service
+    assert result_repository_id == expected_repository_id
 
 
 def test_prepare_service_no_admin(app, mocker, test_config):

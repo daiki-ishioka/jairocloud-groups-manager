@@ -203,12 +203,13 @@ def test_id_put_success(app: Flask, mocker: MockerFixture) -> None:
     """Tests id_put returns UserDetail and 200 when update succeeds."""
 
     user = UserDetail(
-        id="u20",
+        id="dummy",
         user_name="user20",
         emails=["user20@example.com"],
         eppns=["eppn20"],
         preferred_language="en",
         repository_roles=[RepositoryRole(id="repo20", user_role=USER_ROLES.REPOSITORY_ADMIN)],
+        is_system_admin=False,
     )
     expected_status = 200
     mocker.patch("server.api.users.has_permission", return_value=True)
@@ -220,25 +221,27 @@ def test_id_put_success(app: Flask, mocker: MockerFixture) -> None:
     assert status == expected_status
 
 
-def test_id_put_id_mismatch(app: Flask, mocker: MockerFixture) -> None:
-    """Tests id_put returns ErrorResponse and 409 when user_id and body.id mismatch."""
-
+def test_id_put_system_permission_denied(app: Flask, mocker: MockerFixture) -> None:
+    """Tests id_put returns ErrorResponse and 403 when is_system_admin True but current user is not system admin."""
     user = UserDetail(
-        id="u21",
-        user_name="user21",
-        emails=["user21@example.com"],
-        eppns=["eppn21"],
+        id="u99",
+        user_name="admin user",
+        emails=["admin@example.com"],
+        eppns=["eppn99"],
         preferred_language="en",
-        repository_roles=[RepositoryRole(id="repo21", user_role=USER_ROLES.REPOSITORY_ADMIN)],
+        repository_roles=[RepositoryRole(id="repo99", user_role=USER_ROLES.REPOSITORY_ADMIN)],
+        is_system_admin=True,
     )
-    expected_status = 409
+    expected_status = 403
+    mocker.patch("server.api.users.has_permission", return_value=True)
+    mocker.patch("server.api.users.is_current_user_system_admin", return_value=False)
 
     original_func = inspect.unwrap(users_api.id_put)
-    result, status = original_func("u22", user)
+    result, status = original_func("u99", user)
 
     assert isinstance(result, ErrorResponse)
     assert status == expected_status
-    assert "user id mismatch" in result.message
+    assert "not has permission" in result.message
 
 
 def test_id_put_no_permission(app: Flask, mocker: MockerFixture) -> None:
@@ -251,6 +254,7 @@ def test_id_put_no_permission(app: Flask, mocker: MockerFixture) -> None:
         eppns=["eppn23"],
         preferred_language="en",
         repository_roles=[RepositoryRole(id="repo23", user_role=USER_ROLES.GENERAL_USER)],
+        is_system_admin=False,
     )
     expected_status = 403
     mocker.patch("server.api.users.has_permission", return_value=False)
@@ -260,7 +264,7 @@ def test_id_put_no_permission(app: Flask, mocker: MockerFixture) -> None:
 
     assert isinstance(result, ErrorResponse)
     assert status == expected_status
-    assert "not has permmision" in result.message
+    assert "not has permission" in result.message
 
 
 def test_id_put_not_found(app: Flask, mocker: MockerFixture) -> None:
@@ -273,6 +277,7 @@ def test_id_put_not_found(app: Flask, mocker: MockerFixture) -> None:
         eppns=["eppn24"],
         preferred_language="en",
         repository_roles=[RepositoryRole(id="repo24", user_role=USER_ROLES.REPOSITORY_ADMIN)],
+        is_system_admin=False,
     )
     expected_status = 404
     mocker.patch("server.api.users.has_permission", return_value=True)
@@ -296,6 +301,7 @@ def test_id_put_resource_invalid(app: Flask, mocker: MockerFixture) -> None:
         eppns=["eppn25"],
         preferred_language="en",
         repository_roles=[RepositoryRole(id="repo25", user_role=USER_ROLES.REPOSITORY_ADMIN)],
+        is_system_admin=False,
     )
     expected_status = 409
     mocker.patch("server.api.users.has_permission", return_value=True)
@@ -307,6 +313,29 @@ def test_id_put_resource_invalid(app: Flask, mocker: MockerFixture) -> None:
     assert isinstance(result, ErrorResponse)
     assert status == expected_status
     assert "resource invalid" in result.message
+
+
+def test_id_put_system_admin_permission_denied(app: Flask, mocker: MockerFixture) -> None:
+    """Tests id_put returns ErrorResponse and 403 when is_system_admin True but current user is not system admin."""
+    user = UserDetail(
+        id="u26",
+        user_name="user26",
+        emails=["user26@example.com"],
+        eppns=["eppn26"],
+        preferred_language="en",
+        repository_roles=[RepositoryRole(id="repo26", user_role=USER_ROLES.REPOSITORY_ADMIN)],
+        is_system_admin=True,
+    )
+    expected_status = 403
+    mocker.patch("server.api.users.has_permission", return_value=True)
+    mocker.patch("server.api.users.is_current_user_system_admin", return_value=False)
+
+    original_func = inspect.unwrap(users_api.id_put)
+    result, status = original_func("u26", user)
+
+    assert isinstance(result, ErrorResponse)
+    assert status == expected_status
+    assert "not has permission" in result.message
 
 
 def test_has_permission_system_admin(mocker: MockerFixture) -> None:

@@ -270,7 +270,7 @@ def test_create_success(app, gen_group_id, mocker: MockerFixture) -> None:
     expected_group = GroupDetail(
         id=gen_group_id("g2"),
         display_name="ArbitraryGroup",
-        user_defined_id="g2",
+        user_defined_id=None,
         description=None,
         public=False,
         member_list_visibility="Private",
@@ -654,7 +654,7 @@ def test_get_by_id_success(app: Flask, gen_group_id, mocker: MockerFixture) -> N
     expected_group = GroupDetail(
         id=group_id,
         display_name="TestGroupById",
-        user_defined_id="g100",
+        user_defined_id=None,
         description=None,
         public=True,
         member_list_visibility="Hidden",
@@ -839,7 +839,7 @@ def test_update_success(app: Flask, gen_group_id, mocker: MockerFixture) -> None
     updated_group = GroupDetail(
         id=group_id,
         display_name="UpdatedGroup",
-        user_defined_id="g200",
+        user_defined_id=None,
         description=None,
         public=True,
         member_list_visibility="Public",
@@ -928,7 +928,7 @@ def test_update_raises_resource_not_found(app: Flask, gen_group_id, mocker: Mock
     with pytest.raises(ResourceNotFound) as exc_info:
         groups.update(updated_group)
 
-    assert str(exc_info.value) == f"'Group {group_id}' Not Found"
+    assert str(exc_info.value) == f"Group '{group_id}' Not Found"
 
 
 def test_update_raises_oauth_token_error_on_http_401(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
@@ -1567,7 +1567,7 @@ def test_update_member_add_success(app: Flask, gen_group_id, mocker: MockerFixtu
     expected = GroupDetail(
         id=group_id,
         display_name="TestGroup",
-        user_defined_id="g100",
+        user_defined_id=None,
         public=True,
         member_list_visibility="Public",
         users_count=2,
@@ -1592,7 +1592,7 @@ def test_update_member_add_and_remove(app: Flask, gen_group_id, mocker: MockerFi
     with pytest.raises(RequestConflict) as exc_info:
         groups.update_member(group_id, add={same_user}, remove={same_user})
 
-    assert str(exc_info.value) == "cannot add and remove the same user."
+    assert str(exc_info.value) == "Conflict user IDs in add and remove."
 
 
 def test_update_member_raises_oauth_token_error_on_http_401(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
@@ -1764,7 +1764,7 @@ def test_update_put_success(app: Flask, gen_group_id, mocker: MockerFixture) -> 
     updated_group = GroupDetail(
         id=group_id,
         display_name="UpdatedGroupPUT",
-        user_defined_id="g_put_1",
+        user_defined_id=None,
         description=None,
         public=True,
         member_list_visibility="Public",
