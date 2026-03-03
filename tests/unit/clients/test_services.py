@@ -567,7 +567,7 @@ def test_post_http_error(app: Flask, mocker: MockerFixture, service_data) -> Non
 
 
 # --- put_by_id ---
-def test_put_by_id_success(app: Flask, mocker: MockerFixture, service_data) -> None:  # noqa: PLR0914
+def test_put_by_id_success(app: Flask, mocker: MockerFixture, service_data) -> None:
     json_data, service = service_data
     service_obj: MapService = service
     expected_service = MapService.model_validate(json_data)
@@ -588,7 +588,7 @@ def test_put_by_id_success(app: Flask, mocker: MockerFixture, service_data) -> N
     mock_put.return_value.text = json.dumps(json_data)
     mock_put.return_value.status_code = 200
 
-    mock_clear_cache = mocker.patch("server.clients.services.get_by_id.clear_cache")
+    mocker.patch("server.clients.services.repository_updated")
     original_func = inspect.unwrap(services.put_by_id)
     result = original_func(service_obj, access_token="token", client_secret="secret")
 
@@ -603,7 +603,6 @@ def test_put_by_id_success(app: Flask, mocker: MockerFixture, service_data) -> N
     assert called_kwargs["params"] == {}
     assert called_kwargs["headers"] == expected_headers
     assert called_kwargs["timeout"] == expected_timeout
-    mock_clear_cache.assert_called_once_with(result.id)
 
 
 def test_put_by_id_with_include(app: Flask, mocker: MockerFixture, service_data) -> None:  # noqa: PLR0914
@@ -635,6 +634,7 @@ def test_put_by_id_with_include(app: Flask, mocker: MockerFixture, service_data)
     mocker.patch("server.clients.services.get_time_stamp", return_value=time_stamp)
     mocker.patch("server.clients.services.compute_signature", return_value=signature)
     mock_put = mocker.patch("server.clients.services.requests.put")
+    mocker.patch("server.clients.services.repository_updated")
     mocker.patch("server.clients.decoraters.app_cache.scan", return_value=(0, []))
     mock_put.return_value.text = json.dumps(response_data)
     mock_put.return_value.status_code = 200
@@ -681,6 +681,7 @@ def test_put_by_id_with_exclude(app: Flask, mocker: MockerFixture, service_data)
     mocker.patch("server.clients.services.get_time_stamp", return_value=time_stamp)
     mocker.patch("server.clients.services.compute_signature", return_value=signature)
     mock_put = mocker.patch("server.clients.services.requests.put")
+    mocker.patch("server.clients.services.repository_updated")
 
     mock_put.return_value.text = json.dumps(response_data)
     mock_put.return_value.status_code = 200
@@ -749,7 +750,7 @@ def test_patch_by_id_success(app: Flask, mocker: MockerFixture, service_data) ->
     mock_patch.return_value.text = json.dumps(json_data)
     mock_patch.return_value.status_code = 200
 
-    mock_clear_cache = mocker.patch("server.clients.services.get_by_id.clear_cache")
+    mocker.patch("server.clients.services.repository_updated")
     original_func = inspect.unwrap(services.patch_by_id)
     result = original_func(service_id, operations, access_token="token", client_secret="secret")
 
@@ -765,7 +766,6 @@ def test_patch_by_id_success(app: Flask, mocker: MockerFixture, service_data) ->
     assert called_kwargs["headers"] == expected_headers
     assert called_kwargs["timeout"] == expected_timeout
     assert called_kwargs["json"]["request"] == expected_request
-    mock_clear_cache.assert_called_once_with(result.id)
 
 
 def test_patch_by_id_with_include(app: Flask, mocker: MockerFixture, service_data) -> None:  # noqa: PLR0914
@@ -800,7 +800,7 @@ def test_patch_by_id_with_include(app: Flask, mocker: MockerFixture, service_dat
     mock_patch.return_value.text = json.dumps(response_data)
     mock_patch.return_value.status_code = 200
 
-    mock_clear_cache = mocker.patch("server.clients.services.get_by_id.clear_cache")
+    mocker.patch("server.clients.services.repository_updated")
     original_func = inspect.unwrap(services.patch_by_id)
     result = original_func(
         service_id,
@@ -821,7 +821,6 @@ def test_patch_by_id_with_include(app: Flask, mocker: MockerFixture, service_dat
     assert called_kwargs["headers"] == expected_headers
     assert called_kwargs["timeout"] == expected_timeout
     assert called_kwargs["json"]["request"] == expected_request
-    mock_clear_cache.assert_called_once_with(result.id)
 
 
 def test_patch_by_id_with_exclude(app: Flask, mocker: MockerFixture, service_data) -> None:  # noqa: PLR0914
@@ -854,7 +853,7 @@ def test_patch_by_id_with_exclude(app: Flask, mocker: MockerFixture, service_dat
     mocker.patch.object(services, "alias_generator", side_effect=lambda x: x)
     mock_patch.return_value.text = json.dumps(response_data)
     mock_patch.return_value.status_code = 200
-    mock_clear_cache = mocker.patch("server.clients.services.get_by_id.clear_cache")
+    mocker.patch("server.clients.services.repository_updated")
     original_func = inspect.unwrap(services.patch_by_id)
     result = original_func(
         service_id,
@@ -873,7 +872,6 @@ def test_patch_by_id_with_exclude(app: Flask, mocker: MockerFixture, service_dat
     assert result.service_name == response_data["serviceName"]
     assert result.meta is None
     assert call_args[0] == expected_requests_url
-    mock_clear_cache.assert_called_once_with(result.id)
     assert set(actual_excluded) == set(expected_excluded)
     assert called_kwargs["headers"] == expected_headers
     assert called_kwargs["timeout"] == expected_timeout
@@ -909,16 +907,16 @@ def test_patch_by_id_http_error(app: Flask, mocker: MockerFixture, service_data)
 
 
 def test_delete_by_id_success(app: Flask, mocker: MockerFixture) -> None:
+
     service_id = "s1"
     access_token = "token"
     client_secret = "secret"
     mock_delete = mocker.patch("server.clients.services.requests.delete")
     mock_delete.return_value.text = ""
     mock_delete.return_value.status_code = 200
-    mock_clear_cache = mocker.patch("server.clients.services.get_by_id.clear_cache")
+    mocker.patch("server.clients.services.repository_updated")
     result = services.delete_by_id(service_id, access_token=access_token, client_secret=client_secret)
     mock_delete.assert_called_once()
-    mock_clear_cache.assert_called_once_with(service_id)
     assert result is None
 
 
@@ -930,10 +928,8 @@ def test_delete_by_id_error_response(app: Flask, mocker: MockerFixture) -> None:
     mock_delete = mocker.patch("server.clients.services.requests.delete")
     mock_delete.return_value.text = json.dumps(error_data)
     mock_delete.return_value.status_code = 200
-    mock_clear_cache = mocker.patch("server.clients.services.get_by_id.clear_cache")
     result = services.delete_by_id(service_id, access_token=access_token, client_secret=client_secret)
     mock_delete.assert_called_once()
-    mock_clear_cache.assert_not_called()
     assert isinstance(result, MapError)
     assert "Not Found" in result.detail
 

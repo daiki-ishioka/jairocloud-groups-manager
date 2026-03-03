@@ -766,7 +766,7 @@ def test_filter_options(app: Flask, mocker: MockerFixture) -> None:
     search_result: SearchResult = SearchResult(resources=[], total=0, page_size=0, offset=0)
 
     mocker.patch("server.api.groups.has_permission", return_value=True)
-    mocker.patch("server.services.filter_options.search_groups_options", return_value=[])
+    mocker.patch("server.services.utils.search_groups_options", return_value=[])
     mocker.patch("server.services.token.get_access_token", return_value="dummy_token")
     mocker.patch("server.services.repositories.search", return_value=search_result)
 

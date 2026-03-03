@@ -165,7 +165,7 @@ def test_check_token_validity_success(app: Flask, mocker: MockerFixture) -> None
     assert result is True
 
 
-def test_check_token_validity_invalid(app: Flask, mocker: MockerFixture) -> None:
+def test_check_token_validity_invalid(app: Flask, mocker: MockerFixture, caplog) -> None:
     """Test that check_token_validity returns False when token is unauthorized."""
     mock_resp = MagicMock()
     mock_resp.status_code = HTTPStatus.UNAUTHORIZED
@@ -173,13 +173,12 @@ def test_check_token_validity_invalid(app: Flask, mocker: MockerFixture) -> None
     mock_resp.raise_for_status.return_value = None
     mock_post = mocker.patch("server.clients.auth.requests.post")
     mock_post.return_value = mock_resp
-    mock_logger = MagicMock()
-    mocker.patch("server.clients.auth.get_logger", return_value=mock_logger)
 
-    result: bool = auth.check_token_validity("invalid_token")
+    with app.app_context(), caplog.at_level("INFO"):
+        result = auth.check_token_validity("dummy_token")
 
     assert result is False
-    mock_logger.info.assert_called_with("invalid token")
+    assert "invalid token" in caplog.text
 
 
 def test_check_token_validity_http_error(app: Flask, mocker: MockerFixture) -> None:
