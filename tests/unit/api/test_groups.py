@@ -1,4 +1,5 @@
 import inspect
+import types
 import typing as t
 
 import pytest
@@ -523,6 +524,19 @@ def test_id_patch_forbidden_no_permission(app: Flask, gen_group_id, mocker: Mock
     assert isinstance(result, groups_api.ErrorResponse)
     assert status == expected_status
     assert mocker_update_member.return_value == group
+
+
+def test_id_patch_fake_op_direct_call(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
+    group_id = gen_group_id("g_fake_op")
+    fake_op = types.SimpleNamespace(op="replace", path="members", value=["userX"])
+    dummy_body = types.SimpleNamespace(operations=[fake_op])
+    mocker.patch("server.api.groups.has_permission", return_value=True)
+    update_mock = mocker.patch("server.api.groups.groups.update_member", return_value=None)
+    original_func = inspect.unwrap(groups_api.id_patch)
+    _ = original_func(group_id, dummy_body)
+    called_args = update_mock.call_args.kwargs
+    assert called_args["add"] == set()
+    assert called_args["remove"] == set()
 
 
 def test_id_patch_update_error_returns_409(app: Flask, gen_group_id, mocker: MockerFixture) -> None:

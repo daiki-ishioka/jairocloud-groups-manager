@@ -1075,12 +1075,21 @@ def test_delete_by_id_http_error(app: Flask, mocker: MockerFixture, group_data) 
     clear_id.assert_not_called()
 
 
+def test_handle_group_updated_clears_cache(group_data, mocker):
+    """Covers get_by_id.clear_cache(group_id) branch for handle_group_updated_by_id."""
+    _, group = group_data
+
+    group: MapGroup = MapGroup(id="group123", display_name="Test Group")
+    original_func = inspect.unwrap(groups.handle_group_updated)
+    original_func(_sender=None, group_id=group)
+
+
 def test_handle_group_updated_by_id_clears_cache(mocker):
     """Covers get_by_id.clear_cache(group_id) branch for handle_group_updated_by_id."""
     mock_clear = mocker.patch("server.clients.groups.get_by_id.clear_cache")
     group_id = "group123"
-
-    groups.handle_group_updated_by_id(_sender=None, group_id=group_id)
+    original_func = inspect.unwrap(groups.handle_group_updated_by_id)
+    original_func(_sender=None, group_id=group_id)
     mock_clear.assert_called_once_with(group_id)
 
 
@@ -1089,7 +1098,8 @@ def test_handle_group_updated_by_ids_clears_cache(mocker):
     mock_clear = mocker.patch("server.clients.groups.get_by_id.clear_cache")
     group_ids = ["group1", "group2"]
 
-    groups.handle_group_updated_by_ids(_sender=None, group_ids=group_ids)
+    original_func = inspect.unwrap(groups.handle_group_updated_by_ids)
+    original_func(_sender=None, group_ids=group_ids)
     mock_clear.assert_called_once_with(*group_ids)
 
 

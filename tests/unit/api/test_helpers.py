@@ -55,7 +55,6 @@ def test_validate_files_success_single(app: Flask, mocker: MockerFixture) -> Non
     file_storage = mocker.Mock()
     file_storage.seek.side_effect = lambda *_, **__: None
     file_storage.tell.return_value = 100
-    mocker.patch("server.api.helpers.config.API.max_upload_size", 200)
 
     class FileModel(BaseModel):
         file: t.Any
@@ -77,7 +76,6 @@ def test_validate_files_success(app: Flask, mocker: MockerFixture) -> None:
     file_storage = mocker.MagicMock()
     file_storage.seek.side_effect = lambda *_, **__: None
     file_storage.tell.return_value = 100
-    mocker.patch("server.api.helpers.config.API.max_upload_size", 200)
 
     def view(files: FileModel):
         return files.file
@@ -180,3 +178,60 @@ def test_check_file_size_over_limit(app: Flask, mocker: MockerFixture) -> None:
 def test_check_file_size_continue_branches(app: Flask) -> None:
     result = helpers._check_file_size("file", None)  # noqa: SLF001
     assert result == []
+
+
+def test_validate_files_file_size_key_already_in_err(app: Flask, mocker: MockerFixture) -> None:
+    """Covers the False branch of 'if "file_size" not in err:' (file_size already in err)."""
+    expected_status_code = 400
+
+    class FileModel(BaseModel):
+        file: t.Any
+
+    def view(files: FileModel):
+        return files.file
+
+    helpers.validate_files(view)
+    file_storage = mocker.Mock()
+    file_storage.seek.side_effect = lambda *_, **__: None
+    file_storage.tell.return_value = 300
+    mocker.patch("server.api.helpers.config.API.max_upload_size", 200)
+    mocker.patch("server.api.helpers._check_file_size", return_value=[{"type": "value_error.filesize_limit"}])
+
+    with app.test_request_context():
+        mock_request = mocker.patch("server.api.helpers.request")
+        mock_request.files = {"file": file_storage}
+
+        mock_request.files = {"file": file_storage, "file2": file_storage}
+        mocker.patch(
+            "server.api.helpers._check_file_size",
+            side_effect=[[{"type": "value_error.filesize_limit"}], [{"type": "value_error.filesize_limit"}]],
+        )
+
+        class FileModel2(BaseModel):
+            file: t.Any
+            file2: t.Any
+
+        def view2(files: FileModel2):
+            return files.file
+
+        wrapper2 = helpers.validate_files(view2)
+        response = wrapper2()
+        assert hasattr(response, "status_code")
+        assert response.status_code == expected_status_code
+        assert "validation_error" in response.json
+
+
+def test_validate_files_files_in_kwargs_annotation_false_value(app: Flask, mocker: MockerFixture) -> None:
+    """Covers the False branch where files_in_kwargs is explicitly set to False in __annotations__."""
+    files_model_mock = mocker.patch("server.api.helpers._check_file_size", autospec=True)
+
+    def view(files=None):
+        return "files_in_kwargs is False"
+
+    view.__annotations__["files"] = False
+
+    wrapper = helpers.validate_files(view)
+    with app.test_request_context():
+        result = wrapper()
+        assert result == "files_in_kwargs is False"
+        files_model_mock.assert_not_called()
