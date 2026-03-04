@@ -2,7 +2,7 @@ import typing as t
 
 import pytest
 
-from server.services.utils import resolvers
+from server.services.utils.resolvers import resolve_repository_id, resolve_service_id
 
 
 if t.TYPE_CHECKING:
@@ -16,23 +16,36 @@ def test_resolve_repository_id_with_fqdn(app: Flask, mocker: MockerFixture):
     fqdn = "repo.example-domain.com"
     expected = "repo_example_domain_com"
 
-    result = resolvers.resolve_repository_id(fqdn=fqdn)
+    result = resolve_repository_id(fqdn=fqdn)
 
     assert result == expected
 
 
-def test_resolve_repository_id_with_service_id(app: Flask, mocker: MockerFixture):
-    """Tests resolve_repository_id returns correct id from service_id."""
+def test_resolve_repository_id_with_invalid_service_id_prefix(app: Flask, mocker: MockerFixture):
+    """Tests resolve_repository_id returns None if service_id does not start with prefix."""
+    pattern = "sp_{repository_id}_suffix"
+    suffix = pattern.split("{repository_id}")[1]
+    repository_id = "repo123"
+    service_id = f"WRONG{repository_id}{suffix}"
+    mocker.patch("server.config.config.REPOSITORIES.id_patterns.sp_connector", pattern)
+
+    result = resolve_repository_id(service_id=service_id)
+
+    assert result is None
+
+
+def test_resolve_repository_id_with_valid_service_id(app: Flask, mocker: MockerFixture):
+    """Tests resolve_repository_id returns correct id from valid service_id."""
     pattern = "sp_{repository_id}_suffix"
     prefix = pattern.split("{repository_id}", maxsplit=1)[0]
     suffix = pattern.split("{repository_id}")[1]
-    repository_id = "sp_suffix"
-    expected = "sp_sp_suffix_suffix"
+    repository_id = "repo123"
     service_id = f"{prefix}{repository_id}{suffix}"
+    mocker.patch("server.config.config.REPOSITORIES.id_patterns.sp_connector", pattern)
 
-    result = resolvers.resolve_repository_id(service_id=service_id)
+    result = resolve_repository_id(service_id=service_id)
 
-    assert result == expected
+    assert result == repository_id
 
 
 def test_resolve_repository_id_error(app: Flask, mocker: MockerFixture):
@@ -41,7 +54,21 @@ def test_resolve_repository_id_error(app: Flask, mocker: MockerFixture):
     error_msg = "Either 'fqdn' or 'resource_id' must be provided."
 
     with pytest.raises(ValueError, match=error_msg):
-        resolvers.resolve_repository_id()
+        resolve_repository_id()
+
+
+def test_resolve_repository_id_removeprefix_removesuffix_branch(app: Flask, mocker: MockerFixture):
+    """Tests that resolve_repository_id returns correct id when service_id matches prefix and suffix."""
+    pattern = "sp_{repository_id}_suffix"
+    prefix = pattern.split("{repository_id}", maxsplit=1)[0]
+    suffix = pattern.split("{repository_id}")[1]
+    repository_id = "repo123"
+    service_id = f"{prefix}{repository_id}{suffix}"
+    mocker.patch("server.config.config.REPOSITORIES.id_patterns.sp_connector", pattern)
+
+    result = resolve_repository_id(service_id=service_id)
+
+    assert result == repository_id
 
 
 def test_resolve_service_id_with_fqdn(app: Flask, mocker: MockerFixture):
@@ -49,7 +76,7 @@ def test_resolve_service_id_with_fqdn(app: Flask, mocker: MockerFixture):
     fqdn = "repo.example-domain.com"
     expected_service_id = "jc_repo_example_domain_com_test"
 
-    result = resolvers.resolve_service_id(fqdn=fqdn)
+    result = resolve_service_id(fqdn=fqdn)
 
     assert result == expected_service_id
 
@@ -60,7 +87,7 @@ def test_resolve_service_id_with_repository_id(app: Flask, mocker: MockerFixture
     repository_id = "myrepo"
     expected_service_id = "jc_myrepo_test"
 
-    result = resolvers.resolve_service_id(repository_id=repository_id)
+    result = resolve_service_id(repository_id=repository_id)
 
     assert result == expected_service_id
 
@@ -71,4 +98,4 @@ def test_resolve_service_id_error(app: Flask, mocker: MockerFixture):
     error_msg = "Either 'fqdn' or 'repository_id' must be provided."
 
     with pytest.raises(ValueError, match=error_msg):
-        resolvers.resolve_service_id()
+        resolve_service_id()

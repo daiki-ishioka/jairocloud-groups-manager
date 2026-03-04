@@ -55,6 +55,7 @@ def test_search_successa(gen_group_id, mocker: MockerFixture) -> None:
             GroupSummary(
                 id=gen_group_id("g2"),
                 display_name="TestGroup2",
+                repository_name="repo1",
                 public=False,
                 member_list_visibility="Private",
                 users_count=0,
@@ -67,6 +68,9 @@ def test_search_successa(gen_group_id, mocker: MockerFixture) -> None:
         count=10,
         sort_by="display_name",
         sort_order="ascending",
+    )
+    mocker.patch(
+        "server.services.groups.detect_repository", return_value=Service(display="repo1", value="repo1", ref=None)
     )
     build_query_mock = mocker.patch("server.services.groups.build_search_query", return_value=query_param)
     mocker.patch("server.services.groups.get_access_token", return_value="token")

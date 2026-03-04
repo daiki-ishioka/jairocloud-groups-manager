@@ -16,6 +16,7 @@ from server.entities.search_request import SearchRequestParameter, SearchRespons
 from server.entities.summaries import UserSummary
 from server.entities.user_detail import RepositoryRole, UserDetail
 from server.exc import (
+    ApiClientError,
     CredentialsError,
     InvalidQueryError,
     OAuthTokenError,
@@ -911,10 +912,17 @@ def test_update_affiliations_get_by_id_none(app, mocker):
         update_affiliations(user)
 
 
-def test_update_affiliations_add_op(app, mocker):
-    repo_role = RepositoryRole(id="repo1", user_role=USER_ROLES.SYSTEM_ADMIN)
-    user = UserDetail(id="u1", user_name="u", emails=[], repository_roles=[repo_role])
+def test_update_affiliations_add_op_success(app, mocker):
+    user = UserDetail(
+        id="u1",
+        user_name="u",
+        emails=[],
+        repository_roles=[RepositoryRole(id="repo1", user_role=USER_ROLES.SYSTEM_ADMIN)],
+        is_system_admin=False,
+    )
     current = MagicMock(spec=UserDetail)
+    mocker.patch("server.services.repositories.get_by_id", return_value=True)
+    mocker.patch("server.services.token.get_access_token", return_value="dummy_token")
     mocker.patch("server.services.users.get_by_id", return_value=current)
     mocker.patch("server.services.utils.transformers.validate_user_to_map_user", return_value=MagicMock())
     patch_op = MagicMock()
@@ -923,17 +931,26 @@ def test_update_affiliations_add_op(app, mocker):
     mocker.patch("server.services.users.build_patch_operations", return_value=[patch_op])
     mock_logger = mocker.patch("flask.current_app.logger.info")
     mock_groups = mocker.patch("server.services.groups.update_member")
+    mock_user_updated = mocker.patch("server.services.users.user_updated.send")
     mocker.patch("server.services.users.get_by_id", return_value=current)
-    mocker.patch("server.services.repositories.get_by_id", return_value=True)
-    update_affiliations(user)
+    result = users.update_affiliations(user)
     mock_groups.assert_called()
     assert mock_logger.called
+    mock_user_updated.assert_called()
+    assert result == current
 
 
-def test_update_affiliations_replace_op(app, mocker):
-    repo_role = RepositoryRole(id="repo1", user_role=USER_ROLES.SYSTEM_ADMIN)
-    user = UserDetail(id="u1", user_name="u", emails=[], repository_roles=[repo_role])
+def test_update_affiliations_replace_op_skipped(app, mocker):
+    user = UserDetail(
+        id="u2",
+        user_name="u2",
+        emails=[],
+        repository_roles=[RepositoryRole(id="repo2", user_role=USER_ROLES.SYSTEM_ADMIN)],
+        is_system_admin=False,
+    )
     current = MagicMock(spec=UserDetail)
+    mocker.patch("server.services.repositories.get_by_id", return_value=True)
+    mocker.patch("server.services.token.get_access_token", return_value="dummy_token")
     mocker.patch("server.services.users.get_by_id", return_value=current)
     mocker.patch("server.services.utils.transformers.validate_user_to_map_user", return_value=MagicMock())
     patch_op = MagicMock()
@@ -941,16 +958,26 @@ def test_update_affiliations_replace_op(app, mocker):
     mocker.patch("server.services.users.build_patch_operations", return_value=[patch_op])
     mock_logger = mocker.patch("flask.current_app.logger.info")
     mock_groups = mocker.patch("server.services.groups.update_member")
-    mocker.patch("server.services.repositories.get_by_id", return_value=True)
-    update_affiliations(user)
+    mock_user_updated = mocker.patch("server.services.users.user_updated.send")
+    mocker.patch("server.services.users.get_by_id", return_value=current)
+    result = users.update_affiliations(user)
     mock_groups.assert_not_called()
     assert mock_logger.called
+    mock_user_updated.assert_called()
+    assert result == current
 
 
-def test_update_affiliations_remove_op_regex(app, mocker):
-    repo_role = RepositoryRole(id="repo1", user_role=USER_ROLES.SYSTEM_ADMIN)
-    user = UserDetail(id="u1", user_name="u", emails=[], repository_roles=[repo_role])
+def test_update_affiliations_remove_op_regex_success(app, mocker):
+    user = UserDetail(
+        id="u3",
+        user_name="u3",
+        emails=[],
+        repository_roles=[RepositoryRole(id="repo3", user_role=USER_ROLES.SYSTEM_ADMIN)],
+        is_system_admin=False,
+    )
     current = MagicMock(spec=UserDetail)
+    mocker.patch("server.services.repositories.get_by_id", return_value=True)
+    mocker.patch("server.services.token.get_access_token", return_value="dummy_token")
     mocker.patch("server.services.users.get_by_id", return_value=current)
     mocker.patch("server.services.utils.transformers.validate_user_to_map_user", return_value=MagicMock())
     patch_op = MagicMock()
@@ -959,16 +986,26 @@ def test_update_affiliations_remove_op_regex(app, mocker):
     mocker.patch("server.services.users.build_patch_operations", return_value=[patch_op])
     mock_logger = mocker.patch("flask.current_app.logger.info")
     mock_groups = mocker.patch("server.services.groups.update_member")
-    mocker.patch("server.services.repositories.get_by_id", return_value=True)
-    update_affiliations(user)
+    mock_user_updated = mocker.patch("server.services.users.user_updated.send")
+    mocker.patch("server.services.users.get_by_id", return_value=current)
+    result = users.update_affiliations(user)
     mock_groups.assert_called()
     assert mock_logger.called
+    mock_user_updated.assert_called()
+    assert result == current
 
 
 def test_update_affiliations_remove_op_regex_fail(app, mocker):
-    repo_role = RepositoryRole(id="repo1", user_role=USER_ROLES.SYSTEM_ADMIN)
-    user = UserDetail(id="u1", user_name="u", emails=[], repository_roles=[repo_role])
+    user = UserDetail(
+        id="u4",
+        user_name="u4",
+        emails=[],
+        repository_roles=[RepositoryRole(id="repo4", user_role=USER_ROLES.SYSTEM_ADMIN)],
+        is_system_admin=False,
+    )
     current = MagicMock(spec=UserDetail)
+    mocker.patch("server.services.repositories.get_by_id", return_value=True)
+    mocker.patch("server.services.token.get_access_token", return_value="dummy_token")
     mocker.patch("server.services.users.get_by_id", return_value=current)
     mocker.patch("server.services.utils.transformers.validate_user_to_map_user", return_value=MagicMock())
     patch_op = MagicMock()
@@ -977,10 +1014,54 @@ def test_update_affiliations_remove_op_regex_fail(app, mocker):
     mocker.patch("server.services.users.build_patch_operations", return_value=[patch_op])
     mock_logger = mocker.patch("flask.current_app.logger.info")
     mock_groups = mocker.patch("server.services.groups.update_member")
-    mocker.patch("server.services.repositories.get_by_id", return_value=True)
-    update_affiliations(user)
+    mock_user_updated = mocker.patch("server.services.users.user_updated.send")
+    mocker.patch("server.services.users.get_by_id", return_value=current)
+    result = users.update_affiliations(user)
     mock_groups.assert_not_called()
     assert mock_logger.called
+    mock_user_updated.assert_called()
+    assert result == current
+
+
+def test_update_affiliations_group_update_error_collects_and_raises(app, mocker):
+    user = UserDetail(
+        id="u5",
+        user_name="u5",
+        emails=[],
+        repository_roles=[RepositoryRole(id="repo5", user_role=USER_ROLES.SYSTEM_ADMIN)],
+        is_system_admin=False,
+    )
+    current = MagicMock(spec=UserDetail)
+    mocker.patch("server.services.repositories.get_by_id", return_value=True)
+    mocker.patch("server.services.token.get_access_token", return_value="dummy_token")
+    mocker.patch("server.services.users.get_by_id", return_value=current)
+    mocker.patch("server.services.utils.transformers.validate_user_to_map_user", return_value=MagicMock())
+    patch_op = MagicMock()
+    patch_op.op = "add"
+    patch_op.value = MagicMock()
+    mocker.patch("server.services.users.build_patch_operations", return_value=[patch_op])
+    mock_logger = mocker.patch("flask.current_app.logger.info")
+    mocker.patch("server.services.groups.update_member", side_effect=ApiClientError("fail"))
+    mock_user_updated = mocker.patch("server.services.users.user_updated.send")
+    mocker.patch("server.services.users.get_by_id", return_value=current)
+    with pytest.raises(ExceptionGroup) as exc_info:
+        users.update_affiliations(user)
+    assert any(isinstance(e, ApiClientError) for e in exc_info.value.exceptions)
+    assert mock_logger.called
+    mock_user_updated.assert_called()
+
+
+def test_update_affiliations_not_found(app, mocker):
+    user = UserDetail(
+        id="u6",
+        user_name="u6",
+        emails=[],
+        repository_roles=[RepositoryRole(id="repo6", user_role=USER_ROLES.SYSTEM_ADMIN)],
+        is_system_admin=False,
+    )
+    mocker.patch("server.services.users.get_by_id", return_value=None)
+    with pytest.raises(ResourceNotFound):
+        __import__("server.services.users").services.users.update_affiliations(user)
 
 
 def test_get_system_admins_success(mocker: MockerFixture) -> None:

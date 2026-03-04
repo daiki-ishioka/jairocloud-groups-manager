@@ -310,7 +310,7 @@ def test_id_put_not_found(app: Flask, mocker: MockerFixture) -> None:
 
     assert isinstance(result, ErrorResponse)
     assert status == expected_status
-    assert "not found" in result.message
+    assert "sub-exception" in result.message
 
 
 def test_id_put_resource_invalid(app: Flask, mocker: MockerFixture) -> None:
@@ -334,7 +334,7 @@ def test_id_put_resource_invalid(app: Flask, mocker: MockerFixture) -> None:
 
     assert isinstance(result, ErrorResponse)
     assert status == expected_status
-    assert "resource invalid" in result.message
+    assert "sub-exception" in result.message
 
 
 def test_id_put_system_admin_permission_denied(app: Flask, mocker: MockerFixture) -> None:
@@ -362,30 +362,51 @@ def test_id_put_system_admin_permission_denied(app: Flask, mocker: MockerFixture
 
 def test_has_permission_system_admin(mocker: MockerFixture) -> None:
     """Tests has_permission returns True for system admin."""
-
+    user = UserDetail(
+        id="u1",
+        user_name="user1",
+        emails=[],
+        eppns=[],
+        preferred_language="en",
+        repository_roles=[RepositoryRole(id="repoA", user_role=None)],
+        is_system_admin=True,
+    )
     mocker.patch("server.api.users.is_current_user_system_admin", return_value=True)
-
-    result = users_api.has_permission([RepositoryRole(id="repoA", user_role=None)])
+    result = users_api.has_permission(user)
     assert result is True
 
 
 def test_has_permission_repo_admin(mocker: MockerFixture) -> None:
     """Tests has_permission returns True for permitted repo admin."""
-
+    user = UserDetail(
+        id="u2",
+        user_name="user2",
+        emails=[],
+        eppns=[],
+        preferred_language="en",
+        repository_roles=[RepositoryRole(id="repoB", user_role=None)],
+        is_system_admin=False,
+    )
     mocker.patch("server.api.users.is_current_user_system_admin", return_value=False)
     mocker.patch("server.api.users.get_permitted_repository_ids", return_value=["repoB"])
-
-    result = users_api.has_permission([RepositoryRole(id="repoB", user_role=None)])
+    result = users_api.has_permission(user)
     assert result is True
 
 
 def test_has_permission_no_permission(mocker: MockerFixture) -> None:
     """Tests has_permission returns False for user without permission."""
-
+    user = UserDetail(
+        id="u3",
+        user_name="user3",
+        emails=[],
+        eppns=[],
+        preferred_language="en",
+        repository_roles=[RepositoryRole(id="repoD", user_role=None)],
+        is_system_admin=False,
+    )
     mocker.patch("server.api.users.is_current_user_system_admin", return_value=False)
     mocker.patch("server.api.users.get_permitted_repository_ids", return_value=["repoC"])
-
-    result = users_api.has_permission([RepositoryRole(id="repoD", user_role=None)])
+    result = users_api.has_permission(user)
     assert result is False
 
 

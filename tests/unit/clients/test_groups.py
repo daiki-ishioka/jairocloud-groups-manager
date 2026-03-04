@@ -50,8 +50,9 @@ def test_search_success(app: Flask, mocker: MockerFixture, group_data) -> None: 
     mocker.patch.object(groups, "alias_generator", side_effect=lambda x: x)
     mock_get.return_value.text = response.model_dump_json()
     mock_get.return_value.status_code = 200
+    original_func = inspect.unwrap(groups.search)
 
-    result = groups.search(query, access_token=access_token, client_secret=client_secret)
+    result = original_func(query, access_token=access_token, client_secret=client_secret)
 
     mock_get.assert_called_once()
     call_args, called_kwargs = mock_get.call_args
@@ -102,8 +103,8 @@ def test_search_with_include(app: Flask, mocker: MockerFixture) -> None:  # noqa
     mocker.patch.object(groups, "alias_generator", side_effect=lambda x: x)
     mock_get.return_value.text = json.dumps(response_data)
     mock_get.return_value.status_code = 200
-
-    result = groups.search(query, include=include, access_token=access_token, client_secret=client_secret)
+    original_func = inspect.unwrap(groups.search)
+    result = original_func(query, include=include, access_token=access_token, client_secret=client_secret)
 
     call_args, called_kwargs = mock_get.call_args
     called_params_attributes = called_kwargs["params"].pop("attributes")
@@ -153,8 +154,9 @@ def test_search_with_exclude(app: Flask, mocker: MockerFixture) -> None:  # noqa
     mocker.patch.object(groups, "alias_generator", side_effect=lambda x: x)
     mock_get.return_value.text = json.dumps(response_data)
     mock_get.return_value.status_code = 200
+    original_func = inspect.unwrap(groups.search)
 
-    result = groups.search(query, exclude=exclude, access_token=access_token, client_secret=client_secret)
+    result = original_func(query, exclude=exclude, access_token=access_token, client_secret=client_secret)
 
     call_args, called_kwargs = mock_get.call_args
     called_params_attributes = called_kwargs["params"].pop("attributes", None)
@@ -206,8 +208,9 @@ def test_search_groups_with_all_params(app: Flask, mocker: MockerFixture) -> Non
     mocker.patch.object(groups, "alias_generator", side_effect=lambda x: x)
     mock_get.return_value.text = json.dumps(response_data)
     mock_get.return_value.status_code = 200
+    original_func = inspect.unwrap(groups.search)
 
-    result = groups.search(
+    result = original_func(
         query, include=include, exclude=exclude, access_token=access_token, client_secret=client_secret
     )
 
@@ -244,8 +247,9 @@ def test_search_status_400_returns_maperror(app: Flask, mocker: MockerFixture, g
     mock_get = mocker.patch("server.clients.groups.requests.get")
     mock_get.return_value.text = MapError.model_validate(error_data).model_dump_json()
     mock_get.return_value.status_code = 400
+    original_func = inspect.unwrap(groups.search)
 
-    result = groups.search(query, access_token=access_token, client_secret=client_secret)
+    result = original_func(query, access_token=access_token, client_secret=client_secret)
     assert isinstance(result, MapError)
 
 
@@ -256,9 +260,10 @@ def test_search_http_error(app: Flask, mocker: MockerFixture) -> None:
     mock_get = mocker.patch("server.clients.groups.requests.get")
     mock_get.return_value.status_code = 401
     mock_get.return_value.raise_for_status.side_effect = Exception("401 Unauthorized")
+    original_func = inspect.unwrap(groups.search)
 
     with pytest.raises(Exception, match="401 Unauthorized"):
-        groups.search(query, access_token="token", client_secret="secret")
+        original_func(query, access_token="token", client_secret="secret")
 
 
 def test_get_by_id_success(app: Flask, mocker: MockerFixture, group_data) -> None:  # noqa: PLR0914
@@ -640,13 +645,14 @@ def test_put_by_id_success(app: Flask, mocker: MockerFixture, group_data) -> Non
     expected_requests_url = f"{config.MAP_CORE.base_url}{MAP_GROUPS_ENDPOINT}/{json_data['id']}"
     expected_headers = {"Authorization": "Bearer token"}
     expected_timeout = config.MAP_CORE.timeout
+    mocker.patch("server.clients.groups.search.clear_cache")
 
     mock_put = mocker.patch("server.clients.groups.requests.put")
     mock_put.return_value.text = json.dumps(json_data)
     mock_put.return_value.status_code = 200
     clear_id = mocker.patch("server.clients.groups.get_by_id.clear_cache")
-
     original_func = inspect.unwrap(groups.put_by_id)
+
     result = original_func(group, access_token="token", client_secret="secret")
 
     mock_put.assert_called_once()
@@ -683,6 +689,7 @@ def test_put_by_id_with_include(app: Flask, mocker: MockerFixture, group_data) -
     mocker.patch("server.clients.groups.get_by_id", return_value=group)
     mock_put = mocker.patch("server.clients.groups.requests.put")
     mocker.patch.object(groups, "alias_generator", side_effect=lambda x: x)
+    mocker.patch("server.clients.groups.search.clear_cache")
     mock_put.return_value.text = json.dumps(response_data)
     mock_put.return_value.status_code = 200
     clear_id = mocker.patch("server.clients.groups.get_by_id.clear_cache")
@@ -721,6 +728,7 @@ def test_put_by_id_with_exclude(app: Flask, mocker: MockerFixture, group_data) -
     expected_requests_url = f"{config.MAP_CORE.base_url}{MAP_GROUPS_ENDPOINT}/{json_data['id']}"
     mocker.patch("server.clients.groups.get_by_id", return_value=group)
     mock_put = mocker.patch("server.clients.groups.requests.put")
+    mocker.patch("server.clients.groups.search.clear_cache")
     mock_put.return_value.text = json.dumps(response_data)
     mock_put.return_value.status_code = 200
     clear_id = mocker.patch("server.clients.groups.get_by_id.clear_cache")
@@ -759,6 +767,7 @@ def test_put_by_id_with_all_params(app: Flask, mocker: MockerFixture, group_data
 
     mocker.patch("server.clients.groups.get_by_id", return_value=group)
     mock_put = mocker.patch("server.clients.groups.requests.put")
+    mocker.patch("server.clients.groups.search.clear_cache")
     mocker.patch.object(groups, "alias_generator", side_effect=lambda x: x)
     mock_put.return_value.text = json.dumps(response_data)
     mock_put.return_value.status_code = 200
@@ -827,6 +836,7 @@ def test_patch_by_id_success(app: Flask, mocker: MockerFixture, group_data) -> N
     expected_timeout = config.MAP_CORE.timeout
     expected_requests_url = f"{config.MAP_CORE.base_url}{MAP_GROUPS_ENDPOINT}/{group_id}"
     mock_patch = mocker.patch("server.clients.groups.requests.patch")
+    mocker.patch("server.clients.groups.search.clear_cache")
     mock_patch.return_value.text = json.dumps(json_data)
     mock_patch.return_value.status_code = 200
 
@@ -868,6 +878,7 @@ def test_patch_by_id_with_include(app: Flask, mocker: MockerFixture, group_data)
     expected_timeout = config.MAP_CORE.timeout
     expected_requests_url = f"{config.MAP_CORE.base_url}{MAP_GROUPS_ENDPOINT}/{group_id}"
     mock_patch = mocker.patch("server.clients.groups.requests.patch")
+    mocker.patch("server.clients.groups.search.clear_cache")
     mocker.patch.object(groups, "alias_generator", side_effect=lambda x: x)
     mock_patch.return_value.text = json.dumps(response_data)
     mock_patch.return_value.status_code = 200
@@ -911,6 +922,7 @@ def test_patch_by_id_with_exclude(app: Flask, mocker: MockerFixture, group_data)
     expected_requests_url = f"{config.MAP_CORE.base_url}{MAP_GROUPS_ENDPOINT}/{group_id}"
 
     mock_patch = mocker.patch("server.clients.groups.requests.patch")
+    mocker.patch("server.clients.groups.search.clear_cache")
     mocker.patch("server.clients.groups.get_by_id.clear_cache")
     mock_patch.return_value.text = json.dumps(response_data)
     mock_patch.return_value.status_code = 200
@@ -953,6 +965,7 @@ def test_patch_by_id_with_all_params(app: Flask, mocker: MockerFixture, group_da
     expected_requests_url = f"{config.MAP_CORE.base_url}{MAP_GROUPS_ENDPOINT}/{group_id}"
 
     mocker.patch("server.clients.groups.get_by_id.clear_cache")
+    mocker.patch("server.clients.groups.search.clear_cache")
     mock_patch = mocker.patch("server.clients.groups.requests.patch")
     mocker.patch.object(groups, "alias_generator", side_effect=lambda x: x)
     mock_patch.return_value.text = json.dumps(response_data)
@@ -1023,6 +1036,7 @@ def test_delete_by_id_success(app: Flask, mocker: MockerFixture, group_data) -> 
     }
     mocker.patch("server.clients.groups.get_time_stamp", return_value=time_stamp)
     mocker.patch("server.clients.groups.compute_signature", return_value=signature)
+    mocker.patch("server.clients.groups.search.clear_cache")
     mock_delete = mocker.patch("server.clients.groups.requests.delete")
     mock_delete.return_value.text = ""
     mock_delete.return_value.status_code = 200

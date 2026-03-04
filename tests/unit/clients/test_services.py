@@ -28,7 +28,7 @@ if t.TYPE_CHECKING:
 
 
 # --- search ---
-def test_search_success(app: Flask, mocker: MockerFixture) -> None:
+def test_search_success(app: Flask, mocker: MockerFixture) -> None:  # noqa: PLR0914
     query = SearchRequestParameter(
         filter="serviceName eq 'test'", start_index=1, count=10, sort_by="serviceName", sort_order="ascending"
     )
@@ -78,8 +78,9 @@ def test_search_success(app: Flask, mocker: MockerFixture) -> None:
     mock_get = mocker.patch("server.clients.services.requests.get")
     mock_get.return_value.text = json.dumps(response)
     mock_get.return_value.status_code = 200
+    original_func = inspect.unwrap(services.search)
 
-    result = services.search(
+    result = original_func(
         query,
         access_token=access_token,
         client_secret=client_secret,
@@ -131,8 +132,9 @@ def test_search_with_include(app: Flask, mocker: MockerFixture) -> None:  # noqa
     mock_get = mocker.patch("server.clients.services.requests.get")
     mock_get.return_value.text = json.dumps(response_data)
     mock_get.return_value.status_code = 200
+    original_func = inspect.unwrap(services.search)
 
-    result = services.search(
+    result = original_func(
         query,
         include=include,
         access_token=access_token,
@@ -198,8 +200,9 @@ def test_search_with_exclude(app: Flask, mocker: MockerFixture) -> None:  # noqa
     mocker.patch.object(services, "alias_generator", side_effect=lambda x: x)
     mock_get.return_value.text = json.dumps(response_data)
     mock_get.return_value.status_code = 200
+    original_func = inspect.unwrap(services.search)
 
-    result = services.search(
+    result = original_func(
         query,
         exclude=exclude,
         access_token=access_token,
@@ -225,9 +228,10 @@ def test_search_not_found(app: Flask, mocker: MockerFixture) -> None:
     mock_get.return_value.raise_for_status.side_effect = Exception("Not Found")
     mock_get.return_value.text = expected_error.model_dump_json()
     mock_get.return_value.status_code = 404
+    original_func = inspect.unwrap(services.search)
 
     with pytest.raises(Exception, match="Not Found"):
-        services.search(query, access_token=access_token, client_secret=client_secret)
+        original_func(query, access_token=access_token, client_secret=client_secret)
 
 
 def test_search_http_error(app: Flask, mocker: MockerFixture) -> None:
@@ -237,9 +241,10 @@ def test_search_http_error(app: Flask, mocker: MockerFixture) -> None:
     mock_get = mocker.patch("server.clients.services.requests.get")
     mock_get.return_value.status_code = 401
     mock_get.return_value.raise_for_status.side_effect = Exception("401 Unauthorized")
+    original_func = inspect.unwrap(services.search)
 
     with pytest.raises(Exception, match="401 Unauthorized"):
-        services.search(query, access_token="token", client_secret="secret")
+        original_func(query, access_token="token", client_secret="secret")
 
 
 def test_get_by_id_success(app: Flask, mocker: MockerFixture, service_data) -> None:

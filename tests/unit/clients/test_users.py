@@ -63,7 +63,9 @@ def test_search_success(app: Flask, mocker: MockerFixture) -> None:  # noqa: PLR
     mock_get.return_value.text = response.model_dump_json()
     mock_get.return_value.status_code = 200
 
-    result = users.search(
+    original_func = inspect.unwrap(users.search)
+
+    result = original_func(
         query,
         access_token=access_token,
         client_secret=client_secret,
@@ -119,7 +121,8 @@ def test_search_with_include(app: Flask, mocker: MockerFixture) -> None:  # noqa
     mock_get = mocker.patch("server.clients.users.requests.get")
     mock_get.return_value.text = json.dumps(response_data)
     mock_get.return_value.status_code = 200
-    result = users.search(
+    original_func = inspect.unwrap(users.search)
+    result = original_func(
         query,
         include=include,
         access_token=access_token,
@@ -175,7 +178,8 @@ def test_search_with_exclude(app: Flask, mocker: MockerFixture) -> None:  # noqa
     mocker.patch.object(users, "alias_generator", side_effect=lambda x: x)
     mock_get.return_value.text = json.dumps(response_data)
     mock_get.return_value.status_code = 200
-    result = users.search(
+    original_func = inspect.unwrap(users.search)
+    result = original_func(
         query,
         exclude=exclude,
         access_token=access_token,
@@ -208,7 +212,8 @@ def test_search_status_400_returns_maperror(app: Flask, mocker: MockerFixture) -
     mock_get = mocker.patch("server.clients.users.requests.get")
     mock_get.return_value.text = expected_error.model_dump_json()
     mock_get.return_value.status_code = 400
-    result = users.search(query, access_token=access_token, client_secret=client_secret)
+    original_func = inspect.unwrap(users.search)
+    result = original_func(query, access_token=access_token, client_secret=client_secret)
     assert isinstance(result, MapError)
     assert "Not Found" in result.detail
 
@@ -220,8 +225,9 @@ def test_search_http_error(app: Flask, mocker: MockerFixture) -> None:
     mock_get = mocker.patch("server.clients.users.requests.get")
     mock_get.return_value.status_code = 401
     mock_get.return_value.raise_for_status.side_effect = Exception("401 Unauthorized")
+    original_func = inspect.unwrap(users.search)
     with pytest.raises(Exception, match="401 Unauthorized"):
-        users.search(query, access_token="token", client_secret="secret")
+        original_func(query, access_token="token", client_secret="secret")
 
 
 def test_get_by_id_success(app: Flask, mocker: MockerFixture, user_data) -> None:  # noqa: PLR0914
@@ -757,6 +763,7 @@ def test_put_by_id_success(app: Flask, mocker: MockerFixture, user_data) -> None
     mocker.patch("server.clients.users.get_time_stamp", return_value=str(int(time.time())))
     mocker.patch("server.clients.users.compute_signature", return_value=signature)
     mock_put = mocker.patch("server.clients.users.requests.put")
+    mocker.patch("server.clients.users.search.clear_cache")
     mock_put.return_value.text = json.dumps(json_data)
     mock_put.return_value.status_code = 200
 
@@ -819,6 +826,7 @@ def test_put_by_id_with_include(app: Flask, mocker: MockerFixture, user_data) ->
     mocker.patch("server.clients.users.get_time_stamp", return_value=time_stamp)
     mocker.patch("server.clients.users.compute_signature", return_value=signature)
     mocker.patch.object(users, "alias_generator", side_effect=lambda x: x)
+    mocker.patch("server.clients.users.search.clear_cache")
     mock_put = mocker.patch("server.clients.users.requests.put")
     mock_put.return_value.text = json.dumps(response_data)
     mock_put.return_value.status_code = 200
@@ -873,6 +881,7 @@ def test_put_by_id_with_exclude(app: Flask, mocker: MockerFixture, user_data) ->
     mock_put.return_value.status_code = 200
     mocker.patch("server.clients.users.get_by_id.clear_cache")
     mocker.patch("server.clients.users.get_by_eppn.clear_cache")
+    mocker.patch("server.clients.users.search.clear_cache")
 
     original_func = inspect.unwrap(users.put_by_id)
     result: MapUser = original_func(user, exclude=exclude, access_token="token", client_secret="secret")
@@ -942,7 +951,7 @@ def test_put_by_id_does_not_clear_cache_on_error(app: Flask, mocker: MockerFixtu
     clear_eppn.assert_not_called()
 
 
-def test_patch_by_id_success(app: Flask, mocker: MockerFixture, user_data) -> None:  # noqa: PLR0914
+def test_patch_by_id_success(app: Flask, mocker: MockerFixture, user_data) -> None:  # noqa: PLR0914, PLR0915
     """Test that a user is patched successfully via patch_by_id."""
     json_data, _ = user_data
     user_id: str = json_data["id"]
@@ -968,6 +977,7 @@ def test_patch_by_id_success(app: Flask, mocker: MockerFixture, user_data) -> No
     mock_patch = mocker.patch("server.clients.users.requests.patch")
     mock_patch.return_value.text = json.dumps(json_data)
     mock_patch.return_value.status_code = 200
+    mocker.patch("server.clients.users.search.clear_cache")
 
     clear_id = mocker.patch("server.clients.users.get_by_id.clear_cache")
     clear_eppn = mocker.patch("server.clients.users.get_by_eppn.clear_cache")
@@ -1042,6 +1052,7 @@ def test_patch_by_id_with_include(app: Flask, mocker: MockerFixture, user_data) 
     mocker.patch.object(users, "alias_generator", side_effect=lambda x: x)
     mock_patch.return_value.text = json.dumps(response_data)
     mock_patch.return_value.status_code = 200
+    mocker.patch("server.clients.users.search.clear_cache")
 
     mocker.patch("server.clients.users.get_by_id.clear_cache")
     mocker.patch("server.clients.users.get_by_eppn.clear_cache")
@@ -1109,6 +1120,7 @@ def test_patch_by_id_with_exclude(app: Flask, mocker: MockerFixture, user_data) 
     mock_patch = mocker.patch("server.clients.users.requests.patch")
     mock_patch.return_value.text = json.dumps(response_data)
     mock_patch.return_value.status_code = 200
+    mocker.patch("server.clients.users.search.clear_cache")
 
     original_func = inspect.unwrap(users.patch_by_id)
     result: MapUser = original_func(user_id, operations, exclude=exclude, access_token="token", client_secret="secret")

@@ -42,6 +42,7 @@ def test_search_success(app, mocker: MockerFixture, test_config) -> None:
         resources=[map_service],
     )
     expected = expected_result.resources[0]
+    mocker.patch("server.services.repositories.resolve_repository_id", return_value="repo1")
     mocker.patch("server.services.repositories.build_search_query", return_value=criteria)
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
