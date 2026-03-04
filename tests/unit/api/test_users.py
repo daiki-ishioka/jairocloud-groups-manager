@@ -14,6 +14,7 @@ from server.api.groups import (
 )
 from server.api.users import ErrorResponse, InvalidQueryError, SearchResult, UsersQuery
 from server.const import USER_ROLES
+from server.entities.login_user import LoginUser
 from server.entities.user_detail import RepositoryRole, UserDetail
 from tests.helpers import UnexpectedError
 
@@ -25,7 +26,7 @@ if t.TYPE_CHECKING:
 
 def test_get_success(app: Flask, mocker: MockerFixture) -> None:
     """Tests group search returns SearchResult and 200 when found."""
-    expected_result = object()  # Replace with actual SearchResult if available
+    expected_result = object()
     query = GroupsQuery(q="test-group", r=["repo1"], u=["user1"], s=0, v=1, k="display_name", d="asc", p=1, l=30)
     expected_status = 200
     mocker.patch("server.api.groups.has_permission", return_value=True)
@@ -237,6 +238,47 @@ def test_id_put_success(app: Flask, mocker: MockerFixture) -> None:
     mocker.patch("server.api.users.has_permission", return_value=True)
     mocker.patch("server.services.users.update", return_value=user)
 
+    dummy_user = LoginUser(
+        eppn="dummy",
+        is_member_of="",
+        user_name="dummy",
+        map_id="not_u20",
+        session_id="dummy",
+    )
+    mocker.patch("server.api.users.current_user", dummy_user)
+
+    original_func = inspect.unwrap(users_api.id_put)
+    result, status = original_func("u20", user)
+    assert result == user
+    assert status == expected_status
+
+
+def test_id_put_success_self(app: Flask, mocker: MockerFixture) -> None:
+    expected_status = 200
+
+    user = UserDetail(
+        id="dummy",
+        user_name="user20",
+        emails=["user20@example.com"],
+        eppns=["eppn20"],
+        preferred_language="en",
+        repository_roles=[RepositoryRole(id="repo20", user_role=USER_ROLES.REPOSITORY_ADMIN)],
+        is_system_admin=False,
+    )
+    mocker.patch("server.api.users.has_permission", return_value=True)
+    mocker.patch("server.services.users.update", return_value=user)
+
+    dummy_user = LoginUser(
+        eppn="dummy",
+        is_member_of="",
+        user_name="dummy",
+        map_id="u20",
+        session_id="dummy",
+    )
+
+    mocker.patch("server.api.users.logout", return_value=("", 204))
+    mocker.patch("server.api.users.current_user", dummy_user)
+
     original_func = inspect.unwrap(users_api.id_put)
     result, status = original_func("u20", user)
     assert result == user
@@ -302,6 +344,14 @@ def test_id_put_not_found(app: Flask, mocker: MockerFixture) -> None:
         is_system_admin=False,
     )
     expected_status = 404
+    dummy_user = LoginUser(
+        eppn="dummy",
+        is_member_of="",
+        user_name="dummy",
+        map_id="u24",
+        session_id="dummy",
+    )
+    mocker.patch("server.api.users.current_user", dummy_user)
     mocker.patch("server.api.users.has_permission", return_value=True)
     mocker.patch("server.services.users.update", side_effect=ResourceNotFound("not found"))
 
@@ -328,6 +378,15 @@ def test_id_put_resource_invalid(app: Flask, mocker: MockerFixture) -> None:
     expected_status = 409
     mocker.patch("server.api.users.has_permission", return_value=True)
     mocker.patch("server.services.users.update", side_effect=ResourceInvalid("resource invalid"))
+
+    dummy_user = LoginUser(
+        eppn="dummy",
+        is_member_of="",
+        user_name="dummy",
+        map_id="u25",
+        session_id="dummy",
+    )
+    mocker.patch("server.api.users.current_user", dummy_user)
 
     original_func = inspect.unwrap(users_api.id_put)
     result, status = original_func("u25", user)
