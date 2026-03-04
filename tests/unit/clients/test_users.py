@@ -15,6 +15,7 @@ from server.clients import users
 from server.clients.users import handle_user_updated_by_eppn, handle_user_updated_by_id
 from server.config import config
 from server.const import MAP_EXIST_EPPN_ENDPOINT, MAP_PATCH_SCHEMA, MAP_USERS_ENDPOINT
+from server.entities.login_user import LoginUser
 from server.entities.map_error import MapError
 from server.entities.map_user import MapUser
 from server.entities.patch_request import AddOperation, PatchOperation, PatchRequestPayload, ReplaceOperation
@@ -1256,3 +1257,38 @@ def test_handle_user_updated_returns_early_on_non_mapuser(mocker):
     users.handle_user_updated(_sender=None, user=None)
     mock_clear_id.assert_not_called()
     mock_clear_eppn.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("is_logged_in", "is_admin", "permitted", "expected"),
+    [
+        (False, False, [], "anonymous"),
+        (True, True, [], "system_admin"),
+        (True, False, ["repo1", "repo2"], "repo1,repo2"),
+        (True, False, [], ""),
+    ],
+    ids=["not_logged_in", "system_admin", "permitted_repos", "empty_permitted"],
+)
+def test_search_cache_identifier(app, mocker, is_logged_in, is_admin, permitted, expected):
+
+    current_user = LoginUser(
+        eppn="dummy",
+        is_member_of="system_admin" if is_admin else "",
+        user_name="dummy",
+        map_id="dummy",
+        session_id="dummy",
+    )
+    mocker.patch.object(
+        type(current_user),
+        "is_system_admin",
+        new=property(lambda _: is_admin),
+    )
+    mocker.patch.object(
+        type(current_user),
+        "permitted_repositories",
+        new=property(lambda _: set(permitted)),
+    )
+    mocker.patch("server.clients.users.current_user", current_user)
+    mocker.patch("server.clients.users.is_user_logged_in", return_value=is_logged_in)
+    result = users_mod._search_cache_identifier()  # noqa: SLF001
+    assert result == expected

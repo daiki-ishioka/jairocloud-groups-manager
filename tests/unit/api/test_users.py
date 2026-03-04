@@ -418,3 +418,20 @@ def test_filter_options_returns_search_users_options_unit(mocker: MockerFixture)
 
     result = original_func()
     assert result == mock_return
+
+
+def test_has_permission_user_is_system_admin(mocker: MockerFixture) -> None:
+    """Covers has_permission: user.is_system_admin is True, returns False."""
+
+    mocker.patch("server.api.users.is_current_user_system_admin", return_value=False)
+    user = UserDetail(
+        id="u1",
+        user_name="user1",
+        emails=[],
+        eppns=[],
+        preferred_language="en",
+        repository_roles=[RepositoryRole(id="repoA", user_role=None)],
+        is_system_admin=True,
+    )
+    result = users_api.has_permission(user)
+    assert result is False

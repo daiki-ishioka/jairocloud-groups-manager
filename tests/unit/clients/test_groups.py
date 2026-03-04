@@ -12,6 +12,7 @@ from requests.exceptions import HTTPError
 from server.clients import groups
 from server.config import config
 from server.const import MAP_GROUPS_ENDPOINT
+from server.entities.login_user import LoginUser
 from server.entities.map_error import MapError
 from server.entities.map_group import MapGroup
 from server.entities.patch_request import PatchRequestPayload, ReplaceOperation
@@ -1139,3 +1140,38 @@ def test__get_alias_generator_with_none_groups(monkeypatch):
     result = groups.alias_generator
     assert callable(result)
     assert result("bar") == "bar"
+
+
+@pytest.mark.parametrize(
+    ("is_logged_in", "is_admin", "permitted", "expected"),
+    [
+        (False, False, [], "anonymous"),
+        (True, True, [], "system_admin"),
+        (True, False, ["repo1", "repo2"], "repo1,repo2"),
+        (True, False, [], ""),
+    ],
+    ids=["not_logged_in", "system_admin", "permitted_repos", "empty_permitted"],
+)
+def test_search_cache_identifier_groups(mocker, is_logged_in, is_admin, permitted, expected):
+
+    current_user = LoginUser(
+        eppn="dummy",
+        is_member_of="system_admin" if is_admin else "",
+        user_name="dummy",
+        map_id="dummy",
+        session_id="dummy",
+    )
+    mocker.patch.object(
+        type(current_user),
+        "is_system_admin",
+        new=property(lambda _: is_admin),
+    )
+    mocker.patch.object(
+        type(current_user),
+        "permitted_repositories",
+        new=property(lambda _: set(permitted)),
+    )
+    mocker.patch("server.clients.groups.current_user", current_user)
+    mocker.patch("server.clients.groups.is_user_logged_in", return_value=is_logged_in)
+    result = groups._search_cache_identifier()  # noqa: SLF001
+    assert result == expected

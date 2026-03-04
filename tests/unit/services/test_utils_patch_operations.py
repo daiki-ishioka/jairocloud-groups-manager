@@ -139,3 +139,17 @@ def test_build_update_member_operations() -> None:
     ops = patch_operations.build_update_member_operations(add, remove, user_list, system_admins)
     assert any(isinstance(op, patch_operations.AddOperation) and op.value["value"] in {"u2", "admin"} for op in ops)
     assert any(isinstance(op, patch_operations.RemoveOperation) and "u3" in op.path for op in ops)
+
+
+def test_build_update_member_operations_add_update_system_admins() -> None:
+
+    add = set()
+    user_list = set()
+    remove = set()
+    system_admins = {"admin1", "admin2"}
+
+    ops = patch_operations.build_update_member_operations(set(add), set(remove), set(user_list), set(system_admins))
+
+    added_ids = {op.value["value"] for op in ops if isinstance(op, patch_operations.AddOperation)}
+    assert "admin1" in added_ids
+    assert "admin2" in added_ids

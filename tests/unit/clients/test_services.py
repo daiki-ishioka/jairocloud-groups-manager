@@ -11,10 +11,13 @@ import pytest
 
 from requests.exceptions import HTTPError
 
+import server.clients.services as services_mod
+
 from server.clients import services
 from server.clients.services import handle_repository_updated, handle_repository_updated_by_id
 from server.config import config
 from server.const import MAP_SERVICES_ENDPOINT
+from server.entities.login_user import LoginUser
 from server.entities.map_error import MapError
 from server.entities.map_service import MapService
 from server.entities.patch_request import PatchOperation, ReplaceOperation
@@ -999,3 +1002,49 @@ def service_data() -> tuple[dict[str, t.Any], MapService]:
     json_data: dict[str, t.Any] = load_json_data("data/map_service.json")
     service: MapService = MapService.model_validate(json_data)
     return json_data, service
+
+
+@pytest.mark.parametrize(
+    ("is_logged_in", "is_admin", "permitted", "expected"),
+    [
+        (False, False, [], "anonymous"),
+        (True, True, [], "system_admin"),
+        (True, False, ["repo1", "repo2"], "repo1,repo2"),
+        (True, False, [], ""),
+    ],
+    ids=["not_logged_in", "system_admin", "permitted_repos", "empty_permitted"],
+)
+def test_search_cache_identifier_services(mocker, is_logged_in, is_admin, permitted, expected):
+
+    current_user = LoginUser(
+        eppn="dummy",
+        is_member_of="system_admin" if is_admin else "",
+        user_name="dummy",
+        map_id="dummy",
+        session_id="dummy",
+    )
+    mocker.patch.object(
+        type(current_user),
+        "is_system_admin",
+        new=property(lambda _: is_admin),
+    )
+    mocker.patch.object(
+        type(current_user),
+        "permitted_repositories",
+        new=property(lambda _: set(permitted)),
+    )
+    mocker.patch("server.clients.services.current_user", current_user)
+    mocker.patch("server.clients.services.is_user_logged_in", return_value=is_logged_in)
+    result = services._search_cache_identifier()  # noqa: SLF001
+    assert result == expected
+
+
+def test_handle_reset_search_cache_calls_clear_cache(mocker):
+    """Test that handle_reset_search_cache calls search.clear_cache with _search_cache_identifier()."""
+
+    importlib.reload(services_mod)
+    mock_clear_cache = mocker.patch.object(services_mod.search, "clear_cache")
+    mock_identifier = mocker.patch.object(services_mod, "_search_cache_identifier", return_value="dummy_id")
+    services_mod.handle_reset_search_cache(_sender=None)
+    mock_identifier.assert_called_once_with()
+    mock_clear_cache.assert_called_once_with("dummy_id")

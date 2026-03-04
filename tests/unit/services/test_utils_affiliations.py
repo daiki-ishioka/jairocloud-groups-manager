@@ -1,11 +1,13 @@
 import pytest
 
+from server.entities.map_group import Service
 from server.services.utils.affiliations import (
     _build_combined_regex,
     _Group,
     _RoleGroup,
     detect_affiliation,
     detect_affiliations,
+    detect_repository,
 )
 
 
@@ -144,3 +146,16 @@ def test_build_combined_regex_len(app, test_config):
     patterns_config = test_config.GROUPS.id_patterns.model_dump()
 
     assert len(patterns_config) == len(pattern.split("|"))
+
+
+def test_detect_repository_first_match_with_resolver_mock(mocker):
+    """detect_repository returns the first Service when resolve_repository_id is mocked to match only the first."""
+    service1 = Service(value="repo1")
+    service2 = Service(value="repo2")
+    services = [service1, service2]
+    mocker.patch(
+        "server.services.utils.affiliations.resolve_repository_id",
+        side_effect=lambda service_id: "matched" if service_id == "repo1" else None,
+    )
+    result = detect_repository(services)
+    assert result is service1

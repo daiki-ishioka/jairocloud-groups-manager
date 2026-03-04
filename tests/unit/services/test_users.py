@@ -789,7 +789,7 @@ def test_update_put_http_error(
     http_exc.response.status_code = status
     mocker.patch(
         "server.services.users.users.put_by_id",
-        side_effect=__import__("requests").HTTPError(response=http_exc.response),
+        side_effect=requests.HTTPError(response=http_exc.response),
     )
 
     with pytest.raises(exc_type) as e:
@@ -805,7 +805,7 @@ def test_update_put_request_exception(app, test_config, mocker: MockerFixture) -
     mocker.patch("server.services.utils.transformers.validate_user_to_map_user", return_value=MagicMock())
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
-    mocker.patch("server.services.users.users.put_by_id", side_effect=__import__("requests").RequestException())
+    mocker.patch("server.services.users.users.put_by_id", side_effect=requests.RequestException())
     mocker.patch("server.services.repositories.get_by_id", return_value=True)
 
     with pytest.raises(UnexpectedResponseError) as e:
@@ -1061,7 +1061,7 @@ def test_update_affiliations_not_found(app, mocker):
     )
     mocker.patch("server.services.users.get_by_id", return_value=None)
     with pytest.raises(ResourceNotFound):
-        __import__("server.services.users").services.users.update_affiliations(user)
+        users.update_affiliations(user)
 
 
 def test_get_system_admins_success(mocker: MockerFixture) -> None:
@@ -1205,3 +1205,46 @@ def user_data() -> tuple[dict[str, t.Any], MapUser]:
     json_data = load_json_data("data/map_user.json")
     user = MapUser.model_validate(json_data)
     return json_data, user
+
+
+def test_handle_user_updated_eppns_true(mocker: MockerFixture) -> None:
+
+    user = UserDetail(id="u1", user_name="u", emails=[], eppns=["eppn1"])
+    mock_clear_id = mocker.patch("server.services.users.users.get_by_id.clear_cache")
+    mock_clear_eppn = mocker.patch("server.services.users.users.get_by_eppn.clear_cache")
+    users.handle_user_updated(_sender=None, user=user)
+    mock_clear_id.assert_called_once_with("u1")
+    mock_clear_eppn.assert_called_once_with("eppn1")
+
+
+def test_handle_user_updated_eppns_false(mocker: MockerFixture) -> None:
+
+    user = UserDetail(id="u2", user_name="u2", emails=[], eppns=[])
+    mock_clear_id = mocker.patch("server.services.users.users.get_by_id.clear_cache")
+    mock_clear_eppn = mocker.patch("server.services.users.users.get_by_eppn.clear_cache")
+
+    users.handle_user_updated(_sender=None, user=user)
+    mock_clear_id.assert_called_once_with("u2")
+    mock_clear_eppn.assert_not_called()
+
+
+def test_update_affiliations_raises_oauth_token_error(app, mocker):
+    user = UserDetail(
+        id="u1",
+        user_name="u",
+        emails=[],
+        repository_roles=[RepositoryRole(id="repo1", user_role=USER_ROLES.SYSTEM_ADMIN)],
+        is_system_admin=False,
+    )
+    current = MagicMock(spec=UserDetail)
+    mocker.patch("server.services.users.get_by_id", return_value=current)
+    mocker.patch("server.services.utils.transformers.validate_user_to_map_user", return_value=current)
+    patch_op = MagicMock()
+    patch_op.op = "add"
+    patch_op.value = MagicMock()
+    mocker.patch("server.services.users.build_patch_operations", return_value=[patch_op])
+    mocker.patch("server.services.groups.update_member", side_effect=OAuthTokenError("fail"))
+    mocker.patch("server.services.repositories.get_by_id", return_value=object())
+    mocker.patch("server.services.users.user_updated.send")
+    with pytest.raises(OAuthTokenError):
+        users.update_affiliations(user)
