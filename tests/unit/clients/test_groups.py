@@ -31,7 +31,7 @@ def group_data() -> tuple[dict[str, t.Any], MapGroup]:
     return json_data, group
 
 
-def test_search_success(app: Flask, mocker: MockerFixture, group_data) -> None:  # noqa: PLR0914
+def test_search_success(app: Flask, mocker: MockerFixture, group_data) -> None:
     """Test that groups are returned when a valid search request is provided."""
     _, group = group_data
 
@@ -78,7 +78,7 @@ def test_search_success(app: Flask, mocker: MockerFixture, group_data) -> None: 
     assert result == expected_result
 
 
-def test_search_with_include(app: Flask, mocker: MockerFixture) -> None:  # noqa: PLR0914
+def test_search_with_include(app: Flask, mocker: MockerFixture) -> None:
     """Test that include params are reflected in attributes_params for search and partial response is handled."""
     count_number = 5
     query = SearchRequestParameter(count=count_number)
@@ -129,7 +129,7 @@ def test_search_with_include(app: Flask, mocker: MockerFixture) -> None:  # noqa
     assert result == expected_result
 
 
-def test_search_with_exclude(app: Flask, mocker: MockerFixture) -> None:  # noqa: PLR0914
+def test_search_with_exclude(app: Flask, mocker: MockerFixture) -> None:
     """Test that exclude params are reflected in attributes_params for search and excluded fields are missing."""
     filter_string = 'displayName eq "Test Group"'
     query = SearchRequestParameter(filter=filter_string)
@@ -181,7 +181,7 @@ def test_search_with_exclude(app: Flask, mocker: MockerFixture) -> None:  # noqa
     assert result == expected_result
 
 
-def test_search_groups_with_all_params(app: Flask, mocker: MockerFixture) -> None:  # noqa: PLR0914
+def test_search_groups_with_all_params(app: Flask, mocker: MockerFixture) -> None:
     """Tests group search with all parameter types."""
     filter_string = 'displayName eq "Test Group"'
     query = SearchRequestParameter(filter=filter_string)
@@ -266,7 +266,7 @@ def test_search_http_error(app: Flask, mocker: MockerFixture) -> None:
         original_func(query, access_token="token", client_secret="secret")
 
 
-def test_get_by_id_success(app: Flask, mocker: MockerFixture, group_data) -> None:  # noqa: PLR0914
+def test_get_by_id_success(app: Flask, mocker: MockerFixture, group_data) -> None:
     """Test that a group is returned when a valid group_id is provided."""
     json_data, expected_result = group_data
     group_id = None
@@ -301,7 +301,7 @@ def test_get_by_id_success(app: Flask, mocker: MockerFixture, group_data) -> Non
     assert result == expected_result
 
 
-def test_get_by_id_with_include(app: Flask, mocker: MockerFixture, group_data) -> None:  # noqa: PLR0914
+def test_get_by_id_with_include(app: Flask, mocker: MockerFixture, group_data) -> None:
     """Test that include params are reflected in attributes_params for get_by_id and partial response is handled."""
     json_data, _ = group_data
     group_id: str = json_data["id"]
@@ -344,7 +344,7 @@ def test_get_by_id_with_include(app: Flask, mocker: MockerFixture, group_data) -
     assert result == expected_result
 
 
-def test_get_by_id_with_exclude(app: Flask, mocker: MockerFixture, group_data) -> None:  # noqa: PLR0914
+def test_get_by_id_with_exclude(app: Flask, mocker: MockerFixture, group_data) -> None:
     """Test that exclude params are reflected in attributes_params for get_by_id and excluded fields are missing."""
     json_data, _ = group_data
     group_id = json_data["id"]
@@ -389,7 +389,7 @@ def test_get_by_id_with_exclude(app: Flask, mocker: MockerFixture, group_data) -
     assert result == expected_result
 
 
-def test_get_by_id_with_all_params(app: Flask, mocker: MockerFixture, group_data) -> None:  # noqa: PLR0914
+def test_get_by_id_with_all_params(app: Flask, mocker: MockerFixture, group_data) -> None:
     """Tests get_by_id with all parameter types (include/exclude)."""
     json_data, _ = group_data
     group_id = json_data["id"]
@@ -496,7 +496,7 @@ def test_post_success(app: Flask, mocker: MockerFixture, group_data) -> None:
     assert result == expected_result
 
 
-def test_post_with_include(app: Flask, mocker: MockerFixture, group_data) -> None:  # noqa: PLR0914
+def test_post_with_include(app: Flask, mocker: MockerFixture, group_data) -> None:
     """Test that include params are reflected in post and partial response is handled."""
     json_data, group = group_data
 
@@ -570,7 +570,7 @@ def test_post_with_exclude(app: Flask, mocker: MockerFixture, group_data) -> Non
     assert result == expected_result
 
 
-def test_post_with_all_params(app: Flask, mocker: MockerFixture, group_data) -> None:  # noqa: PLR0914
+def test_post_with_all_params(app: Flask, mocker: MockerFixture, group_data) -> None:
     """Tests post with all parameter types (include/exclude)."""
     json_data, group = group_data
     include = {"display_name", "description"}
@@ -670,7 +670,7 @@ def test_put_by_id_success(app: Flask, mocker: MockerFixture, group_data) -> Non
     clear_id.assert_called_once_with(group.id)
 
 
-def test_put_by_id_with_include(app: Flask, mocker: MockerFixture, group_data) -> None:  # noqa: PLR0914
+def test_put_by_id_with_include(app: Flask, mocker: MockerFixture, group_data) -> None:
     """Test that include params are reflected in put_by_id and partial response is handled."""
     json_data, group = group_data
 
@@ -711,7 +711,7 @@ def test_put_by_id_with_include(app: Flask, mocker: MockerFixture, group_data) -
     clear_id.assert_called_once_with(group.id)
 
 
-def test_put_by_id_with_exclude(app: Flask, mocker: MockerFixture, group_data) -> None:  # noqa: PLR0914
+def test_put_by_id_with_exclude(app: Flask, mocker: MockerFixture, group_data) -> None:
     """Test that exclude params are reflected in put_by_id and excluded fields are missing."""
     json_data, group = group_data
 
@@ -749,7 +749,7 @@ def test_put_by_id_with_exclude(app: Flask, mocker: MockerFixture, group_data) -
     clear_id.assert_called_once_with(group.id)
 
 
-def test_put_by_id_with_all_params(app: Flask, mocker: MockerFixture, group_data) -> None:  # noqa: PLR0914
+def test_put_by_id_with_all_params(app: Flask, mocker: MockerFixture, group_data) -> None:
     """Tests put_by_id with all parameter types (include/exclude)."""
     json_data, group = group_data
     include = {"display_name", "description"}
@@ -820,7 +820,7 @@ def test_put_by_id_http_error(app: Flask, mocker: MockerFixture, group_data) -> 
     clear_id.assert_not_called()
 
 
-def test_patch_by_id_success(app: Flask, mocker: MockerFixture, group_data) -> None:  # noqa: PLR0914
+def test_patch_by_id_success(app: Flask, mocker: MockerFixture, group_data) -> None:
     """Test that a group is patched successfully via patch_by_id."""
     json_data, _ = group_data
 
@@ -859,7 +859,7 @@ def test_patch_by_id_success(app: Flask, mocker: MockerFixture, group_data) -> N
     clear_id.assert_called_once_with(group_id)
 
 
-def test_patch_by_id_with_include(app: Flask, mocker: MockerFixture, group_data) -> None:  # noqa: PLR0914
+def test_patch_by_id_with_include(app: Flask, mocker: MockerFixture, group_data) -> None:
     """Test that include params are reflected in patch_by_id and partial response is handled."""
     json_data, _ = group_data
 
@@ -903,7 +903,7 @@ def test_patch_by_id_with_include(app: Flask, mocker: MockerFixture, group_data)
     assert result == expected_result
 
 
-def test_patch_by_id_with_exclude(app: Flask, mocker: MockerFixture, group_data) -> None:  # noqa: PLR0914
+def test_patch_by_id_with_exclude(app: Flask, mocker: MockerFixture, group_data) -> None:
     """Test that exclude params are reflected in patch_by_id and excluded fields are missing."""
     json_data, _ = group_data
 
@@ -946,7 +946,7 @@ def test_patch_by_id_with_exclude(app: Flask, mocker: MockerFixture, group_data)
     assert result == expected_result
 
 
-def test_patch_by_id_with_all_params(app: Flask, mocker: MockerFixture, group_data) -> None:  # noqa: PLR0914
+def test_patch_by_id_with_all_params(app: Flask, mocker: MockerFixture, group_data) -> None:
     """Tests patch_by_id with all parameter types (include/exclude)."""
     json_data, _ = group_data
     group_id = json_data["id"]

@@ -28,7 +28,7 @@ if t.TYPE_CHECKING:
 
 
 # --- search ---
-def test_search_success(app: Flask, mocker: MockerFixture) -> None:  # noqa: PLR0914
+def test_search_success(app: Flask, mocker: MockerFixture) -> None:
     query = SearchRequestParameter(
         filter="serviceName eq 'test'", start_index=1, count=10, sort_by="serviceName", sort_order="ascending"
     )
@@ -91,7 +91,7 @@ def test_search_success(app: Flask, mocker: MockerFixture) -> None:  # noqa: PLR
     assert result == expected_result
 
 
-def test_search_with_include(app: Flask, mocker: MockerFixture) -> None:  # noqa: PLR0914
+def test_search_with_include(app: Flask, mocker: MockerFixture) -> None:
     query = SearchRequestParameter(
         filter="serviceName eq 'test'", start_index=1, count=10, sort_by="serviceName", sort_order="descending"
     )
@@ -152,7 +152,7 @@ def test_search_with_include(app: Flask, mocker: MockerFixture) -> None:  # noqa
     assert called_kwargs["timeout"] == expected_timeout
 
 
-def test_search_with_exclude(app: Flask, mocker: MockerFixture) -> None:  # noqa: PLR0914
+def test_search_with_exclude(app: Flask, mocker: MockerFixture) -> None:
     query = SearchRequestParameter()
     exclude = {"meta"}
     access_token = "token"
@@ -279,7 +279,7 @@ def test_get_by_id_success(app: Flask, mocker: MockerFixture, service_data) -> N
     assert result == expected_service
 
 
-def test_get_by_id_with_include(app: Flask, mocker: MockerFixture, service_data) -> None:  # noqa: PLR0914
+def test_get_by_id_with_include(app: Flask, mocker: MockerFixture, service_data) -> None:
     json_data, _ = service_data
     service_id: str = json_data["id"]
     include = {"service_name"}
@@ -471,7 +471,7 @@ def test_post_with_include(app: Flask, mocker: MockerFixture, service_data) -> N
     assert result == expected_result
 
 
-def test_post_with_exclude(app: Flask, mocker: MockerFixture, service_data) -> None:  # noqa: PLR0914
+def test_post_with_exclude(app: Flask, mocker: MockerFixture, service_data) -> None:
     json_data, service = service_data
     time_stamp = str(int(time.time()))
     service_obj: MapService = service
@@ -612,7 +612,7 @@ def test_put_by_id_success(app: Flask, mocker: MockerFixture, service_data) -> N
     assert called_kwargs["timeout"] == expected_timeout
 
 
-def test_put_by_id_with_include(app: Flask, mocker: MockerFixture, service_data) -> None:  # noqa: PLR0914
+def test_put_by_id_with_include(app: Flask, mocker: MockerFixture, service_data) -> None:
     json_data, service = service_data
     service_obj: MapService = service
     time_stamp = str(int(time.time()))
@@ -661,7 +661,7 @@ def test_put_by_id_with_include(app: Flask, mocker: MockerFixture, service_data)
     assert called_kwargs["timeout"] == expected_timeout
 
 
-def test_put_by_id_with_exclude(app: Flask, mocker: MockerFixture, service_data) -> None:  # noqa: PLR0914
+def test_put_by_id_with_exclude(app: Flask, mocker: MockerFixture, service_data) -> None:
     json_data, service = service_data
     service_obj: MapService = service
     time_stamp = str(int(time.time()))
@@ -735,7 +735,7 @@ def test_put_by_id_http_error(app: Flask, mocker: MockerFixture, service_data) -
 
 
 # --- patch_by_id ---
-def test_patch_by_id_success(app: Flask, mocker: MockerFixture, service_data) -> None:  # noqa: PLR0914
+def test_patch_by_id_success(app: Flask, mocker: MockerFixture, service_data) -> None:
     json_data, _ = service_data
     service_id: str = json_data["id"]
     operations: list[ReplaceOperation] = [ReplaceOperation(op="replace", path="serviceName", value="NewName")]
@@ -775,7 +775,7 @@ def test_patch_by_id_success(app: Flask, mocker: MockerFixture, service_data) ->
     assert called_kwargs["json"]["request"] == expected_request
 
 
-def test_patch_by_id_with_include(app: Flask, mocker: MockerFixture, service_data) -> None:  # noqa: PLR0914
+def test_patch_by_id_with_include(app: Flask, mocker: MockerFixture, service_data) -> None:
     json_data, _ = service_data
     service_id: str = json_data["id"]
     include = {"service_name"}
@@ -830,7 +830,7 @@ def test_patch_by_id_with_include(app: Flask, mocker: MockerFixture, service_dat
     assert called_kwargs["json"]["request"] == expected_request
 
 
-def test_patch_by_id_with_exclude(app: Flask, mocker: MockerFixture, service_data) -> None:  # noqa: PLR0914
+def test_patch_by_id_with_exclude(app: Flask, mocker: MockerFixture, service_data) -> None:
     json_data, _ = service_data
     service_id: str = json_data["id"]
     exclude = {"meta"}

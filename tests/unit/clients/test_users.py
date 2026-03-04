@@ -27,7 +27,7 @@ if t.TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 
-def test_search_success(app: Flask, mocker: MockerFixture) -> None:  # noqa: PLR0914
+def test_search_success(app: Flask, mocker: MockerFixture) -> None:
     """Test that search returns a SearchResponse[MapUser] with correct params."""
     filter_string = 'displayName eq "Test Group"'
     query = SearchRequestParameter(filter=filter_string)
@@ -85,7 +85,7 @@ def test_search_success(app: Flask, mocker: MockerFixture) -> None:  # noqa: PLR
     assert result == expected_result
 
 
-def test_search_with_include(app: Flask, mocker: MockerFixture) -> None:  # noqa: PLR0914
+def test_search_with_include(app: Flask, mocker: MockerFixture) -> None:
     """Test that include params are reflected in search and partial response is handled."""
     count_number = 5
     query = SearchRequestParameter(count=count_number)
@@ -142,7 +142,7 @@ def test_search_with_include(app: Flask, mocker: MockerFixture) -> None:  # noqa
     assert result == expected_result
 
 
-def test_search_with_exclude(app: Flask, mocker: MockerFixture) -> None:  # noqa: PLR0914
+def test_search_with_exclude(app: Flask, mocker: MockerFixture) -> None:
     """Test that exclude params are reflected in search and excluded fields are missing."""
     filter_string = 'displayName eq "Test Group"'
     query = SearchRequestParameter(filter=filter_string)
@@ -230,7 +230,7 @@ def test_search_http_error(app: Flask, mocker: MockerFixture) -> None:
         original_func(query, access_token="token", client_secret="secret")
 
 
-def test_get_by_id_success(app: Flask, mocker: MockerFixture, user_data) -> None:  # noqa: PLR0914
+def test_get_by_id_success(app: Flask, mocker: MockerFixture, user_data) -> None:
     """Test that a user is returned when a valid user_id is provided."""
     json_data, _ = user_data
 
@@ -270,7 +270,7 @@ def test_get_by_id_success(app: Flask, mocker: MockerFixture, user_data) -> None
     assert result == expected_user
 
 
-def test_get_by_id_with_include(app: Flask, mocker: MockerFixture, user_data) -> None:  # noqa: PLR0914
+def test_get_by_id_with_include(app: Flask, mocker: MockerFixture, user_data) -> None:
     """Test that include params are reflected in attributes_params for get_by_id and partial response is handled."""
     json_data, _ = user_data
 
@@ -320,7 +320,7 @@ def test_get_by_id_with_include(app: Flask, mocker: MockerFixture, user_data) ->
     assert result.emails[0].value == response_data["emails"][0]["value"]
 
 
-def test_get_by_id_with_exclude(app: Flask, mocker: MockerFixture, user_data) -> None:  # noqa: PLR0914
+def test_get_by_id_with_exclude(app: Flask, mocker: MockerFixture, user_data) -> None:
     """Test that exclude params are reflected in attributes_params for get_by_id and excluded fields are missing."""
     json_data, _ = user_data
 
@@ -445,7 +445,7 @@ def test_get_by_eppn_success(app: Flask, mocker: MockerFixture, user_data) -> No
     assert called_kwargs["timeout"] == expected_timeout
 
 
-def test_get_by_eppn_with_includ(app: Flask, mocker: MockerFixture, user_data) -> None:  # noqa: PLR0914
+def test_get_by_eppn_with_includ(app: Flask, mocker: MockerFixture, user_data) -> None:
     """Test that include params are reflected in attributes_params for get_by_eppn and partial response is handled."""
     json_data, _ = user_data
 
@@ -495,7 +495,7 @@ def test_get_by_eppn_with_includ(app: Flask, mocker: MockerFixture, user_data) -
     assert called_kwargs["timeout"] == expected_timeout
 
 
-def test_get_by_eppn_with_exclude(app: Flask, mocker: MockerFixture, user_data) -> None:  # noqa: PLR0914
+def test_get_by_eppn_with_exclude(app: Flask, mocker: MockerFixture, user_data) -> None:
     """Test that exclude params are reflected in attributes_params for get_by_eppn and excluded fields are missing."""
     json_data, _ = user_data
 
@@ -623,7 +623,7 @@ def test_post_success(app: Flask, mocker: MockerFixture, user_data) -> None:
     assert result.groups == expected_user.groups
 
 
-def test_post_with_include(app: Flask, mocker: MockerFixture, user_data) -> None:  # noqa: PLR0914
+def test_post_with_include(app: Flask, mocker: MockerFixture, user_data) -> None:
     """Test that include/exclude params are reflected in post and partial response is handled."""
     json_data, user = user_data
 
@@ -671,7 +671,7 @@ def test_post_with_include(app: Flask, mocker: MockerFixture, user_data) -> None
     assert result.emails[0].value == response_data["emails"][0]["value"]
 
 
-def test_post_with_exclude(app: Flask, mocker: MockerFixture, user_data) -> None:  # noqa: PLR0914
+def test_post_with_exclude(app: Flask, mocker: MockerFixture, user_data) -> None:
     """Test that exclude params are reflected in attributes_params for post and excluded fields are missing."""
     json_data, user = user_data
 
@@ -748,7 +748,7 @@ def test_post_http_error(app: Flask, mocker: MockerFixture, user_data) -> None:
         users.post(user, access_token="token", client_secret="secret")
 
 
-def test_put_by_id_success(app: Flask, mocker: MockerFixture, user_data) -> None:  # noqa: PLR0914
+def test_put_by_id_success(app: Flask, mocker: MockerFixture, user_data) -> None:
     """Test that a user is updated successfully via put_by_id."""
     json_data, user = user_data
 
@@ -802,7 +802,7 @@ def test_put_by_id_success(app: Flask, mocker: MockerFixture, user_data) -> None
     assert clear_eppn.call_args[0] == expected_emails
 
 
-def test_put_by_id_with_include(app: Flask, mocker: MockerFixture, user_data) -> None:  # noqa: PLR0914
+def test_put_by_id_with_include(app: Flask, mocker: MockerFixture, user_data) -> None:
     """Test that include params are reflected in put_by_id and partial response is handled."""
     json_data, user = user_data
 
@@ -853,7 +853,7 @@ def test_put_by_id_with_include(app: Flask, mocker: MockerFixture, user_data) ->
     assert result.emails[0].value == response_data["emails"][0]["value"]
 
 
-def test_put_by_id_with_exclude(app: Flask, mocker: MockerFixture, user_data) -> None:  # noqa: PLR0914
+def test_put_by_id_with_exclude(app: Flask, mocker: MockerFixture, user_data) -> None:
     """Test that exclude params are reflected in put_by_id and excluded fields are missing."""
     json_data, user = user_data
 
@@ -951,7 +951,7 @@ def test_put_by_id_does_not_clear_cache_on_error(app: Flask, mocker: MockerFixtu
     clear_eppn.assert_not_called()
 
 
-def test_patch_by_id_success(app: Flask, mocker: MockerFixture, user_data) -> None:  # noqa: PLR0914, PLR0915
+def test_patch_by_id_success(app: Flask, mocker: MockerFixture, user_data) -> None:  # noqa: PLR0915
     """Test that a user is patched successfully via patch_by_id."""
     json_data, _ = user_data
     user_id: str = json_data["id"]
@@ -1016,7 +1016,7 @@ def test_patch_by_id_success(app: Flask, mocker: MockerFixture, user_data) -> No
     assert clear_eppn.call_args[0] == expected_eppn
 
 
-def test_patch_by_id_with_include(app: Flask, mocker: MockerFixture, user_data) -> None:  # noqa: PLR0914
+def test_patch_by_id_with_include(app: Flask, mocker: MockerFixture, user_data) -> None:
     """Test that include params are reflected in patch_by_id and partial response is handled."""
     json_data, _ = user_data
 
@@ -1080,7 +1080,7 @@ def test_patch_by_id_with_include(app: Flask, mocker: MockerFixture, user_data) 
     assert result.emails[0].value == response_data["emails"][0]["value"]
 
 
-def test_patch_by_id_with_exclude(app: Flask, mocker: MockerFixture, user_data) -> None:  # noqa: PLR0914
+def test_patch_by_id_with_exclude(app: Flask, mocker: MockerFixture, user_data) -> None:
     """Test that exclude params are reflected in patch_by_id and excluded fields are missing."""
     json_data, _ = user_data
 

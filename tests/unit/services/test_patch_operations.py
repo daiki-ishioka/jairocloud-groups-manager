@@ -1,4 +1,3 @@
-
 from typing import TYPE_CHECKING
 
 import pytest
@@ -16,6 +15,7 @@ from server.services.utils.patch_operations import (
     _handle_literal_diff,
     build_patch_operations,
 )
+
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -67,15 +67,23 @@ class Test6(BaseModel):
     value3: str
 
 
-@pytest.mark.parametrize(("ori", "up", "expected"),
+@pytest.mark.parametrize(
+    ("ori", "up", "expected"),
     [
-        (Test(id="1", test_list=[Test3(value="test", type="test")], test_model=Test2(id="2")),
-        Test(id="2", test_list=[Test3(value="test", type="test")], test_model=Test2(id="2")),
-        [Test(id="1", test_list=[Test3(value="test", type="test")], test_model=Test2(id="2")),
-        Test(id="2", test_list=[Test3(value="test", type="test")], test_model=Test2(id="2")), None, None]),
-        (Test2(id="1"), Test2(id="2"), [Test2(id="1"), Test2(id="2"), None, None])
+        (
+            Test(id="1", test_list=[Test3(value="test", type="test")], test_model=Test2(id="2")),
+            Test(id="2", test_list=[Test3(value="test", type="test")], test_model=Test2(id="2")),
+            [
+                Test(id="1", test_list=[Test3(value="test", type="test")], test_model=Test2(id="2")),
+                Test(id="2", test_list=[Test3(value="test", type="test")], test_model=Test2(id="2")),
+                None,
+                None,
+            ],
+        ),
+        (Test2(id="1"), Test2(id="2"), [Test2(id="1"), Test2(id="2"), None, None]),
     ],
-    ids=["alias_generator", "no_alias_generator"])
+    ids=["alias_generator", "no_alias_generator"],
+)
 def test_build_patch_operations(ori, up, expected, mocker: MockerFixture):
     call = mocker.patch("server.services.utils.patch_operations._diff")
     build_patch_operations(ori, up)
@@ -96,14 +104,22 @@ def test_build_patch_operations_typeerror():
     assert str(e.value) == "Original and updated models must be of the same type."
 
 
-@pytest.mark.parametrize(("src", "dsc", "include"),
+@pytest.mark.parametrize(
+    ("src", "dsc", "include"),
     [
-        (Test(id="1", test_list=[Test3(value="test", type="test")], test_model=Test2(id="2")), Test(id="2",
-            test_list=[Test3(value="test", type="test")], test_model=Test2(id="2")), {"id", "test_list", "test_model"}),
-        (Test(id="1", test_list=[Test3(value="test", type="test")], test_model=Test2(id="2")), Test(id="2",
-            test_list=[Test3(value="test", type="test")], test_model=Test2(id="2")), None)
+        (
+            Test(id="1", test_list=[Test3(value="test", type="test")], test_model=Test2(id="2")),
+            Test(id="2", test_list=[Test3(value="test", type="test")], test_model=Test2(id="2")),
+            {"id", "test_list", "test_model"},
+        ),
+        (
+            Test(id="1", test_list=[Test3(value="test", type="test")], test_model=Test2(id="2")),
+            Test(id="2", test_list=[Test3(value="test", type="test")], test_model=Test2(id="2")),
+            None,
+        ),
     ],
-    ids=["include", "no_include"])
+    ids=["include", "no_include"],
+)
 def test__diff(src, dsc, include):
     result = _diff(src, dsc, include=include)
     expected_op = "replace"
@@ -116,12 +132,11 @@ def test__diff(src, dsc, include):
     assert result[0].value == expected_value
 
 
-@pytest.mark.parametrize(("src_value", "dsc_value", "path", "expected_op", "expected_path", "expected_value"),
-    [
-        (None, 1, "id", "add", "id", 1),
-        (1, 2, "id", "replace", "id", 2)
-    ],
-    ids=["no_src_value", "different_value"])
+@pytest.mark.parametrize(
+    ("src_value", "dsc_value", "path", "expected_op", "expected_path", "expected_value"),
+    [(None, 1, "id", "add", "id", 1), (1, 2, "id", "replace", "id", 2)],
+    ids=["no_src_value", "different_value"],
+)
 def test_handle_literal_diff(src_value, dsc_value, path, expected_op, expected_path, expected_value):
     result = _handle_literal_diff(src_value, dsc_value, path)
     assert isinstance(result[0], (AddOperation, ReplaceOperation))
@@ -144,17 +159,44 @@ def test_handle_literal_diff_no_dst_value():
     assert result[0].path == expected_path
 
 
-@pytest.mark.parametrize(("src_list", "dsc_list", "path", "expected_op_1", "expected_path_1", "expected_op_2", "expected_path_2", "expected_value"),
+@pytest.mark.parametrize(
+    (
+        "src_list",
+        "dsc_list",
+        "path",
+        "expected_op_1",
+        "expected_path_1",
+        "expected_op_2",
+        "expected_path_2",
+        "expected_value",
+    ),
     [
-        ([Test4(value="test", value2="test2", type="test")], [Test3(value="test", type="test2")], "value",
-        "remove", 'value[value eq "test" and type eq "test"]', "add", "value",
-        Test3(value="test", type="test2")),
-        ([Test5(value="test", value2="test2")], [Test6(value="test2", value3="test3")], "value",
-        "remove", 'value[value eq "test"]', "add", "value",
-        Test6(value="test2", value3="test3"))
+        (
+            [Test4(value="test", value2="test2", type="test")],
+            [Test3(value="test", type="test2")],
+            "value",
+            "remove",
+            'value[value eq "test" and type eq "test"]',
+            "add",
+            "value",
+            Test3(value="test", type="test2"),
+        ),
+        (
+            [Test5(value="test", value2="test2")],
+            [Test6(value="test2", value3="test3")],
+            "value",
+            "remove",
+            'value[value eq "test"]',
+            "add",
+            "value",
+            Test6(value="test2", value3="test3"),
+        ),
     ],
-    ids=["type", "no_type"])
-def test__handle_list_diff(src_list, dsc_list, path, expected_op_1, expected_path_1, expected_op_2, expected_path_2, expected_value):
+    ids=["type", "no_type"],
+)
+def test__handle_list_diff(
+    src_list, dsc_list, path, expected_op_1, expected_path_1, expected_op_2, expected_path_2, expected_value
+):
     result = _handle_list_diff(src_list, dsc_list, path)
     assert isinstance(result[0], RemoveOperation)
     assert result[0].op == expected_op_1
