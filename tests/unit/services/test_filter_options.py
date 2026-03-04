@@ -8,6 +8,7 @@ from server.services.utils.filter_options import (
     _get_type,
     _initial_options,
     search_groups_options,
+    search_history_filter_options,
     search_repositories_options,
     search_users_options,
 )
@@ -243,3 +244,49 @@ def test__allow_multiple_variants() -> None:
     assert _allow_multiple(UsersCriteria, "a") is True
     assert _allow_multiple(UsersCriteria, "s") is False
     assert _allow_multiple(UsersCriteria, "e") is False
+
+
+class DummyProtocol:
+    a: int
+    b: list[str]
+    c: list[int] | int
+    d: str
+
+
+def test_allow_multiple_returns_false_for_missing_attr():
+    result = _allow_multiple(DummyProtocol, "not_exist")
+    assert result is False
+
+
+def test_allow_multiple_returns_true_for_list():
+    result = _allow_multiple(DummyProtocol, "b")
+    assert result is True
+
+
+def test_allow_multiple_returns_true_for_union_list():
+    result = _allow_multiple(DummyProtocol, "c")
+    assert result is True
+
+
+def test_allow_multiple_returns_false_for_non_list():
+    result = _allow_multiple(DummyProtocol, "a")
+    assert result is False
+    result2 = _allow_multiple(DummyProtocol, "d")
+    assert result2 is False
+
+
+def test_search_history_filter_options_all_lines():
+
+    opts = search_history_filter_options()
+    len_opts_limited = 4
+    assert isinstance(opts, list)
+    assert len(opts) >= len_opts_limited
+    keys = {o.key for o in opts}
+    assert {"o", "r", "g", "u"}.issubset(keys)
+    for o in opts:
+        assert isinstance(o, FilterOption)
+        assert o.multiple is True
+        assert isinstance(o.items, list)
+        assert o.items == []
+        assert o.type == "string"
+        assert isinstance(o.description, str)

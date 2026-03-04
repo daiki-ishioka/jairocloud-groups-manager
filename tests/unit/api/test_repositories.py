@@ -381,3 +381,15 @@ def test_has_permission_not_permitted(mocker: MockerFixture) -> None:
 
     result = repositories.has_permission("repo1")
     assert result is False
+
+
+def test_id_delete_invalid_form_error(app, mocker: MockerFixture) -> None:
+    expected_status = 400
+    query = RepositoryDeleteQuery(confirmation="delete")
+    mocker.patch("server.services.repositories.delete_by_id", side_effect=InvalidFormError("invalid form"))
+    original_func = inspect.unwrap(repositories.id_delete)
+    response, status = original_func("repo1", query)
+    assert status == expected_status
+    assert isinstance(response, ErrorResponse)
+    assert response.message == "invalid form"
+    assert not response.code

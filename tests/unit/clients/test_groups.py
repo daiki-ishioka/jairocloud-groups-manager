@@ -1,4 +1,5 @@
 import hashlib
+import importlib
 import inspect
 import json
 import time
@@ -1072,3 +1073,45 @@ def test_delete_by_id_http_error(app: Flask, mocker: MockerFixture, group_data) 
         groups.delete_by_id(group_id, access_token="token", client_secret="secret")
 
     clear_id.assert_not_called()
+
+
+def test_handle_group_updated_by_id_clears_cache(mocker):
+    """Covers get_by_id.clear_cache(group_id) branch for handle_group_updated_by_id."""
+    mock_clear = mocker.patch("server.clients.groups.get_by_id.clear_cache")
+    group_id = "group123"
+
+    groups.handle_group_updated_by_id(_sender=None, group_id=group_id)
+    mock_clear.assert_called_once_with(group_id)
+
+
+def test_handle_group_updated_by_ids_clears_cache(mocker):
+    """Covers get_by_id.clear_cache(*group_ids) branch for handle_group_updated_by_ids."""
+    mock_clear = mocker.patch("server.clients.groups.get_by_id.clear_cache")
+    group_ids = ["group1", "group2"]
+
+    groups.handle_group_updated_by_ids(_sender=None, group_ids=group_ids)
+    mock_clear.assert_called_once_with(*group_ids)
+
+
+def test__get_alias_generator_with_serialization_alias_groups(monkeypatch):
+    """Covers the branch where generator has serialization_alias attribute for groups."""
+
+    class Dummy:
+        def __init__(self):
+            self.serialization_alias = lambda x: f"alias_{x}"
+
+    monkeypatch.setitem(groups.MapGroup.model_config, "alias_generator", Dummy())
+    importlib.reload(groups)
+    result = groups.alias_generator
+    assert callable(result)
+    assert result("foo") == "alias_foo"
+
+
+def test__get_alias_generator_with_none_groups(monkeypatch):
+    """Covers the branch where generator is None and falls back to lambda x: x for groups."""
+
+    monkeypatch.setitem(groups.MapGroup.model_config, "alias_generator", None)
+    importlib.reload(groups)
+    result = groups.alias_generator
+    assert callable(result)
+    assert result("bar") == "bar"

@@ -175,3 +175,8 @@ def test_check_file_size_over_limit(app: Flask, mocker: MockerFixture) -> None:
     assert errors[0]["type"] == "value_error.filesize_limit"
     assert errors[0]["ctx"]["actual_value"] == expected_actual_value
     assert errors[0]["ctx"]["limit_value"] == expected_limit_value
+
+
+def test_check_file_size_continue_branches(app: Flask) -> None:
+    result = helpers._check_file_size("file", None)  # noqa: SLF001
+    assert result == []

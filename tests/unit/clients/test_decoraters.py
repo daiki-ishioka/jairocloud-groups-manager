@@ -77,6 +77,26 @@ def test_cache_resource_maperror_timeout(app, mocker):
         assert called_args[1] == ex_num
 
 
+def test_cache_resource_sets_timeout_3_on_maperror(app, mocker: MockerFixture) -> None:
+    """Tests cache_resource sets timeout=3 when result is MapError."""
+    with app.app_context():
+        expected_value = 3
+
+        app_cache_mock = mocker.patch("src.server.clients.decoraters.app_cache", new=mocker.MagicMock())
+        mocker.patch.object(decoraters.config.REDIS, "cache_timeout", None)
+        app_cache_mock.get.return_value = None
+
+        def func(resource_id: str) -> MapError:
+            return MapError(status="400", scim_type="invalidFilter", detail="error detail")
+
+        decorated = decoraters.cache_resource(timeout=0)(func)
+        result = decorated("abc")
+        assert isinstance(result, MapError)
+        app_cache_mock.setex.assert_called()
+        args, _ = app_cache_mock.setex.call_args
+        assert args[1] == expected_value
+
+
 def test_clear_cache_normal(app, mocker):
     """Tests that clear_cache deletes cache keys for given resource_id."""
     with app.app_context():
@@ -164,7 +184,6 @@ def test_clear_cache_scan_loop_keys(app, mocker: MockerFixture) -> None:
     """Tests clear_cache scan loop with keys found and deleted."""
     with app.app_context():
         app_cache_mock = mocker.patch("src.server.clients.decoraters.app_cache", new=mocker.MagicMock())
-        # scanは最初に ("1", ["k1", "k2"]), 次に (0, []) を返す
         scan_results = [("1", ["k1", "k2"]), (0, [])]
         scan_index = {"i": 0}
 
@@ -194,7 +213,7 @@ def test_clear_cache_empty_resource_id(app, mocker: MockerFixture) -> None:
     """Tests clear_cache when resource_id is empty (should not scan/delete)."""
     with app.app_context():
         mock_cache = mocker.patch("src.server.clients.decoraters.app_cache", new=mocker.MagicMock())
-        mock_cache.scan.side_effect = [(0, [])]  # Redis SCAN returns (cursor, keys)
+        mock_cache.scan.side_effect = [(0, [])]
         mock_cache.delete = mocker.MagicMock()
 
         def dummy_func() -> DummyModel:

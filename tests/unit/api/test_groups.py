@@ -16,10 +16,12 @@ from server.api.groups import (
     ResourceNotFound,
 )
 from server.api.schemas import (
+    ErrorResponse,
     GroupPatchOperation,
 )
 from server.entities.group_detail import Repository
 from server.entities.search_request import SearchResult
+from server.exc import InvalidFormError, InvalidQueryError
 from tests.helpers import UnexpectedError
 
 
@@ -78,6 +80,18 @@ def test_post_success(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
     assert result == expected_group
     assert status == expected_status
     assert headers == expected_headers
+
+
+def test_get_returns_400_on_invalid_query(mocker):
+    expected_status = 400
+    mocker.patch("server.api.groups.has_permission", return_value=True)
+    mocker.patch("server.services.groups.search", side_effect=InvalidQueryError("invalid query"))
+    original_func = inspect.unwrap(groups_api.get)
+    query = GroupsQuery(q="bad", r=[], u=[], s=0, v=1, k="display_name", d="asc", p=1, l=30)
+    result, status = original_func(query)
+    assert status == expected_status
+    assert isinstance(result, ErrorResponse)
+    assert "invalid query" in result.message
 
 
 def test_post_failure_returns_error_response_and_400(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
@@ -149,6 +163,41 @@ def test_post_unexpected_error_returns_exception(app: Flask, gen_group_id, mocke
     with pytest.raises(UnexpectedError) as exc_info:
         original_func(group)
     assert str(exc_info.value) == error_detail
+
+
+def test_post_returns_403_when_no_permission(mocker):
+    mocker.patch("server.api.groups.has_permission", return_value=False)
+    expected_status = 403
+    group = GroupDetail(
+        id="g1",
+        display_name="test",
+        public=True,
+        member_list_visibility="Public",
+        repository=Repository(id="r1", service_name="repo1"),
+        type="group",
+    )
+    original_func = inspect.unwrap(groups_api.post)
+    result, status = original_func(group)
+    assert status == expected_status
+    assert "not has permission" in result.message
+
+
+def test_post_returns_400_on_invalid_group_information(mocker):
+    expected_status = 400
+    mocker.patch("server.api.groups.has_permission", return_value=True)
+    mocker.patch("server.services.groups.create", side_effect=InvalidFormError("invalid group information"))
+    group = GroupDetail(
+        id="g1",
+        display_name="test",
+        public=True,
+        member_list_visibility="Public",
+        repository=Repository(id="r1", service_name="repo1"),
+        type="group",
+    )
+    original_func = inspect.unwrap(groups_api.post)
+    result, status = original_func(group)
+    assert status == expected_status
+    assert "invalid group information" in result.message
 
 
 def test_id_get_success_admin(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
@@ -388,6 +437,24 @@ def test_id_put_unexpected_error(app: Flask, gen_group_id, mocker: MockerFixture
     assert str(exc_info.value) == error_detail
 
 
+def test_id_put_returns_400_on_invalid_form_error(mocker):
+    expected_status = 400
+    mocker.patch("server.api.groups.has_permission", return_value=True)
+    mocker.patch("server.services.groups.update", side_effect=InvalidFormError("invalid form"))
+    group = GroupDetail(
+        id="g1",
+        display_name="test",
+        public=True,
+        member_list_visibility="Public",
+        repository=Repository(id="r1", service_name="repo1"),
+        type="group",
+    )
+    original_func = inspect.unwrap(groups_api.id_put)
+    result, status = original_func("g1", group)
+    assert status == expected_status
+    assert "invalid form" in result.message
+
+
 def test_id_patch_success_admin(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
     """Tests id_patch returns updated group info and 200 for system admin."""
     group_id = gen_group_id("g1")
@@ -507,6 +574,17 @@ def test_id_patch_unexpected_error(app: Flask, gen_group_id, mocker: MockerFixtu
     with pytest.raises(UnexpectedError) as exc_info:
         original_func(group_id, patch_body)
     assert str(exc_info.value) == error_detail
+
+
+def test_id_patch_returns_400_on_unsupported_attribute(mocker):
+    expected_status = 400
+    mocker.patch("server.api.groups.has_permission", return_value=True)
+    patch_body = GroupPatchRequest(operations=[GroupPatchOperation(op="add", path="not_supported", value=["user1"])])
+    original_func = inspect.unwrap(groups_api.id_patch)
+    result, status = original_func("g1", patch_body)
+    assert status == expected_status
+    assert isinstance(result, ErrorResponse)
+    assert "Unsupported attribute to update: not_supported" in result.message
 
 
 def test_id_delete_success_admin(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
@@ -761,6 +839,11 @@ def test_delete_post_unexpected_error(app: Flask, gen_group_id, mocker: MockerFi
     assert str(exc_info.value) == error_detail
 
 
+def test_has_permission_returns_true_for_system_admin(mocker):
+    mocker.patch("server.api.groups.is_current_user_system_admin", return_value=True)
+    assert groups_api.has_permission("any_group_id") is True
+
+
 def test_filter_options(app: Flask, mocker: MockerFixture) -> None:
     """Tests filter_options endpoint executes successfully."""
     search_result: SearchResult = SearchResult(resources=[], total=0, page_size=0, offset=0)
@@ -774,6 +857,13 @@ def test_filter_options(app: Flask, mocker: MockerFixture) -> None:
     result = original_func()
 
     assert isinstance(result, list)
+
+
+def test_groups_has_permission_returns_true_when_system_admin(mocker: MockerFixture) -> None:
+    """Covers has_permission returns True when is_current_user_system_admin is True."""
+
+    mocker.patch("server.api.groups.is_current_user_system_admin", return_value=True)
+    assert groups_api.has_permission("any_group_id") is True
 
 
 @pytest.fixture

@@ -660,6 +660,38 @@ def test_create_raises_unexpected_response_error_on_other_http_error(mocker: Moc
     assert "Failed to create Repository resource in mAP Core API" in str(excinfo.value)
 
 
+@pytest.mark.parametrize(
+    "role_groups",
+    [
+        [["group1"], ["group2"]],
+        [[]],
+    ],
+    ids=["multiple-groups", "empty-groups"],
+)
+def test_create_calls_groups_post_for_each_group(app, mocker: MockerFixture, test_config, role_groups: list) -> None:
+    """Tests that groups.post is called for each group in role_groups during create."""
+    repository_id = "repo1"
+    service_id = test_config.REPOSITORIES.id_patterns.sp_connector.format(repository_id=repository_id)
+    service_name = test_config.SP.entity_id
+    service_url: HttpUrl = HttpUrl(f"https://{test_config.POSTGRES.host}/repo1")
+    service_schema = const.MAP_SERVICE_SCHEMA
+    repo = RepositoryDetail(id=service_id, service_name=service_name, service_url=service_url, entity_ids=[])
+    map_service = MapService(
+        id=service_id, service_name=service_name, service_url=service_url, schemas=[service_schema], entity_ids=[]
+    )
+    mocker.patch("server.services.repositories.get_system_admins", return_value=["admin"])
+    mocker.patch("server.services.repositories.prepare_role_groups", return_value=role_groups)
+    mocker.patch("server.services.repositories.prepare_service", return_value=(map_service, service_id))
+    mocker.patch("server.services.repositories.get_access_token", return_value="token")
+    mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
+    mock_groups_post = mocker.patch("server.clients.groups.post")
+    mocker.patch("server.clients.services.post", return_value=map_service)
+
+    repositories.create(repo)
+
+    assert mock_groups_post.call_count == len(role_groups)
+
+
 def test_update_success(app, mocker: MockerFixture, test_config) -> None:
     """Tests successful update of a repository and validates the returned RepositoryDetail."""
 
@@ -1331,3 +1363,72 @@ def test_delete_by_id_raises_resource_invalid_on_map_error(app, test_config, moc
         repositories.delete_by_id("repo1", test_config.SP.entity_id)
 
     assert "invalid" in str(excinfo.value)
+
+
+def test_delete_by_id_raises_resource_not_found_if_repo_missing(app, test_config, mocker: MockerFixture) -> None:
+    """Tests that ResourceNotFound is raised if get_by_id returns None in delete_by_id."""
+    mocker.patch("server.services.repositories.get_by_id", return_value=None)
+
+    with pytest.raises(repositories.ResourceNotFound) as excinfo:
+        repositories.delete_by_id("missing_repo", test_config.SP.entity_id)
+
+    assert "Not Found" in str(excinfo.value)
+
+
+def test_delete_by_id_raises_invalid_form_error_if_service_name_mismatch(
+    app, test_config, mocker: MockerFixture
+) -> None:
+    """Tests that InvalidFormError is raised if service_name does not match in delete_by_id."""
+    dummy_map_service = MapService(
+        id="repo1",
+        service_name="actual_service",
+    )
+    mocker.patch("server.services.repositories.get_by_id", return_value=dummy_map_service)
+
+    with pytest.raises(repositories.InvalidFormError) as excinfo:
+        repositories.delete_by_id("repo1", "wrong_service")
+
+    assert "does not match" in str(excinfo.value)
+
+
+def test_delete_by_id_raises_unexpected_response_error_on_other_http_error(
+    app, test_config, mocker: MockerFixture
+) -> None:
+    """Tests that UnexpectedResponseError is raised on non-401/500 HTTP errors during delete_by_id."""
+    dummy_map_service = MapService(
+        id="repo1",
+        service_name=test_config.SP.entity_id,
+    )
+    mocker.patch("server.services.repositories.get_by_id", return_value=dummy_map_service)
+    mocker.patch("server.services.repositories.get_access_token", return_value="token")
+    mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
+    mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
+    response = Response()
+    response.status_code = HTTPStatus.BAD_REQUEST
+    http_error = requests.HTTPError(response=response)
+    mocker.patch("server.clients.services.delete_by_id", side_effect=http_error)
+
+    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
+        repositories.delete_by_id("repo1", test_config.SP.entity_id)
+
+    assert "Failed to delete Repository resource in mAP Core API." in str(excinfo.value)
+
+
+def test_delete_by_id_raises_unexpected_response_error_on_validation_error_(
+    app, test_config, mocker: MockerFixture
+) -> None:
+    """Tests that UnexpectedResponseError is raised on ValidationError during delete_by_id."""
+    dummy_map_service = MapService(
+        id="repo1",
+        service_name=test_config.SP.entity_id,
+    )
+    mocker.patch("server.services.repositories.get_by_id", return_value=dummy_map_service)
+    mocker.patch("server.services.repositories.get_access_token", return_value="token")
+    mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
+    mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
+    mocker.patch("server.clients.services.delete_by_id", side_effect=ValidationError("fail", []))
+
+    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
+        repositories.delete_by_id("repo1", test_config.SP.entity_id)
+
+    assert "Failed to parse response from mAP Core API." in str(excinfo.value)

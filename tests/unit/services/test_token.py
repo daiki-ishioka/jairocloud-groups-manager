@@ -136,6 +136,20 @@ def test_prepare_issuing_url_json_decode_error(app, mocker: MockerFixture) -> No
     assert "Failed to decode credentials response" in str(excinfo.value)
 
 
+def test_prepare_issuing_url_save_client_credentials_called(app: Flask, mocker: MockerFixture, test_config) -> None:
+    """Test that prepare_issuing_url calls save_client_credentials when certs are issued."""
+    certs_obj = ClientCredentials(client_id="cid", client_secret="secret")
+    mocker.patch("server.services.token.get_client_credentials", return_value=None)
+    mock_issue = mocker.patch("server.services.token.auth.issue_client_credentials", return_value=certs_obj)
+    mock_save = mocker.patch("server.services.token.save_client_credentials")
+
+    url = token.prepare_issuing_url()
+
+    mock_issue.assert_called_once()
+    mock_save.assert_called_once_with(certs_obj)
+    assert isinstance(url, str)
+
+
 def test__create_issuing_url(app: Flask):
     """Test that _create_issuing_url generates a valid issuing URL with correct parameters."""
     with app.app_context():

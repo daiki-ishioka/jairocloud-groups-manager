@@ -1,4 +1,5 @@
 import hashlib
+import importlib
 import inspect
 import json
 import time
@@ -11,6 +12,7 @@ import pytest
 from requests.exceptions import HTTPError
 
 from server.clients import services
+from server.clients.services import handle_repository_updated, handle_repository_updated_by_id
 from server.config import config
 from server.const import MAP_SERVICES_ENDPOINT
 from server.entities.map_error import MapError
@@ -944,6 +946,47 @@ def test_delete_by_id_http_error(app: Flask, mocker: MockerFixture) -> None:
     mock_delete.return_value.raise_for_status.side_effect = Exception("404 Not Found")
     with pytest.raises(Exception, match="404 Not Found"):
         services.delete_by_id(service_id, access_token=access_token, client_secret=client_secret)
+
+
+def test__get_alias_generator_with_serialization_alias_services(monkeypatch):
+    """Covers the branch where generator has serialization_alias attribute for services."""
+
+    class Dummy:
+        def __init__(self):
+            self.serialization_alias = lambda x: f"alias_{x}"
+
+    monkeypatch.setitem(services.MapService.model_config, "alias_generator", Dummy())
+    importlib.reload(services)
+    result = services.alias_generator
+    assert callable(result)
+    assert result("foo") == "alias_foo"
+
+
+def test__get_alias_generator_with_none_services(monkeypatch):
+    """Covers the branch where generator is None and falls back to lambda x: x for services."""
+
+    monkeypatch.setitem(services.MapService.model_config, "alias_generator", None)
+    importlib.reload(services)
+    result = services.alias_generator
+    assert callable(result)
+    assert result("bar") == "bar"
+
+
+def test_handle_repository_updated_clears_cache(mocker):
+    """Covers get_by_id.clear_cache(service.id) branch for handle_repository_updated."""
+    mock_clear = mocker.patch("server.clients.services.get_by_id.clear_cache")
+
+    service = MapService.model_validate({"id": "service42", "schemas": ["a"], "serviceName": "dummy"})
+    handle_repository_updated(_sender=None, service=service)
+    mock_clear.assert_called_once_with(service.id)
+
+
+def test_handle_repository_updated_by_id_clears_cache(mocker):
+    """Covers get_by_id.clear_cache(service_id) branch for handle_repository_updated_by_id."""
+    mock_clear = mocker.patch("server.clients.services.get_by_id.clear_cache")
+    service_id = "repo123"
+    handle_repository_updated_by_id(_sender=None, service_id=service_id)
+    mock_clear.assert_called_once_with(service_id)
 
 
 @pytest.fixture

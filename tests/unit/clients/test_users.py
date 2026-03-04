@@ -1,4 +1,5 @@
 import hashlib
+import importlib
 import inspect
 import json
 import time
@@ -8,7 +9,10 @@ import pytest
 
 from requests.exceptions import HTTPError
 
+import server.clients.users as users_mod
+
 from server.clients import users
+from server.clients.users import handle_user_updated_by_eppn, handle_user_updated_by_id
 from server.config import config
 from server.const import MAP_EXIST_EPPN_ENDPOINT, MAP_PATCH_SCHEMA, MAP_USERS_ENDPOINT
 from server.entities.map_error import MapError
@@ -1189,3 +1193,54 @@ def user_data() -> tuple[dict[str, t.Any], MapUser]:
     json_data = load_json_data("data/map_user.json")
     user = MapUser.model_validate(json_data)
     return json_data, user
+
+
+def test__get_alias_generator_with_serialization_alias(monkeypatch):
+    """Covers the branch where generator has serialization_alias attribute."""
+
+    class Dummy:
+        def __init__(self):
+            self.serialization_alias = lambda x: f"alias_{x}"
+
+    monkeypatch.setitem(users_mod.MapUser.model_config, "alias_generator", Dummy())
+    importlib.reload(users_mod)
+    result = users_mod.alias_generator
+    assert callable(result)
+    assert result("foo") == "alias_foo"
+
+
+def test__get_alias_generator_with_none(monkeypatch):
+    """Covers the branch where generator is None and falls back to lambda x: x."""
+
+    monkeypatch.setitem(users_mod.MapUser.model_config, "alias_generator", None)
+    importlib.reload(users_mod)
+    result = users_mod.alias_generator
+    assert callable(result)
+    assert result("bar") == "bar"
+
+
+def test_handle_user_updated_by_eppn_clears_cache(mocker):
+    """Covers get_by_eppn.clear_cache(*eppns) branch."""
+
+    mock_clear = mocker.patch("server.clients.users.get_by_eppn.clear_cache")
+    eppns = ["eppn1", "eppn2"]
+    handle_user_updated_by_eppn(_sender=None, eppns=eppns)
+    mock_clear.assert_called_once_with(*eppns)
+
+
+def test_handle_user_updated_by_id_clears_cache(mocker):
+    """Covers get_by_id.clear_cache(user_id) branch."""
+
+    mock_clear = mocker.patch("server.clients.users.get_by_id.clear_cache")
+    user_id = "user123"
+    handle_user_updated_by_id(_sender=None, user_id=user_id)
+    mock_clear.assert_called_once_with(user_id)
+
+
+def test_handle_user_updated_returns_early_on_non_mapuser(mocker):
+    """Covers the early return branch in handle_user_updated when user is not a MapUser instance."""
+    mock_clear_id = mocker.patch("server.clients.users.get_by_id.clear_cache")
+    mock_clear_eppn = mocker.patch("server.clients.users.get_by_eppn.clear_cache")
+    users.handle_user_updated(_sender=None, user=None)
+    mock_clear_id.assert_not_called()
+    mock_clear_eppn.assert_not_called()
