@@ -3,7 +3,7 @@ import typing as t
 
 from pydantic import HttpUrl
 
-from server.api import repositories
+from server.api.repositories import get, has_permission, id_delete, id_get, id_put, post
 from server.api.schemas import ErrorResponse, RepositoriesQuery, RepositoryDeleteQuery
 from server.entities.repository_detail import RepositoryDetail
 from server.entities.search_request import SearchResult
@@ -21,7 +21,7 @@ def test_get_success(app, mocker: MockerFixture) -> None:
     expected = SearchResult(total=1, page_size=1, offset=0, resources=[])
     mocker.patch("server.services.repositories.search", return_value=expected)
 
-    original_func = inspect.unwrap(repositories.get)
+    original_func = inspect.unwrap(get)
 
     response = original_func(RepositoriesQuery(q=None, i=None, k=None, d=None, p=None))
     data, status, *_ = response
@@ -39,12 +39,12 @@ def test_get_invalid_query_error(app, mocker: MockerFixture) -> None:
 
     mocker.patch("server.services.repositories.search", side_effect=InvalidQueryError("Invalid query"))
 
-    original_func = inspect.unwrap(repositories.get)
+    original_func = inspect.unwrap(get)
 
     response = original_func(RepositoriesQuery(q="search", i=["repo1"], k="created", d="desc", p=3, l=20))
     data, status, *_ = response
     assert status == expected_status
-    assert isinstance(data, repositories.ErrorResponse)
+    assert isinstance(data, ErrorResponse)
     assert "Invalid query" in data.message
 
 
@@ -64,7 +64,7 @@ def test_post_success(app, test_config, mocker: MockerFixture) -> None:
         groups_count=None,
     )
     mocker.patch("server.services.repositories.create", return_value=expected)
-    original_func = inspect.unwrap(repositories.post)
+    original_func = inspect.unwrap(post)
 
     response = original_func(expected)
     data, status, *_ = response
@@ -90,12 +90,12 @@ def test_post_invalid_form_error(app, test_config, mocker: MockerFixture) -> Non
         users_count=None,
         groups_count=None,
     )
-    original_func = inspect.unwrap(repositories.post)
+    original_func = inspect.unwrap(post)
 
     response = original_func(expected)
     data, status, *_ = response
     assert status == expected_status
-    assert isinstance(data, repositories.ErrorResponse)
+    assert isinstance(data, ErrorResponse)
     assert data.message == "invalid form"
     assert not data.code
 
@@ -116,7 +116,7 @@ def test_post_resource_invalid_error(app, test_config, mocker: MockerFixture) ->
         users_count=None,
         groups_count=None,
     )
-    original_func = inspect.unwrap(repositories.post)
+    original_func = inspect.unwrap(post)
 
     response = original_func(expected)
     data, status, *_ = response
@@ -143,7 +143,7 @@ def test_id_get_success(app, test_config, mocker: MockerFixture) -> None:
     )
     mocker.patch("server.api.repositories.has_permission", return_value=True)
     mocker.patch("server.services.repositories.get_by_id", return_value=expected)
-    original_func = inspect.unwrap(repositories.id_get)
+    original_func = inspect.unwrap(id_get)
     response = original_func("repo1")
     data, status = response
     assert status == expected_status
@@ -162,7 +162,7 @@ def test_id_get_permission_error(app, mocker: MockerFixture) -> None:
     )
     mocker.patch("server.services.repositories.get_by_id", return_value=dummy_repo)
     mocker.patch("server.api.repositories.has_permission", return_value=False)
-    original_func = inspect.unwrap(repositories.id_get)
+    original_func = inspect.unwrap(id_get)
     response = original_func("repo1")
     data, status = response
     assert status == expected_status
@@ -176,7 +176,7 @@ def test_id_get_not_found_error(app, mocker: MockerFixture) -> None:
     expected_status = 404
     mocker.patch("server.api.repositories.has_permission", return_value=True)
     mocker.patch("server.services.repositories.get_by_id", return_value=None)
-    original_func = inspect.unwrap(repositories.id_get)
+    original_func = inspect.unwrap(id_get)
     response = original_func("repo1")
     data, status = response
     assert status == expected_status
@@ -202,7 +202,7 @@ def test_id_put_success(app, test_config, mocker: MockerFixture) -> None:
     )
     mocker.patch("server.api.repositories.has_permission", return_value=True)
     mocker.patch("server.services.repositories.update", return_value=expected)
-    original_func = inspect.unwrap(repositories.id_put)
+    original_func = inspect.unwrap(id_put)
     response = original_func("repo1", expected)
     data, status = response
     assert status == expected_status
@@ -227,7 +227,7 @@ def test_id_put_permission_error(app, test_config, mocker: MockerFixture) -> Non
         groups_count=None,
     )
     mocker.patch("server.api.repositories.has_permission", return_value=False)
-    original_func = inspect.unwrap(repositories.id_put)
+    original_func = inspect.unwrap(id_put)
     response = original_func("repo1", expected)
     data, status = response
     assert status == expected_status
@@ -254,7 +254,7 @@ def test_id_put_not_found_error(app, test_config, mocker: MockerFixture) -> None
     )
     mocker.patch("server.api.repositories.has_permission", return_value=True)
     mocker.patch("server.services.repositories.update", side_effect=ResourceNotFound("not found"))
-    original_func = inspect.unwrap(repositories.id_put)
+    original_func = inspect.unwrap(id_put)
     response = original_func("repo1", expected)
     data, status = response
     assert status == expected_status
@@ -281,7 +281,7 @@ def test_id_put_invalid_form_error(app, test_config, mocker: MockerFixture) -> N
     )
     mocker.patch("server.api.repositories.has_permission", return_value=True)
     mocker.patch("server.services.repositories.update", side_effect=InvalidFormError("invalid form"))
-    original_func = inspect.unwrap(repositories.id_put)
+    original_func = inspect.unwrap(id_put)
     response = original_func("repo1", expected)
     data, status = response
     assert status == expected_status
@@ -308,7 +308,7 @@ def test_id_put_resource_invalid_error(app, test_config, mocker: MockerFixture) 
     )
     mocker.patch("server.api.repositories.has_permission", return_value=True)
     mocker.patch("server.services.repositories.update", side_effect=ResourceInvalid("resource invalid"))
-    original_func = inspect.unwrap(repositories.id_put)
+    original_func = inspect.unwrap(id_put)
     response = original_func("repo1", expected)
     data, status = response
     assert status == expected_status
@@ -322,7 +322,7 @@ def test_id_delete_success(app, mocker: MockerFixture) -> None:
     expected_status = 204
     query = RepositoryDeleteQuery(confirmation="delete")
     mocker.patch("server.services.repositories.delete_by_id", return_value=None)
-    original_func = inspect.unwrap(repositories.id_delete)
+    original_func = inspect.unwrap(id_delete)
     response = original_func("repo1", query)
     data, status = response
     assert status == expected_status
@@ -334,7 +334,7 @@ def test_id_delete_not_found_error(app, mocker: MockerFixture) -> None:
     expected_status = 404
     query = RepositoryDeleteQuery(confirmation="delete")
     mocker.patch("server.services.repositories.delete_by_id", side_effect=ResourceNotFound("not found"))
-    original_func = inspect.unwrap(repositories.id_delete)
+    original_func = inspect.unwrap(id_delete)
     response = original_func("repo1", query)
     data, status = response
     assert status == expected_status
@@ -348,7 +348,7 @@ def test_id_delete_resource_invalid_error(app, mocker: MockerFixture) -> None:
     expected_status = 400
     query = RepositoryDeleteQuery(confirmation="delete")
     mocker.patch("server.services.repositories.delete_by_id", side_effect=ResourceInvalid("resource invalid"))
-    original_func = inspect.unwrap(repositories.id_delete)
+    original_func = inspect.unwrap(id_delete)
     response = original_func("repo1", query)
     data, status = response
     assert status == expected_status
@@ -361,7 +361,7 @@ def test_has_permission_system_admin(mocker: MockerFixture) -> None:
     """Test: has_permission returns True for system admin."""
 
     mocker.patch("server.api.repositories.is_current_user_system_admin", return_value=True)
-    result = repositories.has_permission("repo1")
+    result = has_permission("repo1")
     assert result is True
 
 
@@ -370,7 +370,7 @@ def test_has_permission_permitted_repo(mocker: MockerFixture) -> None:
     mocker.patch("server.api.repositories.is_current_user_system_admin", return_value=False)
     mocker.patch("server.api.repositories.get_permitted_repository_ids", return_value=["repo1", "repo2"])
 
-    result = repositories.has_permission("repo1")
+    result = has_permission("repo1")
     assert result is True
 
 
@@ -379,7 +379,7 @@ def test_has_permission_not_permitted(mocker: MockerFixture) -> None:
     mocker.patch("server.api.repositories.is_current_user_system_admin", return_value=False)
     mocker.patch("server.api.repositories.get_permitted_repository_ids", return_value=["repo2", "repo3"])
 
-    result = repositories.has_permission("repo1")
+    result = has_permission("repo1")
     assert result is False
 
 
@@ -387,7 +387,7 @@ def test_id_delete_invalid_form_error(app, mocker: MockerFixture) -> None:
     expected_status = 400
     query = RepositoryDeleteQuery(confirmation="delete")
     mocker.patch("server.services.repositories.delete_by_id", side_effect=InvalidFormError("invalid form"))
-    original_func = inspect.unwrap(repositories.id_delete)
+    original_func = inspect.unwrap(id_delete)
     response, status = original_func("repo1", query)
     assert status == expected_status
     assert isinstance(response, ErrorResponse)

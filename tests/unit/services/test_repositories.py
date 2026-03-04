@@ -15,7 +15,25 @@ from server.entities.map_service import MapService, ServiceEntityID
 from server.entities.repository_detail import RepositoryDetail
 from server.entities.search_request import SearchResponse, SearchResult
 from server.entities.summaries import RepositorySummary
-from server.services import repositories
+from server.exc import (
+    CredentialsError,
+    InvalidFormError,
+    InvalidQueryError,
+    OAuthTokenError,
+    ResourceInvalid,
+    ResourceNotFound,
+    SystemAdminNotFound,
+    UnexpectedResponseError,
+)
+from server.services.repositories import (
+    create,
+    delete_by_id,
+    get_by_id,
+    repositories,
+    search,
+    update,
+    update_put,
+)
 
 
 if t.TYPE_CHECKING:
@@ -48,7 +66,7 @@ def test_search_success(app, mocker: MockerFixture, test_config) -> None:
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.clients.services.search", return_value=expected_result)
 
-    result = repositories.search(criteria)
+    result = search(criteria)
 
     actual = result.resources[0]
     assert isinstance(result, SearchResult)
@@ -88,7 +106,7 @@ def test_search_returns_raw_response(app, mocker: MockerFixture, test_config) ->
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.clients.services.search", return_value=expected_result)
 
-    result = repositories.search(criteria, raw=True)
+    result = search(criteria, raw=True)
 
     assert result is expected_result
 
@@ -104,8 +122,8 @@ def test_search_raises_oauth_token_error_on_unauthorized(mocker: MockerFixture) 
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.services.search", side_effect=http_error)
 
-    with pytest.raises(repositories.OAuthTokenError) as excinfo:
-        repositories.search(criteria)
+    with pytest.raises(OAuthTokenError) as excinfo:
+        search(criteria)
 
     assert "Access token is invalid or expired" in str(excinfo.value)
 
@@ -121,8 +139,8 @@ def test_search_raises_unexpected_response_error_on_internal_server_error(mocker
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.services.search", side_effect=http_error)
 
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.search(criteria)
+    with pytest.raises(UnexpectedResponseError) as excinfo:
+        search(criteria)
 
     assert "mAP Core API server error" in str(excinfo.value)
 
@@ -138,8 +156,8 @@ def test_search_raises_unexpected_response_error_on_other_http_error(mocker: Moc
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.services.search", side_effect=http_error)
 
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.search(criteria)
+    with pytest.raises(UnexpectedResponseError) as excinfo:
+        search(criteria)
 
     assert "Failed to search Repository resources from mAP Core API" in str(excinfo.value)
 
@@ -152,8 +170,8 @@ def test_search_raises_unexpected_response_error_on_request_exception(mocker: Mo
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.clients.services.search", side_effect=requests.RequestException("fail"))
 
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.search(criteria)
+    with pytest.raises(UnexpectedResponseError) as excinfo:
+        search(criteria)
 
     assert "Failed to communicate with mAP Core API" in str(excinfo.value)
 
@@ -166,8 +184,8 @@ def test_search_raises_unexpected_response_error_on_validation_error(mocker: Moc
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.clients.services.search", side_effect=ValidationError("fail", []))
 
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.search(criteria)
+    with pytest.raises(UnexpectedResponseError) as excinfo:
+        search(criteria)
 
     assert "Failed to parse Repository resources from mAP Core API" in str(excinfo.value)
 
@@ -178,12 +196,10 @@ def test_search_raises_invalid_query_error_direct(mocker: MockerFixture) -> None
     mocker.patch("server.services.repositories.build_search_query", return_value=criteria)
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
-    mocker.patch(
-        "server.services.repositories.build_search_query", side_effect=repositories.InvalidQueryError("criteria error")
-    )
+    mocker.patch("server.services.repositories.build_search_query", side_effect=InvalidQueryError("criteria error"))
 
-    with pytest.raises(repositories.InvalidQueryError) as excinfo:
-        repositories.search(criteria)
+    with pytest.raises(InvalidQueryError) as excinfo:
+        search(criteria)
 
     assert "criteria error" in str(excinfo.value)
 
@@ -194,12 +210,10 @@ def test_search_raises_oauth_token_error_direct(mocker: MockerFixture) -> None:
     mocker.patch("server.services.repositories.build_search_query", return_value=criteria)
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
-    mocker.patch(
-        "server.services.repositories.build_search_query", side_effect=repositories.OAuthTokenError("token error")
-    )
+    mocker.patch("server.services.repositories.build_search_query", side_effect=OAuthTokenError("token error"))
 
-    with pytest.raises(repositories.OAuthTokenError) as excinfo:
-        repositories.search(criteria)
+    with pytest.raises(OAuthTokenError) as excinfo:
+        search(criteria)
 
     assert "token error" in str(excinfo.value)
 
@@ -210,12 +224,10 @@ def test_search_raises_credentials_error_direct(mocker: MockerFixture) -> None:
     mocker.patch("server.services.repositories.build_search_query", return_value=criteria)
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
-    mocker.patch(
-        "server.services.repositories.build_search_query", side_effect=repositories.CredentialsError("cred error")
-    )
+    mocker.patch("server.services.repositories.build_search_query", side_effect=CredentialsError("cred error"))
 
-    with pytest.raises(repositories.CredentialsError) as excinfo:
-        repositories.search(criteria)
+    with pytest.raises(CredentialsError) as excinfo:
+        search(criteria)
 
     assert "cred error" in str(excinfo.value)
 
@@ -230,8 +242,8 @@ def test_search_raises_invalid_query_error_on_map_error(app, mocker: MockerFixtu
     mocker.patch("server.clients.services.search", return_value=map_error)
     mock_logger = mocker.patch("flask.current_app.logger.info")
 
-    with pytest.raises(repositories.InvalidQueryError) as excinfo:
-        repositories.search(criteria)
+    with pytest.raises(InvalidQueryError) as excinfo:
+        search(criteria)
 
     assert mock_logger.called
     assert "invalid query" in str(excinfo.value)
@@ -256,7 +268,7 @@ def test_get_by_id_success(app, mocker: MockerFixture, test_config) -> None:
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.clients.services.get_by_id", return_value=map_service)
 
-    result = repositories.get_by_id("repo1", raw=True)
+    result = get_by_id("repo1", raw=True)
 
     assert result is map_service
 
@@ -280,7 +292,7 @@ def test_get_by_id_returns_repository_detail(app, mocker: MockerFixture, test_co
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.clients.services.get_by_id", return_value=map_service)
 
-    result = repositories.get_by_id("repo1")
+    result = get_by_id("repo1")
 
     assert isinstance(result, RepositoryDetail)
     assert result.id == repository_id
@@ -308,7 +320,7 @@ def test_get_by_id_more_detail(app, mocker: MockerFixture, test_config) -> None:
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.clients.services.get_by_id", return_value=map_service)
 
-    result = repositories.get_by_id("repo1", more_detail=True)
+    result = get_by_id("repo1", more_detail=True)
 
     assert isinstance(result, RepositoryDetail)
     assert result.id == repository_id
@@ -326,7 +338,7 @@ def test_get_by_id_returns_none_on_map_error(app, mocker: MockerFixture, test_co
     mocker.patch("server.clients.services.get_by_id", return_value=map_error)
     mock_logger = mocker.patch("flask.current_app.logger.info")
 
-    result = repositories.get_by_id("repo1")
+    result = get_by_id("repo1")
 
     assert result is None
     assert mock_logger.called
@@ -342,8 +354,8 @@ def test_get_by_id_raises_oauth_token_error_on_unauthorized(mocker: MockerFixtur
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.services.get_by_id", side_effect=http_error)
 
-    with pytest.raises(repositories.OAuthTokenError) as excinfo:
-        repositories.get_by_id("repo1")
+    with pytest.raises(OAuthTokenError) as excinfo:
+        get_by_id("repo1")
 
     assert "Access token is invalid or expired" in str(excinfo.value)
 
@@ -358,8 +370,8 @@ def test_get_by_id_raises_unexpected_response_error_on_internal_server_error(moc
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.services.get_by_id", side_effect=http_error)
 
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.get_by_id("repo1")
+    with pytest.raises(UnexpectedResponseError) as excinfo:
+        get_by_id("repo1")
 
     assert "mAP Core API server error" in str(excinfo.value)
 
@@ -371,8 +383,8 @@ def test_get_by_id_raises_unexpected_response_error_on_request_exception(mocker:
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.clients.services.get_by_id", side_effect=requests.RequestException("fail"))
 
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.get_by_id("repo1")
+    with pytest.raises(UnexpectedResponseError) as excinfo:
+        get_by_id("repo1")
 
     assert "Failed to connect to mAP Core API" in str(excinfo.value)
 
@@ -384,8 +396,8 @@ def test_get_by_id_raises_unexpected_response_error_on_validation_error(mocker: 
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.clients.services.get_by_id", side_effect=ValidationError("fail", []))
 
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.get_by_id("repo1")
+    with pytest.raises(UnexpectedResponseError) as excinfo:
+        get_by_id("repo1")
 
     assert "Failed to parse response from mAP Core API" in str(excinfo.value)
 
@@ -395,10 +407,10 @@ def test_get_by_id_raises_oauth_token_error_direct(mocker: MockerFixture) -> Non
     mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
-    mocker.patch("server.clients.services.get_by_id", side_effect=repositories.OAuthTokenError("token error"))
+    mocker.patch("server.clients.services.get_by_id", side_effect=OAuthTokenError("token error"))
 
-    with pytest.raises(repositories.OAuthTokenError) as excinfo:
-        repositories.get_by_id("repo1")
+    with pytest.raises(OAuthTokenError) as excinfo:
+        get_by_id("repo1")
 
     assert "token error" in str(excinfo.value)
 
@@ -408,10 +420,10 @@ def test_get_by_id_raises_credentials_error_direct(mocker: MockerFixture) -> Non
     mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
-    mocker.patch("server.clients.services.get_by_id", side_effect=repositories.CredentialsError("cred error"))
+    mocker.patch("server.clients.services.get_by_id", side_effect=CredentialsError("cred error"))
 
-    with pytest.raises(repositories.CredentialsError) as excinfo:
-        repositories.get_by_id("repo1")
+    with pytest.raises(CredentialsError) as excinfo:
+        get_by_id("repo1")
 
     assert "cred error" in str(excinfo.value)
 
@@ -426,8 +438,8 @@ def test_get_by_id_raises_unexpected_response_error_on_other_http_error(mocker: 
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.services.get_by_id", side_effect=http_error)
 
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.get_by_id("repo1")
+    with pytest.raises(UnexpectedResponseError) as excinfo:
+        get_by_id("repo1")
 
     assert "Failed to get Repository resource from mAP Core API" in str(excinfo.value)
 
@@ -452,7 +464,7 @@ def test_create_success(app, mocker: MockerFixture, test_config) -> None:
     mocker.patch("server.clients.groups.post")
     mocker.patch("server.clients.services.post", return_value=map_service)
 
-    result = repositories.create(repo)
+    result = create(repo)
 
     assert isinstance(result, RepositoryDetail)
     assert result.id == repository_id
@@ -476,8 +488,8 @@ def test_create_raises_oauth_token_error_on_unauthorized(mocker: MockerFixture, 
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.services.post", side_effect=http_error)
 
-    with pytest.raises(repositories.OAuthTokenError) as excinfo:
-        repositories.create(repo)
+    with pytest.raises(OAuthTokenError) as excinfo:
+        create(repo)
 
     assert "Access token is invalid or expired" in str(excinfo.value)
 
@@ -498,8 +510,8 @@ def test_create_raises_unexpected_response_error_on_internal_server_error(mocker
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.services.post", side_effect=http_error)
 
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.create(repo)
+    with pytest.raises(UnexpectedResponseError) as excinfo:
+        create(repo)
 
     assert "mAP Core API server error" in str(excinfo.value)
 
@@ -517,8 +529,8 @@ def test_create_raises_unexpected_response_error_on_request_exception(mocker: Mo
     mocker.patch("server.clients.groups.post")
     mocker.patch("server.clients.services.post", side_effect=requests.RequestException("fail"))
 
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.create(repo)
+    with pytest.raises(UnexpectedResponseError) as excinfo:
+        create(repo)
 
     assert "Failed to connect to mAP Core API" in str(excinfo.value)
 
@@ -536,8 +548,8 @@ def test_create_raises_unexpected_response_error_on_validation_error(mocker: Moc
     mocker.patch("server.clients.groups.post")
     mocker.patch("server.clients.services.post", side_effect=ValidationError("fail", []))
 
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.create(repo)
+    with pytest.raises(UnexpectedResponseError) as excinfo:
+        create(repo)
 
     assert "Failed to parse response from mAP Core API" in str(excinfo.value)
 
@@ -557,8 +569,8 @@ def test_create_raises_resource_invalid_on_map_error(app, mocker: MockerFixture,
     mocker.patch("server.clients.services.post", return_value=map_error)
     mock_logger = mocker.patch("flask.current_app.logger.info")
 
-    with pytest.raises(repositories.ResourceInvalid) as excinfo:
-        repositories.create(repo)
+    with pytest.raises(ResourceInvalid) as excinfo:
+        create(repo)
 
     assert mock_logger.called
     assert "invalid" in str(excinfo.value)
@@ -575,10 +587,10 @@ def test_create_raises_oauth_token_error_direct(mocker: MockerFixture, test_conf
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.clients.groups.post")
-    mocker.patch("server.clients.services.post", side_effect=repositories.OAuthTokenError("token error"))
+    mocker.patch("server.clients.services.post", side_effect=OAuthTokenError("token error"))
 
-    with pytest.raises(repositories.OAuthTokenError) as excinfo:
-        repositories.create(repo)
+    with pytest.raises(OAuthTokenError) as excinfo:
+        create(repo)
 
     assert "token error" in str(excinfo.value)
 
@@ -594,10 +606,10 @@ def test_create_raises_credentials_error_direct(mocker: MockerFixture, test_conf
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.clients.groups.post")
-    mocker.patch("server.clients.services.post", side_effect=repositories.CredentialsError("cred error"))
+    mocker.patch("server.clients.services.post", side_effect=CredentialsError("cred error"))
 
-    with pytest.raises(repositories.CredentialsError) as excinfo:
-        repositories.create(repo)
+    with pytest.raises(CredentialsError) as excinfo:
+        create(repo)
 
     assert "cred error" in str(excinfo.value)
 
@@ -613,10 +625,10 @@ def test_create_raises_invalid_form_error_direct(mocker: MockerFixture, test_con
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.clients.groups.post")
-    mocker.patch("server.clients.services.post", side_effect=repositories.InvalidFormError("form error"))
+    mocker.patch("server.clients.services.post", side_effect=InvalidFormError("form error"))
 
-    with pytest.raises(repositories.InvalidFormError) as excinfo:
-        repositories.create(repo)
+    with pytest.raises(InvalidFormError) as excinfo:
+        create(repo)
 
     assert "form error" in str(excinfo.value)
 
@@ -632,10 +644,10 @@ def test_create_raises_system_admin_not_found_direct(mocker: MockerFixture, test
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.clients.groups.post")
-    mocker.patch("server.clients.services.post", side_effect=repositories.SystemAdminNotFound("admin not found"))
+    mocker.patch("server.clients.services.post", side_effect=SystemAdminNotFound("admin not found"))
 
-    with pytest.raises(repositories.SystemAdminNotFound) as excinfo:
-        repositories.create(repo)
+    with pytest.raises(SystemAdminNotFound) as excinfo:
+        create(repo)
 
     assert "admin not found" in str(excinfo.value)
 
@@ -655,8 +667,8 @@ def test_create_raises_unexpected_response_error_on_other_http_error(mocker: Moc
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.services.post", side_effect=http_error)
 
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.create(repo)
+    with pytest.raises(UnexpectedResponseError) as excinfo:
+        create(repo)
 
     assert "Failed to create Repository resource in mAP Core API" in str(excinfo.value)
 
@@ -688,7 +700,7 @@ def test_create_calls_groups_post_for_each_group(app, mocker: MockerFixture, tes
     mock_groups_post = mocker.patch("server.clients.groups.post")
     mocker.patch("server.clients.services.post", return_value=map_service)
 
-    repositories.create(repo)
+    create(repo)
 
     assert mock_groups_post.call_count == len(role_groups)
 
@@ -746,8 +758,8 @@ def test_update_raises_oauth_token_error_on_unauthorized(app, mocker: MockerFixt
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.services.patch_by_id", side_effect=http_error)
 
-    with pytest.raises(repositories.OAuthTokenError) as excinfo:
-        repositories.update(repo)
+    with pytest.raises(OAuthTokenError) as excinfo:
+        update(repo)
 
     assert "Access token is invalid or expired" in str(excinfo.value)
 
@@ -769,8 +781,8 @@ def test_update_raises_unexpected_response_error_on_internal_server_error(
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.services.patch_by_id", side_effect=http_error)
 
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.update(repo)
+    with pytest.raises(UnexpectedResponseError) as excinfo:
+        update(repo)
 
     assert "mAP Core API server error" in str(excinfo.value)
 
@@ -787,8 +799,8 @@ def test_update_raises_unexpected_response_error_on_request_exception(app, mocke
     mocker.patch("server.services.repositories.build_patch_operations", return_value=[])
     mocker.patch("server.clients.services.patch_by_id", side_effect=requests.RequestException("fail"))
 
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.update(repo)
+    with pytest.raises(UnexpectedResponseError) as excinfo:
+        update(repo)
 
     assert "Failed to connect to mAP Core API" in str(excinfo.value)
 
@@ -805,8 +817,8 @@ def test_update_raises_unexpected_response_error_on_validation_error(app, mocker
     mocker.patch("server.services.repositories.build_patch_operations", return_value=[])
     mocker.patch("server.clients.services.patch_by_id", side_effect=ValidationError("fail", []))
 
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.update(repo)
+    with pytest.raises(UnexpectedResponseError) as excinfo:
+        update(repo)
 
     assert "Failed to parse response from mAP Core API" in str(excinfo.value)
 
@@ -821,10 +833,10 @@ def test_update_raises_oauth_token_error_direct(app, mocker: MockerFixture, test
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.services.repositories.build_patch_operations", return_value=[])
-    mocker.patch("server.clients.services.patch_by_id", side_effect=repositories.OAuthTokenError("token error"))
+    mocker.patch("server.clients.services.patch_by_id", side_effect=OAuthTokenError("token error"))
 
-    with pytest.raises(repositories.OAuthTokenError) as excinfo:
-        repositories.update(repo)
+    with pytest.raises(OAuthTokenError) as excinfo:
+        update(repo)
 
     assert "token error" in str(excinfo.value)
 
@@ -839,10 +851,10 @@ def test_update_raises_credentials_error_direct(app, mocker: MockerFixture, test
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.services.repositories.build_patch_operations", return_value=[])
-    mocker.patch("server.clients.services.patch_by_id", side_effect=repositories.CredentialsError("cred error"))
+    mocker.patch("server.clients.services.patch_by_id", side_effect=CredentialsError("cred error"))
 
-    with pytest.raises(repositories.CredentialsError) as excinfo:
-        repositories.update(repo)
+    with pytest.raises(CredentialsError) as excinfo:
+        update(repo)
 
     assert "cred error" in str(excinfo.value)
 
@@ -855,8 +867,8 @@ def test_update_raises_resource_not_found_on_none(app, mocker: MockerFixture, te
     mocker.patch("server.services.repositories.validate_repository_to_map_service", return_value=repo)
     mocker.patch("server.services.repositories.get_by_id", return_value=None)
 
-    with pytest.raises(repositories.ResourceNotFound) as excinfo:
-        repositories.update(repo)
+    with pytest.raises(ResourceNotFound) as excinfo:
+        update(repo)
 
     assert "Not Found" in str(excinfo.value)
 
@@ -871,8 +883,8 @@ def test_update_raises_invalid_form_error_on_service_url_update(app, mocker: Moc
     mocker.patch("server.services.repositories.validate_repository_to_map_service", return_value=repo)
     mocker.patch("server.services.repositories.get_by_id", return_value=current)
 
-    with pytest.raises(repositories.InvalidFormError) as excinfo:
-        repositories.update(repo)
+    with pytest.raises(InvalidFormError) as excinfo:
+        update(repo)
 
     assert "Service URL could not be updated" in str(excinfo.value)
 
@@ -891,8 +903,8 @@ def test_update_raises_resource_invalid_on_map_error(app, mocker: MockerFixture,
     mocker.patch("server.clients.services.patch_by_id", return_value=map_error)
     mock_logger = mocker.patch("flask.current_app.logger.info")
 
-    with pytest.raises(repositories.ResourceInvalid) as excinfo:
-        repositories.update(repo)
+    with pytest.raises(ResourceInvalid) as excinfo:
+        update(repo)
 
     assert mock_logger.called
     assert "invalid" in str(excinfo.value)
@@ -912,8 +924,8 @@ def test_update_raises_unexpected_response_error_on_other_http_error(app, mocker
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.services.patch_by_id", side_effect=http_error)
 
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.update(repo)
+    with pytest.raises(UnexpectedResponseError) as excinfo:
+        update(repo)
 
     assert "Failed to update Repository resource in mAP Core API" in str(excinfo.value)
 
@@ -931,8 +943,8 @@ def test_update_raises_resource_not_found_on_map_error(app, mocker: MockerFixtur
     mocker.patch("server.clients.services.patch_by_id", return_value=map_error)
     mock_logger = mocker.patch("flask.current_app.logger.info")
 
-    with pytest.raises(repositories.ResourceNotFound) as excinfo:
-        repositories.update(repo)
+    with pytest.raises(ResourceNotFound) as excinfo:
+        update(repo)
 
     assert mock_logger.called
     assert "not found" in str(excinfo.value).lower()
@@ -991,8 +1003,8 @@ def test_update_put_raises_oauth_token_error_on_unauthorized(app, mocker: Mocker
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.services.put_by_id", side_effect=http_error)
 
-    with pytest.raises(repositories.OAuthTokenError) as excinfo:
-        repositories.update_put(repo)
+    with pytest.raises(OAuthTokenError) as excinfo:
+        update_put(repo)
 
     assert "Access token is invalid or expired" in str(excinfo.value)
 
@@ -1015,8 +1027,8 @@ def test_update_put_raises_unexpected_response_error_on_internal_server_error(
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.services.put_by_id", side_effect=http_error)
 
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.update_put(repo)
+    with pytest.raises(UnexpectedResponseError) as excinfo:
+        update_put(repo)
 
     assert "mAP Core API server error" in str(excinfo.value)
 
@@ -1035,8 +1047,8 @@ def test_update_put_raises_unexpected_response_error_on_request_exception(
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.clients.services.put_by_id", side_effect=requests.RequestException("fail"))
 
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.update_put(repo)
+    with pytest.raises(UnexpectedResponseError) as excinfo:
+        update_put(repo)
 
     assert "Failed to connect to mAP Core API" in str(excinfo.value)
 
@@ -1056,8 +1068,8 @@ def test_update_put_raises_unexpected_response_error_on_validation_error(
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.clients.services.put_by_id", side_effect=ValidationError("fail", []))
 
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.update_put(repo)
+    with pytest.raises(UnexpectedResponseError) as excinfo:
+        update_put(repo)
 
     assert "Failed to parse response from mAP Core API" in str(excinfo.value)
 
@@ -1072,10 +1084,10 @@ def test_update_put_raises_oauth_token_error_direct(app, mocker: MockerFixture, 
     mocker.patch("server.services.repositories.get_by_id", return_value=repo)
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
-    mocker.patch("server.clients.services.put_by_id", side_effect=repositories.OAuthTokenError("token error"))
+    mocker.patch("server.clients.services.put_by_id", side_effect=OAuthTokenError("token error"))
 
-    with pytest.raises(repositories.OAuthTokenError) as excinfo:
-        repositories.update_put(repo)
+    with pytest.raises(OAuthTokenError) as excinfo:
+        update_put(repo)
 
     assert "token error" in str(excinfo.value)
 
@@ -1090,10 +1102,10 @@ def test_update_put_raises_credentials_error_direct(app, mocker: MockerFixture, 
     mocker.patch("server.services.repositories.get_by_id", return_value=repo)
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
-    mocker.patch("server.clients.services.put_by_id", side_effect=repositories.CredentialsError("cred error"))
+    mocker.patch("server.clients.services.put_by_id", side_effect=CredentialsError("cred error"))
 
-    with pytest.raises(repositories.CredentialsError) as excinfo:
-        repositories.update_put(repo)
+    with pytest.raises(CredentialsError) as excinfo:
+        update_put(repo)
 
     assert "cred error" in str(excinfo.value)
 
@@ -1107,8 +1119,8 @@ def test_update_put_raises_resource_not_found_on_none(app, mocker: MockerFixture
     mocker.patch("server.services.repositories.validate_repository_to_map_service", return_value=repo)
     mocker.patch("server.services.repositories.get_by_id", return_value=None)
 
-    with pytest.raises(repositories.ResourceNotFound) as excinfo:
-        repositories.update_put(repo)
+    with pytest.raises(ResourceNotFound) as excinfo:
+        update_put(repo)
 
     assert "Not Found" in str(excinfo.value)
 
@@ -1124,8 +1136,8 @@ def test_update_put_raises_invalid_form_error_on_service_url_update(app, mocker:
     mocker.patch("server.services.repositories.validate_repository_to_map_service", return_value=repo)
     mocker.patch("server.services.repositories.get_by_id", return_value=current)
 
-    with pytest.raises(repositories.InvalidFormError) as excinfo:
-        repositories.update_put(repo)
+    with pytest.raises(InvalidFormError) as excinfo:
+        update_put(repo)
 
     assert "Service URL could not be updated" in str(excinfo.value)
 
@@ -1144,8 +1156,8 @@ def test_update_put_raises_resource_invalid_on_map_error(app, mocker: MockerFixt
     mocker.patch("server.clients.services.put_by_id", return_value=map_error)
     mock_logger = mocker.patch("flask.current_app.logger.info")
 
-    with pytest.raises(repositories.ResourceInvalid) as excinfo:
-        repositories.update_put(repo)
+    with pytest.raises(ResourceInvalid) as excinfo:
+        update_put(repo)
 
     assert mock_logger.called
     assert "invalid" in str(excinfo.value)
@@ -1167,8 +1179,8 @@ def test_update_put_raises_unexpected_response_error_on_other_http_error(
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.services.put_by_id", side_effect=http_error)
 
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.update_put(repo)
+    with pytest.raises(UnexpectedResponseError) as excinfo:
+        update_put(repo)
 
     assert "Failed to update Repository resource in mAP Core API" in str(excinfo.value)
 
@@ -1186,8 +1198,8 @@ def test_update_put_raises_resource_not_found_on_map_error(app, mocker: MockerFi
     mocker.patch("server.clients.services.put_by_id", return_value=map_error)
     mock_logger = mocker.patch("flask.current_app.logger.info")
 
-    with pytest.raises(repositories.ResourceNotFound) as excinfo:
-        repositories.update_put(repo)
+    with pytest.raises(ResourceNotFound) as excinfo:
+        update_put(repo)
 
     assert mock_logger.called
     assert "not found" in str(excinfo.value).lower()
@@ -1207,7 +1219,7 @@ def test_delete_by_id_success(app, test_config, mocker: MockerFixture) -> None:
     mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
     mock_delete = mocker.patch("server.clients.services.delete_by_id", return_value=None)
 
-    repositories.delete_by_id("repo1", test_config.SP.entity_id)
+    delete_by_id("repo1", test_config.SP.entity_id)
 
     mock_delete.assert_called_once_with("repo1", access_token="token", client_secret="secret")
 
@@ -1227,8 +1239,8 @@ def test_delete_by_id_raises_oauth_token_error_on_unauthorized(app, test_config,
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.services.delete_by_id", side_effect=http_error)
 
-    with pytest.raises(repositories.OAuthTokenError) as excinfo:
-        repositories.delete_by_id("repo1", test_config.SP.entity_id)
+    with pytest.raises(OAuthTokenError) as excinfo:
+        delete_by_id("repo1", test_config.SP.entity_id)
 
     assert "Access token is invalid or expired" in str(excinfo.value)
 
@@ -1250,8 +1262,8 @@ def test_delete_by_id_raises_unexpected_response_error_on_internal_server_error(
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.services.delete_by_id", side_effect=http_error)
 
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.delete_by_id("repo1", test_config.SP.entity_id)
+    with pytest.raises(UnexpectedResponseError) as excinfo:
+        delete_by_id("repo1", test_config.SP.entity_id)
 
     assert "mAP Core API server error" in str(excinfo.value)
 
@@ -1270,8 +1282,8 @@ def test_delete_by_id_raises_unexpected_response_error_on_request_exception(
     mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
     mocker.patch("server.clients.services.delete_by_id", side_effect=requests.RequestException("fail"))
 
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.delete_by_id("repo1", test_config.SP.entity_id)
+    with pytest.raises(UnexpectedResponseError) as excinfo:
+        delete_by_id("repo1", test_config.SP.entity_id)
 
     assert "Failed to connect to mAP Core API" in str(excinfo.value)
 
@@ -1285,8 +1297,8 @@ def test_delete_by_id_raises_unexpected_response_error_on_validation_error(
     mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
     mocker.patch("server.clients.services.delete_by_id", side_effect=ValidationError("fail", []))
 
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.delete_by_id("repo1", test_config.SP.entity_id)
+    with pytest.raises(UnexpectedResponseError) as excinfo:
+        delete_by_id("repo1", test_config.SP.entity_id)
 
     assert "Failed to parse response from mAP Core API" in str(excinfo.value)
 
@@ -1301,10 +1313,10 @@ def test_delete_by_id_raises_oauth_token_error_direct(app, test_config, mocker: 
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
-    mocker.patch("server.clients.services.delete_by_id", side_effect=repositories.OAuthTokenError("token error"))
+    mocker.patch("server.clients.services.delete_by_id", side_effect=OAuthTokenError("token error"))
 
-    with pytest.raises(repositories.OAuthTokenError) as excinfo:
-        repositories.delete_by_id("repo1", test_config.SP.entity_id)
+    with pytest.raises(OAuthTokenError) as excinfo:
+        delete_by_id("repo1", test_config.SP.entity_id)
 
     assert "token error" in str(excinfo.value)
 
@@ -1319,10 +1331,10 @@ def test_delete_by_id_raises_credentials_error_direct(app, test_config, mocker: 
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
-    mocker.patch("server.clients.services.delete_by_id", side_effect=repositories.CredentialsError("cred error"))
+    mocker.patch("server.clients.services.delete_by_id", side_effect=CredentialsError("cred error"))
 
-    with pytest.raises(repositories.CredentialsError) as excinfo:
-        repositories.delete_by_id("repo1", test_config.SP.entity_id)
+    with pytest.raises(CredentialsError) as excinfo:
+        delete_by_id("repo1", test_config.SP.entity_id)
 
     assert "cred error" in str(excinfo.value)
 
@@ -1340,8 +1352,8 @@ def test_delete_by_id_raises_resource_not_found_on_map_error(app, test_config, m
     map_error = MapError(detail="Repository 'repo1' Not Found", status="404", scim_type="invalidSyntax")
     mocker.patch("server.clients.services.delete_by_id", return_value=map_error)
 
-    with pytest.raises(repositories.ResourceNotFound) as excinfo:
-        repositories.delete_by_id("repo1", test_config.SP.entity_id)
+    with pytest.raises(ResourceNotFound) as excinfo:
+        delete_by_id("repo1", test_config.SP.entity_id)
 
     assert "not found" in str(excinfo.value).lower()
 
@@ -1360,8 +1372,8 @@ def test_delete_by_id_raises_resource_invalid_on_map_error(app, test_config, moc
     map_error = MapError(detail="invalid", status="400", scim_type="invalidSyntax")
     mocker.patch("server.clients.services.delete_by_id", return_value=map_error)
 
-    with pytest.raises(repositories.ResourceInvalid) as excinfo:
-        repositories.delete_by_id("repo1", test_config.SP.entity_id)
+    with pytest.raises(ResourceInvalid) as excinfo:
+        delete_by_id("repo1", test_config.SP.entity_id)
 
     assert "invalid" in str(excinfo.value)
 
@@ -1370,8 +1382,8 @@ def test_delete_by_id_raises_resource_not_found_if_repo_missing(app, test_config
     """Tests that ResourceNotFound is raised if get_by_id returns None in delete_by_id."""
     mocker.patch("server.services.repositories.get_by_id", return_value=None)
 
-    with pytest.raises(repositories.ResourceNotFound) as excinfo:
-        repositories.delete_by_id("missing_repo", test_config.SP.entity_id)
+    with pytest.raises(ResourceNotFound) as excinfo:
+        delete_by_id("missing_repo", test_config.SP.entity_id)
 
     assert "Not Found" in str(excinfo.value)
 
@@ -1386,8 +1398,8 @@ def test_delete_by_id_raises_invalid_form_error_if_service_name_mismatch(
     )
     mocker.patch("server.services.repositories.get_by_id", return_value=dummy_map_service)
 
-    with pytest.raises(repositories.InvalidFormError) as excinfo:
-        repositories.delete_by_id("repo1", "wrong_service")
+    with pytest.raises(InvalidFormError) as excinfo:
+        delete_by_id("repo1", "wrong_service")
 
     assert "does not match" in str(excinfo.value)
 
@@ -1409,8 +1421,8 @@ def test_delete_by_id_raises_unexpected_response_error_on_other_http_error(
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.services.delete_by_id", side_effect=http_error)
 
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.delete_by_id("repo1", test_config.SP.entity_id)
+    with pytest.raises(UnexpectedResponseError) as excinfo:
+        delete_by_id("repo1", test_config.SP.entity_id)
 
     assert "Failed to delete Repository resource in mAP Core API." in str(excinfo.value)
 
@@ -1429,7 +1441,7 @@ def test_delete_by_id_raises_unexpected_response_error_on_validation_error_(
     mocker.patch("server.services.repositories.resolve_service_id", return_value="repo1")
     mocker.patch("server.clients.services.delete_by_id", side_effect=ValidationError("fail", []))
 
-    with pytest.raises(repositories.UnexpectedResponseError) as excinfo:
-        repositories.delete_by_id("repo1", test_config.SP.entity_id)
+    with pytest.raises(UnexpectedResponseError) as excinfo:
+        delete_by_id("repo1", test_config.SP.entity_id)
 
     assert "Failed to parse response from mAP Core API." in str(excinfo.value)

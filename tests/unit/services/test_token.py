@@ -7,7 +7,20 @@ import pytest
 import requests
 
 from server.entities.auth import ClientCredentials, OAuthToken
-from server.services import token
+from server.exc import (
+    CertificatesError,
+    CredentialsError,
+    OAuthTokenError,
+)
+from server.services.token import (
+    _create_issuing_url,
+    check_token_validity,
+    get_access_token,
+    get_client_secret,
+    issue_access_token,
+    prepare_issuing_url,
+    refresh_access_token,
+)
 
 
 if t.TYPE_CHECKING:
@@ -28,7 +41,7 @@ def test_get_access_token(app: Flask, mocker: MockerFixture) -> None:
     mocker.patch("server.services.token.get_oauth_token", return_value=token_obj)
     mocker.patch("server.clients.auth.requests.post")
 
-    actual = token.get_access_token()
+    actual = get_access_token()
 
     assert actual == expected
 
@@ -37,8 +50,8 @@ def test_get_access_token_error(mocker: MockerFixture) -> None:
     """Test that get_access_token raises OAuthTokenError when no token is found."""
     mocker.patch("server.services.token.get_oauth_token", return_value=None)
 
-    with pytest.raises(token.OAuthTokenError):
-        token.get_access_token()
+    with pytest.raises(OAuthTokenError):
+        get_access_token()
 
 
 def test_get_access_token_refresh_called(mocker: MockerFixture) -> None:
@@ -54,7 +67,7 @@ def test_get_access_token_refresh_called(mocker: MockerFixture) -> None:
     mocker.patch("server.services.token.check_token_validity", return_value=False)
     mock_refresh = mocker.patch("server.services.token.refresh_access_token", return_value="new_token")
 
-    actual = token.get_access_token()
+    actual = get_access_token()
 
     assert actual == "new_token"
     assert mock_refresh.called
@@ -66,7 +79,7 @@ def test_get_client_secret(mocker: MockerFixture) -> None:
     expected = "client_secret_main"
     mocker.patch("server.services.token.get_client_credentials", return_value=creds_obj)
 
-    actual = token.get_client_secret()
+    actual = get_client_secret()
 
     assert actual == expected
 
@@ -75,8 +88,8 @@ def test_get_client_secret_error(mocker: MockerFixture) -> None:
     """Test that get_client_secret raises CredentialsError when no credentials are found."""
     mocker.patch("server.services.token.get_client_credentials", return_value=None)
 
-    with pytest.raises(token.CredentialsError):
-        token.get_client_secret()
+    with pytest.raises(CredentialsError):
+        get_client_secret()
 
 
 def test_prepare_issuing_url(app: Flask, mocker: MockerFixture, test_config) -> None:
@@ -88,7 +101,7 @@ def test_prepare_issuing_url(app: Flask, mocker: MockerFixture, test_config) -> 
 
     with app.app_context():
         redirect_uri = app.url_for("api.callback.auth_code", _external=True)
-        url = token.prepare_issuing_url()
+        url = prepare_issuing_url()
 
     expected_redirect = urlparse.quote(redirect_uri, safe="")
     expected_state = urlparse.quote(test_config.SP.entity_id, safe="")
@@ -116,8 +129,8 @@ def test_prepare_issuing_url_http_error(app: Flask, mocker: MockerFixture) -> No
         side_effect=http_error,
     )
 
-    with app.app_context(), pytest.raises(token.CertificatesError) as excinfo:
-        token.prepare_issuing_url()
+    with app.app_context(), pytest.raises(CertificatesError) as excinfo:
+        prepare_issuing_url()
 
     assert "Failed to issue client credentials: fail" in str(excinfo.value)
 
@@ -130,8 +143,8 @@ def test_prepare_issuing_url_json_decode_error(app, mocker: MockerFixture) -> No
         "server.services.token.auth.issue_client_credentials",
         side_effect=requests.JSONDecodeError("msg", "doc", 0),
     )
-    with app.app_context(), pytest.raises(token.CertificatesError) as excinfo:
-        token.prepare_issuing_url()
+    with app.app_context(), pytest.raises(CertificatesError) as excinfo:
+        prepare_issuing_url()
 
     assert "Failed to decode credentials response" in str(excinfo.value)
 
@@ -143,7 +156,7 @@ def test_prepare_issuing_url_save_client_credentials_called(app: Flask, mocker: 
     mock_issue = mocker.patch("server.services.token.auth.issue_client_credentials", return_value=certs_obj)
     mock_save = mocker.patch("server.services.token.save_client_credentials")
 
-    url = token.prepare_issuing_url()
+    url = prepare_issuing_url()
 
     mock_issue.assert_called_once()
     mock_save.assert_called_once_with(certs_obj)
@@ -153,7 +166,7 @@ def test_prepare_issuing_url_save_client_credentials_called(app: Flask, mocker: 
 def test__create_issuing_url(app: Flask):
     """Test that _create_issuing_url generates a valid issuing URL with correct parameters."""
     with app.app_context():
-        url = token._create_issuing_url(client_id="cid", redirect_uri="http://localhost/cb", entity_id="eid")  # noqa: SLF001
+        url = _create_issuing_url(client_id="cid", redirect_uri="http://localhost/cb", entity_id="eid")
 
         assert isinstance(url, str)
         assert "client_id=cid" in url
@@ -170,7 +183,7 @@ def test_issue_access_token_success(mocker: MockerFixture) -> None:
     mocker.patch("server.services.token.auth.issue_oauth_token", return_value=dummy_token)
     mocker.patch("server.services.token.save_oauth_token", return_value=None)
 
-    actual = token.issue_access_token("code")
+    actual = issue_access_token("code")
 
     assert actual == expected
 
@@ -179,8 +192,8 @@ def test_issue_access_token_no_creds(mocker: MockerFixture) -> None:
     """Test that issue_access_token raises CredentialsError when credentials are missing."""
     mocker.patch("server.services.token.get_client_credentials", return_value=None)
 
-    with pytest.raises(token.CredentialsError):
-        token.issue_access_token("code")
+    with pytest.raises(CredentialsError):
+        issue_access_token("code")
 
 
 def test_issue_access_token_http_error(app: Flask, mocker: MockerFixture) -> None:
@@ -194,8 +207,8 @@ def test_issue_access_token_http_error(app: Flask, mocker: MockerFixture) -> Non
     http_error.response = mock_response
     mocker.patch("server.services.token.auth.issue_oauth_token", side_effect=http_error)
 
-    with app.app_context(), pytest.raises(token.OAuthTokenError) as excinfo:
-        token.issue_access_token("code")
+    with app.app_context(), pytest.raises(OAuthTokenError) as excinfo:
+        issue_access_token("code")
 
     assert "Failed to issue OAuth token: fail" in str(excinfo.value)
 
@@ -209,8 +222,8 @@ def test_issue_access_token_json_decode_error(app, mocker: MockerFixture) -> Non
         "server.services.token.auth.issue_oauth_token",
         side_effect=requests.JSONDecodeError("msg", "doc", 0),
     )
-    with app.app_context(), pytest.raises(token.OAuthTokenError) as excinfo:
-        token.issue_access_token("code")
+    with app.app_context(), pytest.raises(OAuthTokenError) as excinfo:
+        issue_access_token("code")
     assert "Failed to decode token response" in str(excinfo.value)
 
 
@@ -218,7 +231,7 @@ def test_check_token_validity_true(mocker: MockerFixture) -> None:
     """Test check_token_validity returns True when token is valid."""
     mocker.patch("server.services.token.auth.check_token_validity", return_value=True)
 
-    result = token.check_token_validity("token")
+    result = check_token_validity("token")
 
     assert result is True
 
@@ -227,7 +240,7 @@ def test_check_token_validity_false(mocker: MockerFixture) -> None:
     """Test check_token_validity returns False when token is invalid."""
     mocker.patch("server.services.token.auth.check_token_validity", return_value=False)
 
-    result = token.check_token_validity("token")
+    result = check_token_validity("token")
 
     assert result is False
 
@@ -241,7 +254,7 @@ def test_check_token_validity_http_error_logs_and_returns_false(app, mocker: Moc
     http_error.response = mock_response
     mocker.patch("server.services.token.auth.check_token_validity", side_effect=http_error)
 
-    result = token.check_token_validity("token")
+    result = check_token_validity("token")
 
     assert result is False
     assert mock_logger.called
@@ -255,7 +268,7 @@ def test_check_token_validity_json_decode_error_logs_and_returns_false(app, mock
         side_effect=requests.JSONDecodeError("msg", "doc", 0),
     )
 
-    result = token.check_token_validity("token")
+    result = check_token_validity("token")
 
     assert result is False
     assert mock_logger.called
@@ -274,7 +287,7 @@ def test_refresh_access_token_success(mocker: MockerFixture) -> None:
     mocker.patch("server.services.token.auth.refresh_oauth_token", return_value=dummy_new_token)
     mocker.patch("server.services.token.save_oauth_token", return_value=None)
 
-    actual = token.refresh_access_token()
+    actual = refresh_access_token()
 
     assert actual == expected
 
@@ -283,8 +296,8 @@ def test_refresh_access_token_no_creds(mocker: MockerFixture) -> None:
     """Test that refresh_access_token raises CredentialsError when credentials are missing."""
     mocker.patch("server.services.token.get_client_credentials", return_value=None)
 
-    with pytest.raises(token.CredentialsError):
-        token.refresh_access_token()
+    with pytest.raises(CredentialsError):
+        refresh_access_token()
 
 
 def test_refresh_access_token_no_token(mocker: MockerFixture) -> None:
@@ -293,8 +306,8 @@ def test_refresh_access_token_no_token(mocker: MockerFixture) -> None:
     mocker.patch("server.services.token.get_client_credentials", return_value=dummy_creds)
     mocker.patch("server.services.token.get_oauth_token", return_value=None)
 
-    with pytest.raises(token.OAuthTokenError):
-        token.refresh_access_token()
+    with pytest.raises(OAuthTokenError):
+        refresh_access_token()
 
 
 def test_refresh_access_token_no_refresh_token(mocker: MockerFixture) -> None:
@@ -304,8 +317,8 @@ def test_refresh_access_token_no_refresh_token(mocker: MockerFixture) -> None:
     mocker.patch("server.services.token.get_client_credentials", return_value=dummy_creds)
     mocker.patch("server.services.token.get_oauth_token", return_value=dummy_token)
 
-    with pytest.raises(token.OAuthTokenError):
-        token.refresh_access_token()
+    with pytest.raises(OAuthTokenError):
+        refresh_access_token()
 
 
 def test_refresh_access_token_json_decode_error(app, mocker: MockerFixture) -> None:
@@ -320,8 +333,8 @@ def test_refresh_access_token_json_decode_error(app, mocker: MockerFixture) -> N
         side_effect=requests.JSONDecodeError("msg", "doc", 0),
     )
 
-    with app.app_context(), pytest.raises(token.OAuthTokenError) as excinfo:
-        token.refresh_access_token()
+    with app.app_context(), pytest.raises(OAuthTokenError) as excinfo:
+        refresh_access_token()
 
     assert "Failed to decode token response" in str(excinfo.value)
 
@@ -339,7 +352,7 @@ def test_refresh_access_token_http_error(mocker: MockerFixture) -> None:
     http_error.response = mock_response
     mocker.patch("server.services.token.auth.refresh_oauth_token", side_effect=http_error)
 
-    with pytest.raises(token.OAuthTokenError) as excinfo:
-        token.refresh_access_token()
+    with pytest.raises(OAuthTokenError) as excinfo:
+        refresh_access_token()
 
     assert "Failed to refresh OAuth token: fail" in str(excinfo.value)

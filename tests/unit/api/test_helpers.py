@@ -5,14 +5,14 @@ import pytest
 from flask import Flask
 from pydantic import BaseModel
 
-from server.api import helpers
+from server.api.helpers import _check_file_size, roles_required, validate_files
+from server.services.utils.affiliations import Affiliations, _RoleGroup
 
 
 if t.TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 
-import types
 import typing as t
 
 from server.const import USER_ROLES
@@ -28,26 +28,30 @@ def view():
 
 def test_roles_required_grants_access(app: Flask, mocker: MockerFixture) -> None:
     """Tests roles_required decorator grants access for permitted role."""
+
+    affiliations = Affiliations(roles=[_RoleGroup(repository_id=None, role=USER_ROLES.SYSTEM_ADMIN)], groups=[])
     mocker.patch(
         "server.api.helpers.get_current_user_affiliations",
-        return_value=([types.SimpleNamespace(role=USER_ROLES.SYSTEM_ADMIN)], None),
+        return_value=(affiliations.roles, None),
     )
     mocker.patch("server.api.helpers.get_highest_role", return_value=USER_ROLES.SYSTEM_ADMIN)
 
-    result = helpers.roles_required(USER_ROLES.SYSTEM_ADMIN)(view)()
+    result = roles_required(USER_ROLES.SYSTEM_ADMIN)(view)()
     assert result == "ok"
 
 
 def test_roles_required_denies_access(app: Flask, mocker: MockerFixture) -> None:
     """Tests roles_required decorator denies access for non-permitted role."""
+
+    affiliations = Affiliations(roles=[_RoleGroup(repository_id=None, role=USER_ROLES.REPOSITORY_ADMIN)], groups=[])
     mocker.patch(
         "server.api.helpers.get_current_user_affiliations",
-        return_value=([types.SimpleNamespace(role=USER_ROLES.REPOSITORY_ADMIN)], None),
+        return_value=(affiliations.roles, None),
     )
     mocker.patch("server.api.helpers.get_highest_role", return_value=USER_ROLES.REPOSITORY_ADMIN)
 
     with pytest.raises(Exception, match="403"):
-        helpers.roles_required(USER_ROLES.SYSTEM_ADMIN)(view)()
+        roles_required(USER_ROLES.SYSTEM_ADMIN)(view)()
 
 
 def test_validate_files_success_single(app: Flask, mocker: MockerFixture) -> None:
@@ -65,7 +69,7 @@ def test_validate_files_success_single(app: Flask, mocker: MockerFixture) -> Non
     with app.test_request_context():
         mock_request = mocker.patch("server.api.helpers.request")
         mock_request.files = {"file": file_storage}
-        result = helpers.validate_files(view)()
+        result = validate_files(view)()
         assert result == file_storage
 
 
@@ -84,7 +88,7 @@ def test_validate_files_success(app: Flask, mocker: MockerFixture) -> None:
         mock_request = mocker.patch("server.api.helpers.request")
 
         mock_request.files = {"file": file_storage}
-        result = helpers.validate_files(view)()
+        result = validate_files(view)()
         assert result == file_storage
 
 
@@ -106,7 +110,7 @@ def test_validate_files_size_error(app: Flask, mocker: MockerFixture) -> None:
         mock_request = mocker.patch("server.api.helpers.request")
 
         mock_request.files = {"file": file_storage}
-        response = helpers.validate_files(view)()
+        response = validate_files(view)()
         assert response.status_code == expected_status_code
         assert "validation_error" in response.json
 
@@ -126,7 +130,7 @@ def test_validate_files_missing_field(app: Flask, mocker: MockerFixture) -> None
         mock_request = mocker.patch("server.api.helpers.request")
 
         mock_request.files = {}
-        response = helpers.validate_files(view)()
+        response = validate_files(view)()
         assert response.status_code == expected_status_code
         assert "validation_error" in response.json
 
@@ -147,7 +151,7 @@ def test_validate_files_validation_error(app: Flask, mocker: MockerFixture) -> N
         mock_request = mocker.patch("server.api.helpers.request")
 
         mock_request.files = {"file": file_storage}
-        response = helpers.validate_files(view)()
+        response = validate_files(view)()
         assert response == 1
 
 
@@ -157,7 +161,7 @@ def test_check_file_size_under_limit(app: Flask, mocker: MockerFixture) -> None:
     file_mock.tell.return_value = 100
     file_mock.seek.side_effect = lambda *_, **__: None
     mocker.patch("server.api.helpers.config.API.max_upload_size", 200)
-    errors = helpers._check_file_size("file", file_mock)  # noqa: SLF001
+    errors = _check_file_size("file", file_mock)
     assert errors == []
 
 
@@ -169,14 +173,14 @@ def test_check_file_size_over_limit(app: Flask, mocker: MockerFixture) -> None:
     file_mock.tell.return_value = expected_actual_value
     file_mock.seek.side_effect = lambda *_, **__: None
     mocker.patch("server.api.helpers.config.API.max_upload_size", expected_limit_value)
-    errors = helpers._check_file_size("file", file_mock)  # noqa: SLF001
+    errors = _check_file_size("file", file_mock)
     assert errors[0]["type"] == "value_error.filesize_limit"
     assert errors[0]["ctx"]["actual_value"] == expected_actual_value
     assert errors[0]["ctx"]["limit_value"] == expected_limit_value
 
 
 def test_check_file_size_continue_branches(app: Flask) -> None:
-    result = helpers._check_file_size("file", None)  # noqa: SLF001
+    result = _check_file_size("file", None)
     assert result == []
 
 
@@ -190,7 +194,7 @@ def test_validate_files_file_size_key_already_in_err(app: Flask, mocker: MockerF
     def view(files: FileModel):
         return files.file
 
-    helpers.validate_files(view)
+    validate_files(view)
     file_storage = mocker.Mock()
     file_storage.seek.side_effect = lambda *_, **__: None
     file_storage.tell.return_value = 300
@@ -214,7 +218,7 @@ def test_validate_files_file_size_key_already_in_err(app: Flask, mocker: MockerF
         def view2(files: FileModel2):
             return files.file
 
-        wrapper2 = helpers.validate_files(view2)
+        wrapper2 = validate_files(view2)
         response = wrapper2()
         assert hasattr(response, "status_code")
         assert response.status_code == expected_status_code
@@ -230,7 +234,7 @@ def test_validate_files_files_in_kwargs_annotation_false_value(app: Flask, mocke
 
     view.__annotations__["files"] = False
 
-    wrapper = helpers.validate_files(view)
+    wrapper = validate_files(view)
     with app.test_request_context():
         result = wrapper()
         assert result == "files_in_kwargs is False"

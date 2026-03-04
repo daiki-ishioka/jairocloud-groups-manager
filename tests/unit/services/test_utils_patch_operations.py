@@ -15,6 +15,7 @@ from server.services.utils.patch_operations import (
     _diff,
     _handle_list_diff,
     _handle_literal_diff,
+    build_update_member_operations,
 )
 from tests.helpers import load_json_data
 
@@ -136,9 +137,9 @@ def test_build_update_member_operations() -> None:
     remove = {"u3", "u4"}
     user_list = {"u1", "u3"}
     system_admins = {"admin"}
-    ops = patch_operations.build_update_member_operations(add, remove, user_list, system_admins)
-    assert any(isinstance(op, patch_operations.AddOperation) and op.value["value"] in {"u2", "admin"} for op in ops)
-    assert any(isinstance(op, patch_operations.RemoveOperation) and "u3" in op.path for op in ops)
+    ops = build_update_member_operations(add, remove, user_list, system_admins)
+    assert any(isinstance(op, AddOperation) and op.value["value"] in {"u2", "admin"} for op in ops)
+    assert any(isinstance(op, RemoveOperation) and "u3" in op.path for op in ops)
 
 
 def test_build_update_member_operations_add_update_system_admins() -> None:
@@ -148,8 +149,8 @@ def test_build_update_member_operations_add_update_system_admins() -> None:
     remove = set()
     system_admins = {"admin1", "admin2"}
 
-    ops = patch_operations.build_update_member_operations(set(add), set(remove), set(user_list), set(system_admins))
+    ops = build_update_member_operations(set(add), set(remove), set(user_list), set(system_admins))
 
-    added_ids = {op.value["value"] for op in ops if isinstance(op, patch_operations.AddOperation)}
+    added_ids = {op.value["value"] for op in ops if isinstance(op, AddOperation)}
     assert "admin1" in added_ids
     assert "admin2" in added_ids
