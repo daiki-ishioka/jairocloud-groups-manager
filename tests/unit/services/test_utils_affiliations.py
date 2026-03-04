@@ -10,12 +10,14 @@ from server.services.utils.affiliations import (
 
 
 def test_detect_affiliations(app):
-    group_ids = ["jc_roles_sysadm_test",  # sysado
-                 "jc_test_ac_jp_roles_repoadm_test",  # repoado
-                 "jc_test_ac_jp_roles_comadm_test",  # comado
-                 "jc_test_ac_jp_roles_contributor_test",  # contributer
-                 "jc_test_ac_jp_roles_generaluser_test",  # generaluser
-                 "jc_test_ac_jp_groups_test3_test"]  # user
+    group_ids = [
+        "jc_roles_sysadm_test",  # sysado
+        "jc_test_ac_jp_roles_repoadm_test",  # repoado
+        "jc_test_ac_jp_roles_comadm_test",  # comado
+        "jc_test_ac_jp_roles_contributor_test",  # contributer
+        "jc_test_ac_jp_roles_generaluser_test",  # generaluser
+        "jc_test_ac_jp_groups_test3_test",
+    ]  # user
 
     result = detect_affiliations(group_ids)
 
@@ -38,12 +40,12 @@ def test_detect_affiliations(app):
     result_roles_0 = result.roles[0]
     assert result_roles_0.type == expected_rolegroup_type
     assert result_roles_0.repository_id == expected_repository_id_sys
-    assert result_roles_0.roles == expected_roles_sys
+    assert result_roles_0.role == expected_roles_sys[0]
 
     result_roles_1 = result.roles[1]
     assert result_roles_1.type == expected_rolegroup_type
     assert result_roles_1.repository_id == expected_repository_id
-    assert sorted(result_roles_1.roles) == sorted(expected_roles)
+    assert sorted(result_roles_1.role) == sorted(expected_roles[0])
 
     result_groups_0 = result.groups[0]
     assert result_groups_0.type == expected_group_type
@@ -67,14 +69,14 @@ def test_detect_affiliation_no_match(app):
         ("jc_test_ac_jp_roles_contributor_test", "test_ac_jp", ["contributor"], "role"),
         ("jc_test_ac_jp_roles_generaluser_test", "test_ac_jp", ["general_user"], "role"),
     ],
-    ids=["sysadm", "repoadm", "comadm", "contributer", "generaluser"]
+    ids=["sysadm", "repoadm", "comadm", "contributer", "generaluser"],
 )
 def test_detect_affiliation_role_group(app, group_id, expected_repository_id, expected_roles, expected_type):
     result = detect_affiliation(group_id)
     assert result is not None
     assert isinstance(result, _RoleGroup)
     assert result.repository_id == expected_repository_id
-    assert result.roles == expected_roles
+    assert result.role == expected_roles[0]
     assert result.type == expected_type
 
 
@@ -130,7 +132,9 @@ def test_build_combined_regex_gene(app):
 
 def test_build_combined_regex_user(app):
     pattern = _build_combined_regex().pattern
-    expected = "(?P<user_defined>jc_(?P<user_defined__repository_id>.+?)_groups_(?P<user_defined__user_defined_id>.+?)_test)"
+    expected = (
+        "(?P<user_defined>jc_(?P<user_defined__repository_id>.+?)_groups_(?P<user_defined__user_defined_id>.+?)_test)"
+    )
 
     assert expected in pattern
 
