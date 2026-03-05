@@ -1,11 +1,13 @@
-import json
 import typing as t
 import urllib.parse as urlparse
 
+from http import HTTPStatus
 from unittest.mock import Mock
 
 import pytest
 import requests
+
+from flask import Flask
 
 from server.entities.auth import ClientCredentials, OAuthToken
 from server.services import token
@@ -18,12 +20,12 @@ from server.exc import (
     CertificatesError,
     CredentialsError,
     OAuthTokenError,
+    UnexpectedResponseError,
 )
 from server.services.token import (
     get_access_token,
     get_client_secret,
     issue_access_token,
-    prepare_issuing_url,
     refresh_access_token,
 )
 
@@ -54,7 +56,7 @@ def test_get_access_token_error(mocker: MockerFixture) -> None:
         token.get_access_token()
 
 
-def test_get_access_token_refresh_called(mocker: MockerFixture) -> None:
+def test_get_access_token_refresh_called(app: Flask, mocker: MockerFixture) -> None:
     """Test get_access_token calls refresh_access_token if token is invalid."""
     token_obj = OAuthToken(
         access_token="expired_token",
@@ -111,41 +113,51 @@ def test_prepare_issuing_url(app: Flask, mocker: MockerFixture, test_config) -> 
     assert f"state={expected_state}" in url
 
 
-def test_prepare_issuing_url_http_error(app: Flask, mocker: MockerFixture) -> None:
-    """Test that prepare_issuing_url raises CertificatesError on HTTP error."""
-    mocker.patch(
-        "server.services.token.get_client_credentials",
-        return_value=None,
-    )
+def test_prepare_issuing_url_http_error_bad_request(app: Flask, mocker):
+    mocker.patch("server.services.token.get_client_credentials", return_value=None)
     mocker.patch("server.services.token.save_client_credentials", return_value=None)
 
     mock_response = Mock()
+    mock_response.status_code = HTTPStatus.BAD_REQUEST
     mock_response.json.return_value = {"error_description": "fail"}
     http_error = requests.HTTPError()
     http_error.response = mock_response
-    mocker.patch(
-        "server.services.token.auth.issue_client_credentials",
-        side_effect=http_error,
-    )
+    mocker.patch("server.services.token.auth.issue_client_credentials", side_effect=http_error)
+    mocker.patch("server.services.token.current_app")
 
     with app.app_context(), pytest.raises(CertificatesError) as excinfo:
-        prepare_issuing_url()
+        token.prepare_issuing_url()
+    assert "fail" in str(excinfo.value)
 
-    assert "Failed to issue client credentials: fail" in str(excinfo.value)
+
+def test_prepare_issuing_url_http_error_unexpected(app: Flask, mocker):
+    mocker.patch("server.services.token.get_client_credentials", return_value=None)
+    mocker.patch("server.services.token.save_client_credentials", return_value=None)
+
+    mock_response = Mock()
+    mock_response.status_code = HTTPStatus.INTERNAL_SERVER_ERROR
+    mock_response.json.return_value = {"error_description": "fail"}
+    http_error = requests.HTTPError()
+    http_error.response = mock_response
+    mocker.patch("server.services.token.auth.issue_client_credentials", side_effect=http_error)
+    mocker.patch("server.services.token.current_app")
+
+    with app.app_context(), pytest.raises(UnexpectedResponseError) as excinfo:
+        token.prepare_issuing_url()
+    assert "Received unexpected response from mAP Core API." in str(excinfo.value)
 
 
-def test_prepare_issuing_url_json_decode_error(app, mocker: MockerFixture) -> None:
-    """Test that prepare_issuing_url raises CertificatesError on requests.JSONDecodeError."""
+def test_prepare_issuing_url_json_decode_error(app: Flask, mocker):
     mocker.patch("server.services.token.get_client_credentials", return_value=None)
     mocker.patch("server.services.token.save_client_credentials", return_value=None)
     mocker.patch(
-        "server.services.token.auth.issue_client_credentials",
-        side_effect=requests.JSONDecodeError("msg", "doc", 0),
+        "server.services.token.auth.issue_client_credentials", side_effect=requests.JSONDecodeError("msg", "doc", 0)
     )
-    with app.app_context(), pytest.raises(token.CertificatesError) as excinfo:
-        token.prepare_issuing_url()
+    mocker.patch("server.services.token.current_app")
 
-    assert "Failed to decode credentials response" in str(excinfo.value)
+    with app.app_context(), pytest.raises(CertificatesError) as excinfo:
+        token.prepare_issuing_url()
+    assert "Failed to decode response from mAP Core API." in str(excinfo.value)
 
 
 def test_prepare_issuing_url_save_client_credentials_called(app: Flask, mocker: MockerFixture, test_config) -> None:
@@ -172,7 +184,7 @@ def test__create_issuing_url(app: Flask):
     assert "state=eid" in url
 
 
-def test_issue_access_token_success(mocker: MockerFixture) -> None:
+def test_issue_access_token_success(app: Flask, mocker: MockerFixture) -> None:
     """Test that issue_access_token returns the access token on success."""
     dummy_creds = ClientCredentials(client_secret="secret", client_id="cid")
     dummy_token = OAuthToken(access_token="tok", token_type="bearer", expires_in=3600, refresh_token=None, scope="")
@@ -194,25 +206,43 @@ def test_issue_access_token_no_creds(mocker: MockerFixture) -> None:
         issue_access_token("code")
 
 
-def test_issue_access_token_http_error(app: Flask, mocker: MockerFixture) -> None:
-    """Test that issue_access_token raises OAuthTokenError with correct message on HTTP error."""
+def test_issue_access_token_http_error_bad_request(app: Flask, mocker):
     dummy_creds = ClientCredentials(client_secret="secret", client_id="cid")
     mocker.patch("server.services.token.get_client_credentials", return_value=dummy_creds)
     mocker.patch("server.services.token.save_oauth_token", return_value=None)
+
     mock_response = Mock()
+    mock_response.status_code = HTTPStatus.BAD_REQUEST
     mock_response.json.return_value = {"error_description": "fail"}
     http_error = requests.HTTPError()
     http_error.response = mock_response
     mocker.patch("server.services.token.auth.issue_oauth_token", side_effect=http_error)
+    mocker.patch("server.services.token.current_app")
 
     with app.app_context(), pytest.raises(OAuthTokenError) as excinfo:
         issue_access_token("code")
+    assert "fail" in str(excinfo.value)
 
-    assert "Failed to issue OAuth token: fail" in str(excinfo.value)
+
+def test_issue_access_token_http_error_unexpected(app: Flask, mocker):
+    dummy_creds = ClientCredentials(client_secret="secret", client_id="cid")
+    mocker.patch("server.services.token.get_client_credentials", return_value=dummy_creds)
+    mocker.patch("server.services.token.save_oauth_token", return_value=None)
+
+    mock_response = Mock()
+    mock_response.status_code = HTTPStatus.INTERNAL_SERVER_ERROR
+    mock_response.json.return_value = {"error_description": "fail"}
+    http_error = requests.HTTPError()
+    http_error.response = mock_response
+    mocker.patch("server.services.token.auth.issue_oauth_token", side_effect=http_error)
+    mocker.patch("server.services.token.current_app")
+
+    with app.app_context(), pytest.raises(UnexpectedResponseError) as excinfo:
+        issue_access_token("code")
+    assert "unexpected response" in str(excinfo.value).lower()
 
 
-def test_issue_access_token_json_decode_error(app, mocker: MockerFixture) -> None:
-    """Test that issue_access_token raises OAuthTokenError on requests.JSONDecodeError."""
+def test_issue_access_token_json_decode_error(app: Flask, mocker):
     dummy_creds = ClientCredentials(client_secret="secret", client_id="cid")
     mocker.patch("server.services.token.get_client_credentials", return_value=dummy_creds)
     mocker.patch("server.services.token.save_oauth_token", return_value=None)
@@ -220,12 +250,14 @@ def test_issue_access_token_json_decode_error(app, mocker: MockerFixture) -> Non
         "server.services.token.auth.issue_oauth_token",
         side_effect=requests.JSONDecodeError("msg", "doc", 0),
     )
+    mocker.patch("server.services.token.current_app")
 
-    with app.app_context(), pytest.raises(json.decoder.JSONDecodeError):
-        token.issue_access_token("code")
+    with app.app_context(), pytest.raises(OAuthTokenError) as excinfo:
+        issue_access_token("code")
+    assert "decode" in str(excinfo.value).lower()
 
 
-def test_refresh_access_token_success(mocker: MockerFixture) -> None:
+def test_refresh_access_token_success(app: Flask, mocker: MockerFixture) -> None:
     """Test that refresh_access_token returns the new access token on success."""
     dummy_creds = ClientCredentials(client_secret="secret", client_id="cid")
     dummy_token = OAuthToken(access_token="tok", token_type="bearer", expires_in=3600, refresh_token="rft", scope="")
@@ -272,8 +304,47 @@ def test_refresh_access_token_no_refresh_token(mocker: MockerFixture) -> None:
         refresh_access_token()
 
 
-def test_refresh_access_token_json_decode_error(app, mocker: MockerFixture) -> None:
-    """Test that refresh_access_token raises OAuthTokenError on requests.JSONDecodeError."""
+def test_refresh_access_token_http_error_bad_request(app: Flask, mocker):
+    dummy_creds = ClientCredentials(client_secret="secret", client_id="cid")
+    dummy_token = OAuthToken(access_token="tok", token_type="bearer", expires_in=3600, refresh_token="rft", scope="")
+    mocker.patch("server.services.token.get_client_credentials", return_value=dummy_creds)
+    mocker.patch("server.services.token.get_oauth_token", return_value=dummy_token)
+    mocker.patch("server.services.token.save_oauth_token", return_value=None)
+
+    mock_response = Mock()
+    mock_response.status_code = HTTPStatus.BAD_REQUEST
+    mock_response.json.return_value = {"error_description": "fail"}
+    http_error = requests.HTTPError()
+    http_error.response = mock_response
+    mocker.patch("server.services.token.auth.refresh_oauth_token", side_effect=http_error)
+    mocker.patch("server.services.token.current_app")
+
+    with app.app_context(), pytest.raises(OAuthTokenError) as excinfo:
+        refresh_access_token()
+    assert "Received error from mAP Core API: fail" in str(excinfo.value)
+
+
+def test_refresh_access_token_http_error_unexpected(app: Flask, mocker):
+    dummy_creds = ClientCredentials(client_secret="secret", client_id="cid")
+    dummy_token = OAuthToken(access_token="tok", token_type="bearer", expires_in=3600, refresh_token="rft", scope="")
+    mocker.patch("server.services.token.get_client_credentials", return_value=dummy_creds)
+    mocker.patch("server.services.token.get_oauth_token", return_value=dummy_token)
+    mocker.patch("server.services.token.save_oauth_token", return_value=None)
+
+    mock_response = Mock()
+    mock_response.status_code = HTTPStatus.INTERNAL_SERVER_ERROR
+    mock_response.json.return_value = {"error_description": "fail"}
+    http_error = requests.HTTPError()
+    http_error.response = mock_response
+    mocker.patch("server.services.token.auth.refresh_oauth_token", side_effect=http_error)
+    mocker.patch("server.services.token.current_app")
+
+    with app.app_context(), pytest.raises(UnexpectedResponseError) as excinfo:
+        refresh_access_token()
+    assert "Received unexpected response from mAP Core API." in str(excinfo.value)
+
+
+def test_refresh_access_token_json_decode_error(app: Flask, mocker):
     dummy_creds = ClientCredentials(client_secret="secret", client_id="cid")
     dummy_token = OAuthToken(access_token="tok", token_type="bearer", expires_in=3600, refresh_token="rft", scope="")
     mocker.patch("server.services.token.get_client_credentials", return_value=dummy_creds)
@@ -283,6 +354,8 @@ def test_refresh_access_token_json_decode_error(app, mocker: MockerFixture) -> N
         "server.services.token.auth.refresh_oauth_token",
         side_effect=requests.JSONDecodeError("msg", "doc", 0),
     )
+    mocker.patch("server.services.token.current_app")
 
-    with app.app_context(), pytest.raises(json.decoder.JSONDecodeError):
-        token.refresh_access_token()
+    with app.app_context(), pytest.raises(OAuthTokenError) as excinfo:
+        refresh_access_token()
+    assert "Failed to decode response from mAP Core API." in str(excinfo.value)

@@ -1064,6 +1064,28 @@ def test_update_affiliations_not_found(app, mocker):
         users.update_affiliations(user)
 
 
+def test_update_affiliations_raises_oauth_token_error(app, mocker):
+    user = UserDetail(
+        id="u1",
+        user_name="u",
+        emails=[],
+        repository_roles=[RepositoryRole(id="repo1", user_role=USER_ROLES.SYSTEM_ADMIN)],
+        is_system_admin=False,
+    )
+    current = MagicMock(spec=UserDetail)
+    mocker.patch("server.services.users.get_by_id", return_value=current)
+    mocker.patch("server.services.utils.transformers.validate_user_to_map_user", return_value=current)
+    patch_op = MagicMock()
+    patch_op.op = "add"
+    patch_op.value = MagicMock()
+    mocker.patch("server.services.users.build_patch_operations", return_value=[patch_op])
+    mocker.patch("server.services.groups.update_member", side_effect=OAuthTokenError("fail"))
+    mocker.patch("server.services.repositories.get_by_id", return_value=object())
+    mocker.patch("server.services.users.user_updated.send")
+    with pytest.raises(OAuthTokenError):
+        users.update_affiliations(user)
+
+
 def test_get_system_admins_success(mocker: MockerFixture) -> None:
 
     map_user1 = MapUser(id="u1", user_name="u1", schemas=["a"], emails=[])
@@ -1200,13 +1222,6 @@ def test_count_raises_invalid_query_error_on_map_error(app, mocker: MockerFixtur
     assert mock_logger.called
 
 
-@pytest.fixture
-def user_data() -> tuple[dict[str, t.Any], MapUser]:
-    json_data = load_json_data("data/map_user.json")
-    user = MapUser.model_validate(json_data)
-    return json_data, user
-
-
 def test_handle_user_updated_eppns_true(mocker: MockerFixture) -> None:
 
     user = UserDetail(id="u1", user_name="u", emails=[], eppns=["eppn1"])
@@ -1228,23 +1243,8 @@ def test_handle_user_updated_eppns_false(mocker: MockerFixture) -> None:
     mock_clear_eppn.assert_not_called()
 
 
-def test_update_affiliations_raises_oauth_token_error(app, mocker):
-    user = UserDetail(
-        id="u1",
-        user_name="u",
-        emails=[],
-        repository_roles=[RepositoryRole(id="repo1", user_role=USER_ROLES.SYSTEM_ADMIN)],
-        is_system_admin=False,
-    )
-    current = MagicMock(spec=UserDetail)
-    mocker.patch("server.services.users.get_by_id", return_value=current)
-    mocker.patch("server.services.utils.transformers.validate_user_to_map_user", return_value=current)
-    patch_op = MagicMock()
-    patch_op.op = "add"
-    patch_op.value = MagicMock()
-    mocker.patch("server.services.users.build_patch_operations", return_value=[patch_op])
-    mocker.patch("server.services.groups.update_member", side_effect=OAuthTokenError("fail"))
-    mocker.patch("server.services.repositories.get_by_id", return_value=object())
-    mocker.patch("server.services.users.user_updated.send")
-    with pytest.raises(OAuthTokenError):
-        users.update_affiliations(user)
+@pytest.fixture
+def user_data() -> tuple[dict[str, t.Any], MapUser]:
+    json_data = load_json_data("data/map_user.json")
+    user = MapUser.model_validate(json_data)
+    return json_data, user

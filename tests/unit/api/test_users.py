@@ -1,14 +1,11 @@
 import inspect
 import typing as t
 
-import pytest
-
 from flask import Flask
 from pytest_mock import MockerFixture
 
-from server.api import groups as groups_api, users as users_api
+from server.api import users as users_api
 from server.api.groups import (
-    GroupsQuery,
     ResourceInvalid,
     ResourceNotFound,
 )
@@ -16,7 +13,6 @@ from server.api.users import ErrorResponse, InvalidQueryError, SearchResult, Use
 from server.const import USER_ROLES
 from server.entities.login_user import LoginUser
 from server.entities.user_detail import RepositoryRole, UserDetail
-from tests.helpers import UnexpectedError
 
 
 if t.TYPE_CHECKING:
@@ -24,53 +20,15 @@ if t.TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 
-def test_get_success(app: Flask, mocker: MockerFixture) -> None:
-    """Tests group search returns SearchResult and 200 when found."""
-    expected_result = object()
-    query = GroupsQuery(q="test-group", r=["repo1"], u=["user1"], s=0, v=1, k="display_name", d="asc", p=1, l=30)
+def test_get_success(app, mocker):
     expected_status = 200
-    mocker.patch("server.api.groups.has_permission", return_value=True)
-    mocker.patch("server.services.groups.search", return_value=expected_result)
-    original_func = inspect.unwrap(groups_api.get)
-    result, status = original_func(query)
-    assert result == expected_result
+    query = UsersQuery(q="", r=[], k="display_name", d="asc", p=1, l=30)
+    expected_result = SearchResult(total=1, page_size=10, offset=0, resources=[])
+    mocke_serch = mocker.patch("server.services.users.search", return_value=expected_result)
+    original_func = inspect.unwrap(users_api.get)
+    _, status = original_func(query)
     assert status == expected_status
-
-
-def test_get_not_found(app: Flask, mocker: MockerFixture) -> None:
-    """Tests group search returns ErrorResponse and 404 when not found."""
-    query = GroupsQuery(q="missing-group", r=[], u=[], s=0, v=1, k="display_name", d="asc", p=1, l=30)
-    error_detail = "group not found"
-    mocker.patch("server.api.groups.has_permission", return_value=True)
-    mocker.patch("server.services.groups.search", side_effect=ResourceNotFound(error_detail))
-    original_func = inspect.unwrap(groups_api.get)
-    with pytest.raises(ResourceNotFound) as exc_info:
-        original_func(query)
-    assert str(exc_info.value) == error_detail
-
-
-def test_get_invalid_request(app: Flask, mocker: MockerFixture) -> None:
-    """Tests group search returns ErrorResponse and 400 when invalid request."""
-    query = GroupsQuery(q="", r=[], u=[], s=0, v=1, k="display_name", d="asc", p=1, l=30)
-    error_detail = "invalid request"
-    mocker.patch("server.api.groups.has_permission", return_value=True)
-    mocker.patch("server.services.groups.search", side_effect=ResourceInvalid(error_detail))
-    original_func = inspect.unwrap(groups_api.get)
-    with pytest.raises(ResourceInvalid) as exc_info:
-        original_func(query)
-    assert str(exc_info.value) == error_detail
-
-
-def test_get_unexpected_error(app: Flask, mocker: MockerFixture) -> None:
-    """Tests group search raises UnexpectedError when unexpected error occurs."""
-    query = GroupsQuery(q="error-group", r=[], u=[], s=0, v=1, k="display_name", d="asc", p=1, l=30)
-    error_detail = "unexpected error in get"
-    mocker.patch("server.api.groups.has_permission", return_value=True)
-    mocker.patch("server.services.groups.search", side_effect=UnexpectedError(error_detail))
-    original_func = inspect.unwrap(groups_api.get)
-    with pytest.raises(UnexpectedError) as exc_info:
-        original_func(query)
-    assert str(exc_info.value) == error_detail
+    mocke_serch.assert_called_once_with(query)
 
 
 def test_get_invalid_query_error(app: Flask, mocker: MockerFixture) -> None:
@@ -82,16 +40,6 @@ def test_get_invalid_query_error(app: Flask, mocker: MockerFixture) -> None:
     original_func = inspect.unwrap(users_api.get)
     result, status = original_func(query)
     assert isinstance(result, ErrorResponse)
-    assert status == expected_status
-
-
-def test_get_success_returns_200(app, mocker):
-    expected_status = 200
-    query = UsersQuery(q="", r=[], k="display_name", d="asc", p=1, l=30)
-    expected_result = SearchResult(total=1, page_size=10, offset=0, resources=[])
-    mocker.patch("server.services.users.search", return_value=expected_result)
-    original_func = inspect.unwrap(users_api.get)
-    _, status = original_func(query)
     assert status == expected_status
 
 
@@ -469,16 +417,6 @@ def test_has_permission_no_permission(mocker: MockerFixture) -> None:
     assert result is False
 
 
-def test_filter_options_returns_search_users_options_unit(mocker: MockerFixture) -> None:
-    """Unit test: filter_options returns the mocked search_users_options result."""
-    mock_return = [object()]
-    mocker.patch("server.api.users.search_users_options", return_value=mock_return)
-    original_func = inspect.unwrap(users_api.filter_options)
-
-    result = original_func()
-    assert result == mock_return
-
-
 def test_has_permission_user_is_system_admin(mocker: MockerFixture) -> None:
     """Covers has_permission: user.is_system_admin is True, returns False."""
 
@@ -494,3 +432,13 @@ def test_has_permission_user_is_system_admin(mocker: MockerFixture) -> None:
     )
     result = users_api.has_permission(user)
     assert result is False
+
+
+def test_filter_options_returns_search_users_options_unit(mocker: MockerFixture) -> None:
+    """Unit test: filter_options returns the mocked search_users_options result."""
+    mock_return = [object()]
+    mocker.patch("server.api.users.search_users_options", return_value=mock_return)
+    original_func = inspect.unwrap(users_api.filter_options)
+
+    result = original_func()
+    assert result == mock_return

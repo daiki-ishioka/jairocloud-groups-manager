@@ -151,35 +151,6 @@ def test_validate_files_validation_error(app: Flask, mocker: MockerFixture) -> N
         assert response == 1
 
 
-def test_check_file_size_under_limit(app: Flask, mocker: MockerFixture) -> None:
-    """Tests _check_file_size returns empty list for file under limit."""
-    file_mock = mocker.Mock()
-    file_mock.tell.return_value = 100
-    file_mock.seek.side_effect = lambda *_, **__: None
-    mocker.patch("server.api.helpers.config.API.max_upload_size", 200)
-    errors = helpers._check_file_size("file", file_mock)  # noqa: SLF001
-    assert errors == []
-
-
-def test_check_file_size_over_limit(app: Flask, mocker: MockerFixture) -> None:
-    """Tests _check_file_size returns error for file over limit."""
-    expected_actual_value = 300
-    expected_limit_value = 200
-    file_mock = mocker.Mock()
-    file_mock.tell.return_value = expected_actual_value
-    file_mock.seek.side_effect = lambda *_, **__: None
-    mocker.patch("server.api.helpers.config.API.max_upload_size", expected_limit_value)
-    errors = helpers._check_file_size("file", file_mock)  # noqa: SLF001
-    assert errors[0]["type"] == "value_error.filesize_limit"
-    assert errors[0]["ctx"]["actual_value"] == expected_actual_value
-    assert errors[0]["ctx"]["limit_value"] == expected_limit_value
-
-
-def test_check_file_size_continue_branches(app: Flask) -> None:
-    result = helpers._check_file_size("file", None)  # noqa: SLF001
-    assert result == []
-
-
 def test_validate_files_file_size_key_already_in_err(app: Flask, mocker: MockerFixture) -> None:
     """Covers the False branch of 'if "file_size" not in err:' (file_size already in err)."""
     expected_status_code = 400
@@ -235,3 +206,32 @@ def test_validate_files_files_in_kwargs_annotation_false_value(app: Flask, mocke
         result = wrapper()
         assert result == "files_in_kwargs is False"
         files_model_mock.assert_not_called()
+
+
+def test_check_file_size_under_limit(app: Flask, mocker: MockerFixture) -> None:
+    """Tests _check_file_size returns empty list for file under limit."""
+    file_mock = mocker.Mock()
+    file_mock.tell.return_value = 100
+    file_mock.seek.side_effect = lambda *_, **__: None
+    mocker.patch("server.api.helpers.config.API.max_upload_size", 200)
+    errors = helpers._check_file_size("file", file_mock)  # noqa: SLF001
+    assert errors == []
+
+
+def test_check_file_size_over_limit(app: Flask, mocker: MockerFixture) -> None:
+    """Tests _check_file_size returns error for file over limit."""
+    expected_actual_value = 300
+    expected_limit_value = 200
+    file_mock = mocker.Mock()
+    file_mock.tell.return_value = expected_actual_value
+    file_mock.seek.side_effect = lambda *_, **__: None
+    mocker.patch("server.api.helpers.config.API.max_upload_size", expected_limit_value)
+    errors = helpers._check_file_size("file", file_mock)  # noqa: SLF001
+    assert errors[0]["type"] == "value_error.filesize_limit"
+    assert errors[0]["ctx"]["actual_value"] == expected_actual_value
+    assert errors[0]["ctx"]["limit_value"] == expected_limit_value
+
+
+def test_check_file_size_continue_branches(app: Flask) -> None:
+    result = helpers._check_file_size("file", None)  # noqa: SLF001
+    assert result == []

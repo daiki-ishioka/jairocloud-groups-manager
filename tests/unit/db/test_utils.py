@@ -62,7 +62,7 @@ def test_create_tables_db_not_exists(app: Flask, mocker: MockerFixture) -> None:
     with pytest.raises(DatabaseError) as exc_info:
         utils.create_tables()
 
-    assert str(exc_info.value) == utils.E.DATABASE_NOT_EXIST
+    assert str(exc_info.value) == str(utils.E.DATABASE_NOT_EXIST)
 
 
 def test_create_tables_db_exists(app: Flask, mocker: MockerFixture) -> None:
@@ -86,7 +86,7 @@ def test_drop_tables_db_not_exists(app: Flask, mocker: MockerFixture) -> None:
     with pytest.raises(DatabaseError) as exc_info:
         utils.drop_tables()
 
-    assert str(exc_info.value) == utils.E.DATABASE_NOT_EXIST
+    assert str(exc_info.value) == str(utils.E.DATABASE_NOT_EXIST)
 
 
 def test_drop_tables_db_exists(app: Flask, mocker: MockerFixture) -> None:

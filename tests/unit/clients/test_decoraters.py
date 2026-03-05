@@ -95,37 +95,6 @@ def test_cache_resource_sets_timeout_3_on_maperror(app, mocker: MockerFixture) -
     assert args[1] == expected_value
 
 
-def test_clear_cache_normal(app, mocker: MockerFixture) -> None:
-    """Tests that clear_cache deletes cache keys for given resource_id."""
-    scan_keys = [b"prefix:mod.func:1:abc"]
-
-    def dummy_func() -> DummyModel:
-        return DummyModel(value=0)
-
-    decorated = cache_resource(dummy_func)
-    app_cache_mock = mocker.patch("server.clients.decoraters.app_cache", new=mocker.MagicMock())
-    app_cache_mock.get.return_value = None
-    app_cache_mock.scan.side_effect = [(1, scan_keys), (0, [])]
-
-    mocker.patch("server.clients.decoraters.config.REDIS.key_prefix", "prefix")
-
-    clear_cache(decorated, "1")
-    app_cache_mock.delete.assert_called_with(*scan_keys)
-
-
-def test_clear_cache_not_decorated(app, mocker: MockerFixture) -> None:
-    """Tests that clear_cache raises ValueError if function is not decorated."""
-
-    error_msg = "Function is not decorated with @response_cache."
-    mocker.patch("server.clients.decoraters.config.REDIS.key_prefix", "prefix")
-
-    def dummy_func(x):
-        return x
-
-    with pytest.raises(ValueError, match=error_msg):
-        clear_cache(dummy_func, "1")
-
-
 def test_cache_resource_timeout_none(app, mocker: MockerFixture) -> None:
     """Tests cache_resource when timeout is None and result is not MapError."""
     expected_value = 42
@@ -172,6 +141,37 @@ def test_cache_resource_args_empty(app, mocker: MockerFixture) -> None:
     result = decorated()
     assert result.value == expected_value
     assert called["ok"] is True
+
+
+def test_clear_cache_normal(app, mocker: MockerFixture) -> None:
+    """Tests that clear_cache deletes cache keys for given resource_id."""
+    scan_keys = [b"prefix:mod.func:1:abc"]
+
+    def dummy_func() -> DummyModel:
+        return DummyModel(value=0)
+
+    decorated = cache_resource(dummy_func)
+    app_cache_mock = mocker.patch("server.clients.decoraters.app_cache", new=mocker.MagicMock())
+    app_cache_mock.get.return_value = None
+    app_cache_mock.scan.side_effect = [(1, scan_keys), (0, [])]
+
+    mocker.patch("server.clients.decoraters.config.REDIS.key_prefix", "prefix")
+
+    clear_cache(decorated, "1")
+    app_cache_mock.delete.assert_called_with(*scan_keys)
+
+
+def test_clear_cache_not_decorated(app, mocker: MockerFixture) -> None:
+    """Tests that clear_cache raises ValueError if function is not decorated."""
+
+    error_msg = "Function is not decorated with @response_cache."
+    mocker.patch("server.clients.decoraters.config.REDIS.key_prefix", "prefix")
+
+    def dummy_func(x):
+        return x
+
+    with pytest.raises(ValueError, match=error_msg):
+        clear_cache(dummy_func, "1")
 
 
 def test_clear_cache_scan_loop_keys(app, mocker: MockerFixture) -> None:
