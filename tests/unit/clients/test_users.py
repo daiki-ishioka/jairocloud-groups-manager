@@ -9,6 +9,8 @@ import pytest
 
 from requests.exceptions import HTTPError
 
+import server.clients.users as users_mod
+
 from server.clients import users
 from server.clients.users import handle_user_updated_by_eppn, handle_user_updated_by_id
 from server.config import config
@@ -1213,9 +1215,9 @@ def test__get_alias_generator_with_serialization_alias(monkeypatch):
         def __init__(self):
             self.serialization_alias = lambda x: f"alias_{x}"
 
-    monkeypatch.setitem(users.MapUser.model_config, "alias_generator", Dummy())
-    importlib.reload(users)
-    result = users.alias_generator
+    monkeypatch.setitem(users_mod.MapUser.model_config, "alias_generator", Dummy())
+    importlib.reload(users_mod)
+    result = users_mod.alias_generator
     assert callable(result)
     assert result("foo") == "alias_foo"
 
@@ -1223,9 +1225,9 @@ def test__get_alias_generator_with_serialization_alias(monkeypatch):
 def test__get_alias_generator_with_none(monkeypatch):
     """Covers the branch where generator is None and falls back to lambda x: x."""
 
-    monkeypatch.setitem(users.MapUser.model_config, "alias_generator", None)
-    importlib.reload(users)
-    result = users.alias_generator
+    monkeypatch.setitem(users_mod.MapUser.model_config, "alias_generator", None)
+    importlib.reload(users_mod)
+    result = users_mod.alias_generator
     assert callable(result)
     assert result("bar") == "bar"
 
@@ -1288,5 +1290,5 @@ def test_search_cache_identifier(app, mocker, is_logged_in, is_admin, permitted,
     )
     mocker.patch("server.clients.users.current_user", current_user)
     mocker.patch("server.clients.users.is_user_logged_in", return_value=is_logged_in)
-    result = users._search_cache_identifier()  # noqa: SLF001
+    result = users_mod._search_cache_identifier()  # noqa: SLF001
     assert result == expected

@@ -17,8 +17,7 @@ class DummyModel(BaseModel):
     value: int = 0
 
 
-def test_cache_resource_with_callable(app, mocker):
-
+def test_cache_resource_with_callable(app, mocker: MockerFixture) -> None:
     ex_num = 11
     app_cache_mock = mocker.patch("server.clients.decoraters.app_cache", new_callable=mocker.MagicMock)
     app_cache_mock.get.return_value = None
@@ -38,11 +37,12 @@ def test_cache_resource_with_callable(app, mocker):
     assert decorated(10).value == ex_num
     assert decorated(10).value == ex_num
     assert call_count["count"] == 1
+    assert hasattr(decorated, "_import_name")
+    assert hasattr(decorated, "clear_cache")
 
 
-def test_cache_resource_func_raises(app, mocker):
+def test_cache_resource_func_raises(app, mocker: MockerFixture) -> None:
     """Tests that cache_resource propagates exceptions from the wrapped function."""
-
     ex_str = "fail"
     app_cache_mock = mocker.patch("server.clients.decoraters.app_cache", new_callable=mocker.MagicMock)
     app_cache_mock.get.return_value = None
@@ -57,8 +57,7 @@ def test_cache_resource_func_raises(app, mocker):
         decorated(1)
 
 
-def test_cache_resource_maperror_timeout(app, mocker):
-
+def test_cache_resource_maperror_timeout(app, mocker: MockerFixture) -> None:
     ex_num = 10
     app_cache_mock = mocker.patch("server.clients.decoraters.app_cache", new_callable=mocker.MagicMock)
     app_cache_mock.get.return_value = None
@@ -79,7 +78,6 @@ def test_cache_resource_maperror_timeout(app, mocker):
 
 def test_cache_resource_sets_timeout_3_on_maperror(app, mocker: MockerFixture) -> None:
     """Tests cache_resource sets timeout=3 when result is MapError."""
-
     expected_value = 3
 
     app_cache_mock = mocker.patch("src.server.clients.decoraters.app_cache", new=mocker.MagicMock())
@@ -97,7 +95,7 @@ def test_cache_resource_sets_timeout_3_on_maperror(app, mocker: MockerFixture) -
     assert args[1] == expected_value
 
 
-def test_clear_cache_normal(app, mocker):
+def test_clear_cache_normal(app, mocker: MockerFixture) -> None:
     """Tests that clear_cache deletes cache keys for given resource_id."""
     scan_keys = [b"prefix:mod.func:1:abc"]
 
@@ -115,7 +113,7 @@ def test_clear_cache_normal(app, mocker):
     app_cache_mock.delete.assert_called_with(*scan_keys)
 
 
-def test_clear_cache_not_decorated(app, mocker):
+def test_clear_cache_not_decorated(app, mocker: MockerFixture) -> None:
     """Tests that clear_cache raises ValueError if function is not decorated."""
 
     error_msg = "Function is not decorated with @response_cache."
@@ -163,7 +161,6 @@ def test_cache_resource_result_maperror_sets_timeout(app, mocker: MockerFixture)
 
 def test_cache_resource_args_empty(app, mocker: MockerFixture) -> None:
     """Tests cache_resource when args is empty (should call original function directly)."""
-
     called = {}
     expected_value = 42
 
@@ -179,7 +176,6 @@ def test_cache_resource_args_empty(app, mocker: MockerFixture) -> None:
 
 def test_clear_cache_scan_loop_keys(app, mocker: MockerFixture) -> None:
     """Tests clear_cache scan loop with keys found and deleted."""
-
     app_cache_mock = mocker.patch("src.server.clients.decoraters.app_cache", new=mocker.MagicMock())
     scan_results = [("1", ["k1", "k2"]), (0, [])]
     scan_index = {"i": 0}
