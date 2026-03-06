@@ -5,14 +5,12 @@ from flask import Flask
 from pytest_mock import MockerFixture
 
 from server.api import users as users_api
-from server.api.groups import (
-    ResourceInvalid,
-    ResourceNotFound,
-)
-from server.api.users import ErrorResponse, InvalidQueryError, SearchResult, UsersQuery
+from server.api.schemas import ErrorResponse, UsersQuery
 from server.const import USER_ROLES
 from server.entities.login_user import LoginUser
+from server.entities.search_request import SearchResult
 from server.entities.user_detail import RepositoryRole, UserDetail
+from server.exc import InvalidQueryError, ResourceInvalid, ResourceNotFound
 
 
 if t.TYPE_CHECKING:

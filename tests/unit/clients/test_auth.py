@@ -174,7 +174,7 @@ def test_check_token_validity_invalid(app: Flask, mocker: MockerFixture, caplog)
     mock_post = mocker.patch("server.clients.auth.requests.post")
     mock_post.return_value = mock_resp
 
-    with app.app_context(), caplog.at_level("INFO"):
+    with caplog.at_level("INFO"):
         result = check_token_validity("dummy_token")
 
     assert result is False

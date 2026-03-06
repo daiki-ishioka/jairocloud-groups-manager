@@ -4,9 +4,8 @@ import typing as t
 from pydantic import HttpUrl
 
 from server.api import repositories
-from server.api.schemas import ErrorResponse, RepositoriesQuery, RepositoryDeleteQuery
+from server.api.schemas import ErrorResponse, RepositoriesQuery, RepositoryDeleteQuery, SearchResult
 from server.entities.repository_detail import RepositoryDetail
-from server.entities.search_request import SearchResult
 from server.exc import InvalidFormError, InvalidQueryError, ResourceInvalid, ResourceNotFound
 
 
@@ -44,7 +43,7 @@ def test_get_invalid_query_error(app, mocker: MockerFixture) -> None:
     response = original_func(RepositoriesQuery(q="search", i=["repo1"], k="created", d="desc", p=3, l=20))
     data, status, *_ = response
     assert status == expected_status
-    assert isinstance(data, repositories.ErrorResponse)
+    assert isinstance(data, ErrorResponse)
     assert "Invalid query" in data.message
 
 
@@ -95,7 +94,7 @@ def test_post_invalid_form_error(app, test_config, mocker: MockerFixture) -> Non
     response = original_func(expected)
     data, status, *_ = response
     assert status == expected_status
-    assert isinstance(data, repositories.ErrorResponse)
+    assert isinstance(data, ErrorResponse)
     assert data.message == "invalid form"
     assert not data.code
 
@@ -167,8 +166,8 @@ def test_id_get_permission_error(app, mocker: MockerFixture) -> None:
     data, status = response
     assert status == expected_status
     assert isinstance(data, ErrorResponse)
-    assert data.message == "not has permission"
-    assert not data.code
+    assert data.message == "You do not have permission to access this Repository (id: repo1)."
+    assert data.code == "E103"
 
 
 def test_id_get_not_found_error(app, mocker: MockerFixture) -> None:
@@ -181,8 +180,8 @@ def test_id_get_not_found_error(app, mocker: MockerFixture) -> None:
     data, status = response
     assert status == expected_status
     assert isinstance(data, ErrorResponse)
-    assert data.message == "repository not found"
-    assert not data.code
+    assert data.message == "Service resource for Repository (id: repo1) not found."
+    assert data.code == "E124"
 
 
 def test_id_put_success(app, test_config, mocker: MockerFixture) -> None:
@@ -232,8 +231,8 @@ def test_id_put_permission_error(app, test_config, mocker: MockerFixture) -> Non
     data, status = response
     assert status == expected_status
     assert isinstance(data, ErrorResponse)
-    assert data.message == "not has permission"
-    assert not data.code
+    assert data.message == "You do not have permission to access this Repository (id: repo1)."
+    assert data.code == "E103"
 
 
 def test_id_put_not_found_error(app, test_config, mocker: MockerFixture) -> None:

@@ -1763,7 +1763,8 @@ def test_update_put_success_direc(app, mocker):
     assert result.display_name == "TestGroup"
 
 
-def test_update_put_all_branches(app, mocker):
+def test_update_put_request_exception(app, mocker):
+    """Test update_put raises UnexpectedResponseError on RequestException."""
     group = GroupDetail(
         id="g_test",
         display_name="TestGroup",
@@ -1783,30 +1784,112 @@ def test_update_put_all_branches(app, mocker):
     mocker.patch("server.services.groups.get_by_id", return_value=group)
     mocker.patch("server.services.groups.validate_group_to_map_group", return_value=group)
     mock_put = mocker.patch("server.clients.groups.put_by_id")
-
-    # RequestException
     mock_put.side_effect = requests.RequestException()
     with pytest.raises(UnexpectedResponseError) as exc_info:
         update_put(group)
     assert "Failed to communicate with mAP Core API." in str(exc_info.value)
 
-    # ValidationError
+
+def test_update_put_validation_error(app, mocker):
+    """Test update_put raises UnexpectedResponseError on ValidationError."""
+    group = GroupDetail(
+        id="g_test",
+        display_name="TestGroup",
+        user_defined_id=None,
+        description=None,
+        public=True,
+        member_list_visibility="Public",
+        repository=None,
+        created=None,
+        last_modified=None,
+        users_count=1,
+        type="group",
+    )
+    mocker.patch.object(groups.config.MAP_CORE, "update_strategy", "put")
+    mocker.patch("server.services.groups.get_access_token", return_value="token")
+    mocker.patch("server.services.groups.get_client_secret", return_value="secret")
+    mocker.patch("server.services.groups.get_by_id", return_value=group)
+    mocker.patch("server.services.groups.validate_group_to_map_group", return_value=group)
+    mock_put = mocker.patch("server.clients.groups.put_by_id")
     mock_put.side_effect = ValidationError("validation error", [])
     with pytest.raises(UnexpectedResponseError) as exc_info:
         update_put(group)
     assert "Failed to parse Group resource from mAP Core API." in str(exc_info.value)
 
-    # OAuthTokenError
+
+def test_update_put_oauth_token_error(app, mocker):
+    """Test update_put raises OAuthTokenError on OAuthTokenError."""
+    group = GroupDetail(
+        id="g_test",
+        display_name="TestGroup",
+        user_defined_id=None,
+        description=None,
+        public=True,
+        member_list_visibility="Public",
+        repository=None,
+        created=None,
+        last_modified=None,
+        users_count=1,
+        type="group",
+    )
+    mocker.patch.object(groups.config.MAP_CORE, "update_strategy", "put")
+    mocker.patch("server.services.groups.get_access_token", return_value="token")
+    mocker.patch("server.services.groups.get_client_secret", return_value="secret")
+    mocker.patch("server.services.groups.get_by_id", return_value=group)
+    mocker.patch("server.services.groups.validate_group_to_map_group", return_value=group)
+    mock_put = mocker.patch("server.clients.groups.put_by_id")
     mock_put.side_effect = OAuthTokenError("token error")
     with pytest.raises(OAuthTokenError):
         update_put(group)
 
-    # CredentialsError
+
+def test_update_put_credentials_error(app, mocker):
+    """Test update_put raises CredentialsError on CredentialsError."""
+    group = GroupDetail(
+        id="g_test",
+        display_name="TestGroup",
+        user_defined_id=None,
+        description=None,
+        public=True,
+        member_list_visibility="Public",
+        repository=None,
+        created=None,
+        last_modified=None,
+        users_count=1,
+        type="group",
+    )
+    mocker.patch.object(groups.config.MAP_CORE, "update_strategy", "put")
+    mocker.patch("server.services.groups.get_access_token", return_value="token")
+    mocker.patch("server.services.groups.get_client_secret", return_value="secret")
+    mocker.patch("server.services.groups.get_by_id", return_value=group)
+    mocker.patch("server.services.groups.validate_group_to_map_group", return_value=group)
+    mock_put = mocker.patch("server.clients.groups.put_by_id")
     mock_put.side_effect = CredentialsError("cred error")
     with pytest.raises(CredentialsError):
         update_put(group)
 
-    # InvalidFormError
+
+def test_update_put_invalid_form_error(app, mocker):
+    """Test update_put raises InvalidFormError on InvalidFormError."""
+    group = GroupDetail(
+        id="g_test",
+        display_name="TestGroup",
+        user_defined_id=None,
+        description=None,
+        public=True,
+        member_list_visibility="Public",
+        repository=None,
+        created=None,
+        last_modified=None,
+        users_count=1,
+        type="group",
+    )
+    mocker.patch.object(groups.config.MAP_CORE, "update_strategy", "put")
+    mocker.patch("server.services.groups.get_access_token", return_value="token")
+    mocker.patch("server.services.groups.get_client_secret", return_value="secret")
+    mocker.patch("server.services.groups.get_by_id", return_value=group)
+    mocker.patch("server.services.groups.validate_group_to_map_group", return_value=group)
+    mock_put = mocker.patch("server.clients.groups.put_by_id")
     mock_put.side_effect = InvalidFormError("form error")
     with pytest.raises(InvalidFormError):
         update_put(group)
