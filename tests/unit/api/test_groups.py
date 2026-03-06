@@ -156,9 +156,8 @@ def test_post_unexpected_error_returns_exception(app: Flask, gen_group_id, mocke
 
     original_func = inspect.unwrap(groups_api.post)
 
-    with pytest.raises(UnexpectedError) as exc_info:
+    with pytest.raises(UnexpectedError, match=error_detail):
         original_func(group)
-    assert str(exc_info.value) == error_detail
 
 
 def test_post_returns_403_when_no_permission(mocker):
@@ -289,9 +288,8 @@ def test_id_get_unexpected_error(app: Flask, gen_group_id, mocker: MockerFixture
     mocker.patch("server.services.groups.get_by_id", side_effect=UnexpectedError(error_detail))
 
     original_func = inspect.unwrap(groups_api.id_get)
-    with pytest.raises(UnexpectedError) as exc_info:
+    with pytest.raises(UnexpectedError, match=error_detail):
         original_func(group_id)
-    assert str(exc_info.value) == error_detail
 
 
 def test_id_put_success_admin(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
@@ -427,10 +425,8 @@ def test_id_put_unexpected_error(app: Flask, gen_group_id, mocker: MockerFixture
     mocker.patch("server.services.groups.update", side_effect=UnexpectedError(error_detail))
 
     original_func = inspect.unwrap(groups_api.id_put)
-    with pytest.raises(UnexpectedError) as exc_info:
+    with pytest.raises(UnexpectedError, match=error_detail):
         original_func(group_id, group)
-
-    assert str(exc_info.value) == error_detail
 
 
 def test_id_put_returns_400_on_invalid_form_error(mocker):
@@ -580,9 +576,8 @@ def test_id_patch_unexpected_error(app: Flask, gen_group_id, mocker: MockerFixtu
     mocker.patch("server.services.groups.update_member", side_effect=UnexpectedError(error_detail))
 
     original_func = inspect.unwrap(groups_api.id_patch)
-    with pytest.raises(UnexpectedError) as exc_info:
+    with pytest.raises(UnexpectedError, match=error_detail):
         original_func(group_id, patch_body)
-    assert str(exc_info.value) == error_detail
 
 
 def test_id_patch_returns_400_on_unsupported_attribute(mocker):
@@ -640,9 +635,8 @@ def test_id_delete_unexpected_error(app: Flask, gen_group_id, mocker: MockerFixt
     mocker.patch("server.api.groups.has_permission", return_value=True)
     mocker.patch("server.services.groups.delete_by_id", side_effect=UnexpectedError(error_detail))
     original_func = inspect.unwrap(groups_api.id_delete)
-    with pytest.raises(UnexpectedError) as exc_info:
+    with pytest.raises(UnexpectedError, match=error_detail):
         original_func(group_id)
-    assert str(exc_info.value) == error_detail
 
 
 def test_id_delete_role_type_group_returns_error_and_400(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
@@ -834,10 +828,8 @@ def test_delete_post_unexpected_error(app: Flask, gen_group_id, mocker: MockerFi
     mocker.patch("server.services.groups.delete_multiple", side_effect=UnexpectedError(error_detail))
 
     original_func = inspect.unwrap(groups_api.delete_post)
-    with pytest.raises(UnexpectedError) as exc_info:
+    with pytest.raises(UnexpectedError, match=error_detail):
         original_func(body)
-
-    assert str(exc_info.value) == error_detail
 
 
 def test_has_permission_returns_true_for_system_admin(mocker):

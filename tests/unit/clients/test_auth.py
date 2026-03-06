@@ -39,7 +39,8 @@ def test_issue_client_credentials_http_error(app: Flask, mocker: MockerFixture) 
     mocker.patch("server.clients.auth.requests.post", side_effect=requests.HTTPError)
     certs = t.cast(_SpCerts, SimpleNamespace(crt="server.crt", key="server.key"))
 
-    with pytest.raises(requests.HTTPError):
+    msg: str = ""
+    with pytest.raises(requests.HTTPError, match=msg):
         issue_client_credentials("eid", certs)
 
 
@@ -52,7 +53,8 @@ def test_issue_client_credentials_json_decode_error(app: Flask, mocker: MockerFi
     mock_post.return_value = mock_resp
     certs = t.cast(_SpCerts, SimpleNamespace(crt="server.crt", key="server.key"))
 
-    with pytest.raises(requests.JSONDecodeError):
+    msg: str = "msg"
+    with pytest.raises(requests.JSONDecodeError, match=msg):
         issue_client_credentials("eid", certs)
 
 
@@ -86,7 +88,8 @@ def test_issue_oauth_token_http_error(app: Flask, mocker: MockerFixture) -> None
     mocker.patch("server.clients.auth.requests.post", side_effect=requests.HTTPError)
     creds = t.cast(_ClientCreds, SimpleNamespace(client_id="cid", client_secret="sec"))
 
-    with pytest.raises(requests.HTTPError):
+    msg: str = ""
+    with pytest.raises(requests.HTTPError, match=msg):
         issue_oauth_token("code", creds)
 
 
@@ -99,7 +102,8 @@ def test_issue_oauth_token_json_decode_error(app: Flask, mocker: MockerFixture) 
     mock_post.return_value = mock_resp
     creds = t.cast(_ClientCreds, SimpleNamespace(client_id="cid", client_secret="sec"))
 
-    with pytest.raises(requests.JSONDecodeError):
+    msg: str = "msg"
+    with pytest.raises(requests.JSONDecodeError, match=msg):
         issue_oauth_token("code", creds)
 
 
@@ -133,7 +137,8 @@ def test_refresh_oauth_token_http_error(app: Flask, mocker: MockerFixture) -> No
     mocker.patch("server.clients.auth.requests.post", side_effect=requests.HTTPError)
     creds = t.cast(_ClientCreds, SimpleNamespace(client_id="cid", client_secret="sec"))
 
-    with pytest.raises(requests.HTTPError):
+    msg: str = ""
+    with pytest.raises(requests.HTTPError, match=msg):
         refresh_oauth_token("rft", creds)
 
 
@@ -147,7 +152,8 @@ def test_refresh_oauth_token_json_decode_error(app: Flask, mocker: MockerFixture
     mock_post.return_value = mock_resp
     creds = t.cast(_ClientCreds, SimpleNamespace(client_id="cid", client_secret="sec"))
 
-    with pytest.raises(requests.JSONDecodeError):
+    msg: str = "msg"
+    with pytest.raises(requests.JSONDecodeError, match=msg):
         refresh_oauth_token("rft", creds)
 
 
@@ -185,7 +191,8 @@ def test_check_token_validity_http_error(app: Flask, mocker: MockerFixture) -> N
     """Test that check_token_validity raises HTTPError when requests.post fails."""
     mocker.patch("server.clients.auth.requests.post", side_effect=requests.HTTPError)
 
-    with pytest.raises(requests.HTTPError):
+    msg: str = ""
+    with pytest.raises(requests.HTTPError, match=msg):
         check_token_validity("any_token")
 
 
@@ -198,5 +205,6 @@ def test_check_token_validity_json_decode_error(app: Flask, mocker: MockerFixtur
     mock_resp.raise_for_status.return_value = None
     mock_post.return_value = mock_resp
 
-    with pytest.raises(requests.JSONDecodeError):
+    msg: str = "msg"
+    with pytest.raises(requests.JSONDecodeError, match=msg):
         check_token_validity("any_token")

@@ -124,10 +124,9 @@ def test_search_raises_oauth_token_error_401(mocker: MockerFixture) -> None:
     http_error = requests.HTTPError(response=response)
     mock_groups_search.side_effect = http_error
 
-    with pytest.raises(OAuthTokenError) as exc_info:
+    msg: str = "Access token is invalid or expired."
+    with pytest.raises(OAuthTokenError, match=msg):
         groups.search(criteria)
-
-    assert str(exc_info.value) == "Access token is invalid or expired."
     assert mock_groups_search.call_args[0][0] is return_value_query
 
 
@@ -144,10 +143,9 @@ def test_search_raises_unexpected_response_error_500(mocker: MockerFixture) -> N
     http_error = requests.HTTPError(response=response)
     mock_groups_search.side_effect = http_error
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "mAP Core API server error."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.search(criteria)
-
-    assert str(exc_info.value) == "mAP Core API server error."
     assert mock_groups_search.call_args[0][0] is return_value_query
 
 
@@ -164,10 +162,10 @@ def test_search_raises_unexpected_response_error_403(mocker: MockerFixture) -> N
     http_error = requests.HTTPError(response=response)
     mock_groups_search.side_effect = http_error
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to search Group resources from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.search(criteria)
 
-    assert str(exc_info.value) == "Failed to search Group resources from mAP Core API."
     assert mock_groups_search.call_args[0][0] is return_value_query
 
 
@@ -181,10 +179,10 @@ def test_search_raises_unexpected_response_error_request_exception(mocker: Mocke
     mock_groups_search = mocker.patch("server.services.groups.groups.search")
     mock_groups_search.side_effect = requests.RequestException()
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to communicate with mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.search(criteria)
 
-    assert str(exc_info.value) == "Failed to communicate with mAP Core API."
     assert mock_groups_search.call_args[0][0] is return_value_query
 
 
@@ -198,10 +196,10 @@ def test_search_raises_unexpected_response_error_on_validation_error(mocker: Moc
     mock_groups_search = mocker.patch("server.services.groups.groups.search")
     mock_groups_search.side_effect = ValidationError("validation error", [])
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to parse Group resources from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.search(criteria)
 
-    assert str(exc_info.value) == "Failed to parse Group resources from mAP Core API."
     assert mock_groups_search.call_args[0][0] is return_value_query
 
 
@@ -216,10 +214,10 @@ def test_search_raises_invalid_query_error(mocker: MockerFixture) -> None:
     mock_groups_search = mocker.patch("server.services.groups.groups.search")
     mock_groups_search.side_effect = InvalidQueryError("invalid query")
 
-    with pytest.raises(InvalidQueryError) as exc_info:
+    msg: str = "invalid query"
+    with pytest.raises(InvalidQueryError, match=msg):
         groups.search(criteria)
 
-    assert str(exc_info.value) == "invalid query"
     assert mock_groups_search.call_args[0][0] is return_value_query
 
 
@@ -234,10 +232,10 @@ def test_search_raises_oauth_token_error_propagation(mocker: MockerFixture) -> N
     mock_groups_search = mocker.patch("server.services.groups.groups.search")
     mock_groups_search.side_effect = OAuthTokenError("token error")
 
-    with pytest.raises(OAuthTokenError) as exc_info:
+    msg: str = "token error"
+    with pytest.raises(OAuthTokenError, match=msg):
         groups.search(criteria)
 
-    assert str(exc_info.value) == "token error"
     assert mock_groups_search.call_args[0][0] is return_value_query
 
 
@@ -252,10 +250,10 @@ def test_search_raises_credentials_error_propagation(mocker: MockerFixture) -> N
     mock_groups_search = mocker.patch("server.services.groups.groups.search")
     mock_groups_search.side_effect = CredentialsError("credentials error")
 
-    with pytest.raises(CredentialsError) as exc_info:
+    msg: str = "credentials error"
+    with pytest.raises(CredentialsError, match=msg):
         groups.search(criteria)
 
-    assert str(exc_info.value) == "credentials error"
     assert mock_groups_search.call_args[0][0] is return_value_query
 
 
@@ -269,7 +267,8 @@ def test_search_map_error_invalid_query(app: Flask, mocker: MockerFixture) -> No
         "server.services.groups.groups.search",
         return_value=MapError(detail="invalid query", status="400", scim_type="invalidSyntax"),
     )
-    with pytest.raises(InvalidQueryError):
+    msg: str = "invalid query"
+    with pytest.raises(InvalidQueryError, match=msg):
         groups.search(criteria)
 
 
@@ -284,10 +283,10 @@ def test_search_raises_unexpected_exception_propagation(mocker: MockerFixture) -
     mock_groups_search = mocker.patch("server.services.groups.groups.search")
     mock_groups_search.side_effect = UnexpectedError("unexpected error")
 
-    with pytest.raises(UnexpectedError) as exc_info:
+    msg: str = "unexpected error"
+    with pytest.raises(UnexpectedError, match=msg):
         groups.search(criteria)
 
-    assert str(exc_info.value) == "unexpected error"
     assert mock_groups_search.call_args[0][0] is return_value_query
 
 
@@ -397,10 +396,9 @@ def test_create_raises_unexpected_response_error_when_no_sysadmin(
         return_value=MapError(detail="System admin group has no members.", status="400", scim_type="invalidValue"),
     )
 
-    with pytest.raises(ResourceInvalid) as exc_info:
+    msg: str = "System admin group has no members."
+    with pytest.raises(ResourceInvalid, match=msg):
         groups.create(group_info)
-
-    assert str(exc_info.value) == "System admin group has no members."
 
 
 def test_create_raises_oauth_token_error_on_http_401(gen_group_id, mocker: MockerFixture) -> None:
@@ -435,10 +433,9 @@ def test_create_raises_oauth_token_error_on_http_401(gen_group_id, mocker: Mocke
     http_error = requests.HTTPError(response=response)
     mock_post.side_effect = http_error
 
-    with pytest.raises(OAuthTokenError) as exc_info:
+    msg: str = "Access token is invalid or expired."
+    with pytest.raises(OAuthTokenError, match=msg):
         groups.create(arbitrary_group_info)
-
-    assert str(exc_info.value) == "Access token is invalid or expired."
 
 
 def test_create_raises_unexpected_response_error_on_http_403(gen_group_id, mocker: MockerFixture) -> None:
@@ -473,10 +470,9 @@ def test_create_raises_unexpected_response_error_on_http_403(gen_group_id, mocke
     http_error = requests.HTTPError(response=response)
     mock_post.side_effect = http_error
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to get Group resource from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.create(arbitrary_group_info)
-
-    assert str(exc_info.value) == "Failed to get Group resource from mAP Core API."
 
 
 def test_create_raises_unexpected_response_error_on_http_500(gen_group_id, mocker: MockerFixture) -> None:
@@ -511,10 +507,9 @@ def test_create_raises_unexpected_response_error_on_http_500(gen_group_id, mocke
     http_error = requests.HTTPError(response=response)
     mock_post.side_effect = http_error
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "mAP Core API server error."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.create(arbitrary_group_info)
-
-    assert str(exc_info.value) == "mAP Core API server error."
 
 
 def test_create_raises_unexpected_response(gen_group_id, mocker: MockerFixture) -> None:
@@ -545,10 +540,9 @@ def test_create_raises_unexpected_response(gen_group_id, mocker: MockerFixture) 
     mock_post = mocker.patch("server.clients.groups.post")
     mock_post.side_effect = requests.RequestException()
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to communicate with mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.create(arbitrary_group_info)
-
-    assert str(exc_info.value) == "Failed to communicate with mAP Core API."
 
 
 def test_create_raises_unexpected_response_error_on_validation_error(gen_group_id, mocker: MockerFixture) -> None:
@@ -579,10 +573,9 @@ def test_create_raises_unexpected_response_error_on_validation_error(gen_group_i
     mock_post = mocker.patch("server.clients.groups.post")
     mock_post.side_effect = ValidationError("validation error", [])
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to parse Group resource from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.create(arbitrary_group_info)
-
-    assert str(exc_info.value) == "Failed to parse Group resource from mAP Core API."
 
 
 def test_create_raises_oauth_token_error_propagation(gen_group_id, mocker: MockerFixture) -> None:
@@ -614,10 +607,9 @@ def test_create_raises_oauth_token_error_propagation(gen_group_id, mocker: Mocke
     mock_post = mocker.patch("server.clients.groups.post")
     mock_post.side_effect = OAuthTokenError("token error")
 
-    with pytest.raises(OAuthTokenError) as exc_info:
+    msg: str = "token error"
+    with pytest.raises(OAuthTokenError, match=msg):
         groups.create(arbitrary_group_info)
-
-    assert str(exc_info.value) == "token error"
 
 
 def test_create_raises_credentials_error_propagation(gen_group_id, mocker: MockerFixture) -> None:
@@ -649,10 +641,10 @@ def test_create_raises_credentials_error_propagation(gen_group_id, mocker: Mocke
     mock_post = mocker.patch("server.clients.groups.post")
     mock_post.side_effect = CredentialsError("credentials error")
 
-    with pytest.raises(CredentialsError) as exc_info:
+    msg: str = "credentials error"
+    with pytest.raises(CredentialsError, match=msg):
         groups.create(arbitrary_group_info)
 
-    assert str(exc_info.value) == "credentials error"
     mock_post.assert_called_once()
 
 
@@ -685,10 +677,9 @@ def test_create_raises_unexpected_exception_propagation(gen_group_id, mocker: Mo
     mock_post = mocker.patch("server.clients.groups.post")
     mock_post.side_effect = UnexpectedError("unexpected error")
 
-    with pytest.raises(UnexpectedError) as exc_info:
+    msg: str = "unexpected error"
+    with pytest.raises(UnexpectedError, match=msg):
         groups.create(arbitrary_group_info)
-
-    assert str(exc_info.value) == "unexpected error"
 
 
 def test_create_invalid_form_error(app, gen_group_id, mocker):
@@ -708,7 +699,8 @@ def test_create_invalid_form_error(app, gen_group_id, mocker):
     )
     mocker.patch("server.services.users.get_system_admins", return_value=["sysadmin"])
     mocker.patch("server.services.groups.prepare_group", side_effect=InvalidFormError("invalid form"))
-    with pytest.raises(InvalidFormError):
+    msg: str = "invalid form"
+    with pytest.raises(InvalidFormError, match=msg):
         groups.create(group_info)
 
 
@@ -792,10 +784,9 @@ def test_get_by_id_raises_oauth_token_error_on_http_401(gen_group_id, mocker: Mo
     http_error = requests.HTTPError(response=response)
     mock_get_by_id.side_effect = http_error
 
-    with pytest.raises(OAuthTokenError) as exc_info:
+    msg: str = "Access token is invalid or expired."
+    with pytest.raises(OAuthTokenError, match=msg):
         groups.get_by_id(group_id)
-
-    assert str(exc_info.value) == "Access token is invalid or expired."
 
 
 def test_get_by_id_raises_unexpected_response_error_on_http_403(gen_group_id, mocker: MockerFixture) -> None:
@@ -810,10 +801,9 @@ def test_get_by_id_raises_unexpected_response_error_on_http_403(gen_group_id, mo
     http_error = requests.HTTPError(response=response)
     mock_get_by_id.side_effect = http_error
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to get Group resource from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.get_by_id(group_id)
-
-    assert str(exc_info.value) == "Failed to get Group resource from mAP Core API."
 
 
 def test_get_by_id_raises_unexpected_response_error_on_http_500(gen_group_id, mocker: MockerFixture) -> None:
@@ -828,10 +818,9 @@ def test_get_by_id_raises_unexpected_response_error_on_http_500(gen_group_id, mo
     http_error = requests.HTTPError(response=response)
     mock_get_by_id.side_effect = http_error
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "mAP Core API server error."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.get_by_id(group_id)
-
-    assert str(exc_info.value) == "mAP Core API server error."
 
 
 def test_get_by_id_raises_unexpected_response_error_on_request_exception(gen_group_id, mocker: MockerFixture) -> None:
@@ -843,10 +832,9 @@ def test_get_by_id_raises_unexpected_response_error_on_request_exception(gen_gro
     mock_get_by_id = mocker.patch("server.clients.groups.get_by_id")
     mock_get_by_id.side_effect = requests.RequestException()
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to communicate with mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.get_by_id(group_id)
-
-    assert str(exc_info.value) == "Failed to communicate with mAP Core API."
 
 
 def test_get_by_id_raises_unexpected_response_error_on_validation_error(gen_group_id, mocker: MockerFixture) -> None:
@@ -858,10 +846,9 @@ def test_get_by_id_raises_unexpected_response_error_on_validation_error(gen_grou
     mock_get_by_id = mocker.patch("server.clients.groups.get_by_id")
     mock_get_by_id.side_effect = ValidationError("validation error", [])
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to parse Group resource from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.get_by_id(group_id)
-
-    assert str(exc_info.value) == "Failed to parse Group resource from mAP Core API."
 
 
 def test_get_by_id_raises_oauth_token_error_propagation(gen_group_id, mocker: MockerFixture) -> None:
@@ -873,10 +860,9 @@ def test_get_by_id_raises_oauth_token_error_propagation(gen_group_id, mocker: Mo
     mock_get_by_id = mocker.patch("server.clients.groups.get_by_id")
     mock_get_by_id.side_effect = OAuthTokenError("token error")
 
-    with pytest.raises(OAuthTokenError) as exc_info:
+    msg: str = "token error"
+    with pytest.raises(OAuthTokenError, match=msg):
         groups.get_by_id(group_id)
-
-    assert str(exc_info.value) == "token error"
 
 
 def test_get_by_id_raises_credentials_error_propagation(gen_group_id, mocker: MockerFixture) -> None:
@@ -888,10 +874,9 @@ def test_get_by_id_raises_credentials_error_propagation(gen_group_id, mocker: Mo
     mock_get_by_id = mocker.patch("server.clients.groups.get_by_id")
     mock_get_by_id.side_effect = CredentialsError("credentials error")
 
-    with pytest.raises(CredentialsError) as exc_info:
+    msg: str = "credentials error"
+    with pytest.raises(CredentialsError, match=msg):
         groups.get_by_id(group_id)
-
-    assert str(exc_info.value) == "credentials error"
 
 
 def test_get_by_id_raises_unexpected_exception_propagation(gen_group_id, mocker: MockerFixture) -> None:
@@ -902,10 +887,9 @@ def test_get_by_id_raises_unexpected_exception_propagation(gen_group_id, mocker:
     mock_get_by_id = mocker.patch("server.clients.groups.get_by_id")
     mock_get_by_id.side_effect = UnexpectedError("unexpected error")
 
-    with pytest.raises(UnexpectedError) as exc_info:
+    msg: str = "unexpected error"
+    with pytest.raises(UnexpectedError, match=msg):
         groups.get_by_id(group_id)
-
-    assert str(exc_info.value) == "unexpected error"
 
 
 def test_update_success(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
@@ -972,10 +956,10 @@ def test_update_raises_resource_invalid_and_logs(app: Flask, gen_group_id, mocke
         return_value=MapError(detail=error_detail, status="400", scim_type="invalidValue"),
     )
 
-    with pytest.raises(ResourceInvalid) as exc_info:
+    msg: str = error_detail
+    with pytest.raises(ResourceInvalid, match=msg):
         groups.update(updated_group)
 
-    assert str(exc_info.value) == error_detail
     logger_mock.assert_called_once_with(error_detail)
 
 
@@ -1001,10 +985,9 @@ def test_update_raises_resource_not_found(app: Flask, gen_group_id, mocker: Mock
     mocker.patch("server.services.groups.get_by_id", return_value=None)
     mocker.patch("server.clients.groups.patch_by_id", return_value=None)
 
-    with pytest.raises(ResourceNotFound) as exc_info:
+    msg: str = f"Group '{group_id}' Not Found"
+    with pytest.raises(ResourceNotFound, match=msg):
         groups.update(updated_group)
-
-    assert str(exc_info.value) == f"Group '{group_id}' Not Found"
 
 
 def test_update_raises_oauth_token_error_on_http_401(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
@@ -1033,10 +1016,9 @@ def test_update_raises_oauth_token_error_on_http_401(app: Flask, gen_group_id, m
     http_error = requests.HTTPError(response=response)
     mock_patch.side_effect = http_error
 
-    with pytest.raises(OAuthTokenError) as exc_info:
+    msg: str = "Access token is invalid or expired."
+    with pytest.raises(OAuthTokenError, match=msg):
         groups.update(updated_group)
-
-    assert str(exc_info.value) == "Access token is invalid or expired."
 
 
 def test_update_raises_unexpected_response_error_on_http_403(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
@@ -1065,10 +1047,9 @@ def test_update_raises_unexpected_response_error_on_http_403(app: Flask, gen_gro
     http_error = requests.HTTPError(response=response)
     mock_patch.side_effect = http_error
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to update Group resource from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.update(updated_group)
-
-    assert str(exc_info.value) == "Failed to update Group resource from mAP Core API."
 
 
 def test_update_raises_unexpected_response_error_on_http_500(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
@@ -1097,10 +1078,9 @@ def test_update_raises_unexpected_response_error_on_http_500(app: Flask, gen_gro
     http_error = requests.HTTPError(response=response)
     mock_patch.side_effect = http_error
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "mAP Core API server error."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.update(updated_group)
-
-    assert str(exc_info.value) == "mAP Core API server error."
 
 
 def test_update_raises_unexpected_response_error_on_request_exception(
@@ -1128,10 +1108,9 @@ def test_update_raises_unexpected_response_error_on_request_exception(
     mocker.patch("server.services.groups.get_by_id", return_value=updated_group)
     mock_patch.side_effect = requests.RequestException()
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to communicate with mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.update(updated_group)
-
-    assert str(exc_info.value) == "Failed to communicate with mAP Core API."
 
 
 def test_update_raises_unexpected_response_error_on_validation_error(
@@ -1159,10 +1138,9 @@ def test_update_raises_unexpected_response_error_on_validation_error(
     mocker.patch("server.services.groups.get_by_id", return_value=updated_group)
     mock_patch.side_effect = ValidationError("validation error", [])
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to parse Group resource from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.update(updated_group)
-
-    assert str(exc_info.value) == "Failed to parse Group resource from mAP Core API."
 
 
 def test_update_raises_oauth_token_error_propagation(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
@@ -1188,10 +1166,9 @@ def test_update_raises_oauth_token_error_propagation(app: Flask, gen_group_id, m
     mocker.patch("server.services.groups.get_by_id", return_value=updated_group)
     mock_patch.side_effect = OAuthTokenError("token error")
 
-    with pytest.raises(OAuthTokenError) as exc_info:
+    msg: str = "token error"
+    with pytest.raises(OAuthTokenError, match=msg):
         groups.update(updated_group)
-
-    assert str(exc_info.value) == "token error"
 
 
 def test_update_raises_credentials_error_propagation(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
@@ -1217,10 +1194,9 @@ def test_update_raises_credentials_error_propagation(app: Flask, gen_group_id, m
     mocker.patch("server.services.groups.get_by_id", return_value=updated_group)
     mock_patch.side_effect = CredentialsError("credentials error")
 
-    with pytest.raises(CredentialsError) as exc_info:
+    msg: str = "credentials error"
+    with pytest.raises(CredentialsError, match=msg):
         groups.update(updated_group)
-
-    assert str(exc_info.value) == "credentials error"
 
 
 def test_update_raises_unexpected_exception_propagation(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
@@ -1246,10 +1222,9 @@ def test_update_raises_unexpected_exception_propagation(app: Flask, gen_group_id
     mocker.patch("server.services.groups.get_by_id", return_value=updated_group)
     mock_patch.side_effect = UnexpectedError("unexpected error")
 
-    with pytest.raises(UnexpectedError) as exc_info:
+    msg: str = "unexpected error"
+    with pytest.raises(UnexpectedError, match=msg):
         groups.update(updated_group)
-
-    assert str(exc_info.value) == "unexpected error"
 
 
 def test_update_delegates_to_update_put(app, gen_group_id, mocker):
@@ -1281,7 +1256,8 @@ def test_update_invalid_form_error(app, gen_group_id, mocker):
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
     mocker.patch("server.clients.groups.patch_by_id", side_effect=InvalidFormError("invalid form"))
-    with pytest.raises(InvalidFormError):
+    msg: str = "invalid form"
+    with pytest.raises(InvalidFormError, match=msg):
         groups.update(group)
 
 
@@ -1388,10 +1364,10 @@ def test_update_put_failure_resource_invalid_and_logs(app: Flask, gen_group_id, 
         return_value=MapError(detail=error_detail, status="400", scim_type="invalidValue"),
     )
 
-    with pytest.raises(ResourceInvalid) as exc_info:
+    msg: str = error_detail
+    with pytest.raises(ResourceInvalid, match=msg):
         groups.update_put(updated_group)
 
-    assert str(exc_info.value) == error_detail
     logger_mock.assert_called_once_with(error_detail)
 
 
@@ -1420,10 +1396,10 @@ def test_update_put_raises_oauth_token_error_on_http_401(app: Flask, gen_group_i
     http_error = requests.HTTPError(response=response)
     mock_patch.side_effect = http_error
 
-    with pytest.raises(OAuthTokenError) as exc_info:
+    msg: str = "Access token is invalid or expired."
+    with pytest.raises(OAuthTokenError, match=msg):
         groups.update_put(updated_group)
 
-    assert str(exc_info.value) == "Access token is invalid or expired."
     assert mock_patch.call_args[0][0] == updated_group.id
 
 
@@ -1454,10 +1430,10 @@ def test_update_put_raises_unexpected_response_error_on_http_403(
     http_error = requests.HTTPError(response=response)
     mock_patch.side_effect = http_error
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to update Group resource from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.update_put(updated_group)
 
-    assert str(exc_info.value) == "Failed to update Group resource from mAP Core API."
     assert mock_patch.call_args[0][0] == updated_group.id
 
 
@@ -1488,10 +1464,10 @@ def test_update_put_raises_unexpected_response_error_on_http_500(
     http_error = requests.HTTPError(response=response)
     mock_patch.side_effect = http_error
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "mAP Core API server error."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.update_put(updated_group)
 
-    assert str(exc_info.value) == "mAP Core API server error."
     assert mock_patch.call_args[0][0] == updated_group.id
 
 
@@ -1519,10 +1495,10 @@ def test_update_put_raises_unexpected_response_error_on_request_exception(
     mock_patch = mocker.patch("server.clients.groups.patch_by_id")
     mock_patch.side_effect = requests.RequestException()
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to communicate with mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.update_put(updated_group)
 
-    assert str(exc_info.value) == "Failed to communicate with mAP Core API."
     assert mock_patch.call_args[0][0] == updated_group.id
 
 
@@ -1550,10 +1526,10 @@ def test_update_put_raises_unexpected_response_error_on_validation_error(
     mock_patch = mocker.patch("server.clients.groups.patch_by_id")
     mock_patch.side_effect = ValidationError("validation error", [])
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to parse Group resource from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.update_put(updated_group)
 
-    assert str(exc_info.value) == "Failed to parse Group resource from mAP Core API."
     assert mock_patch.call_args[0][0] == updated_group.id
 
 
@@ -1579,10 +1555,10 @@ def test_update_put_raises_oauth_token_error_propagation(app: Flask, gen_group_i
     mock_patch = mocker.patch("server.clients.groups.patch_by_id")
     mock_patch.side_effect = OAuthTokenError("token error")
 
-    with pytest.raises(OAuthTokenError) as exc_info:
+    msg: str = "token error"
+    with pytest.raises(OAuthTokenError, match=msg):
         groups.update_put(updated_group)
 
-    assert str(exc_info.value) == "token error"
     assert mock_patch.call_args[0][0] == updated_group.id
 
 
@@ -1608,10 +1584,10 @@ def test_update_put_raises_credentials_error_propagation(app: Flask, gen_group_i
     mock_patch = mocker.patch("server.clients.groups.patch_by_id")
     mock_patch.side_effect = CredentialsError("credentials error")
 
-    with pytest.raises(CredentialsError) as exc_info:
+    msg: str = "credentials error"
+    with pytest.raises(CredentialsError, match=msg):
         groups.update(updated_group)
 
-    assert str(exc_info.value) == "credentials error"
     assert mock_patch.call_args[0][0] == updated_group.id
 
 
@@ -1637,10 +1613,10 @@ def test_update_put_raises_unexpected_exception_propagation(app: Flask, gen_grou
     mock_patch = mocker.patch("server.clients.groups.patch_by_id")
     mock_patch.side_effect = UnexpectedError("unexpected error")
 
-    with pytest.raises(UnexpectedError) as exc_info:
+    msg: str = "unexpected error"
+    with pytest.raises(UnexpectedError, match=msg):
         groups.update_put(updated_group)
 
-    assert str(exc_info.value) == "unexpected error"
     assert mock_patch.call_args[0][0] == updated_group.id
 
 
@@ -1669,7 +1645,8 @@ def test_update_put_401_unauthorized(app, mocker):
     response.status_code = HTTPStatus.UNAUTHORIZED
     http_error = requests.HTTPError(response=response)
     mock_put.side_effect = http_error
-    with pytest.raises(OAuthTokenError):
+    msg: str = "Access token is invalid or expired."
+    with pytest.raises(OAuthTokenError, match=msg):
         update_put(group)
 
 
@@ -1699,9 +1676,9 @@ def test_update_put_500_internal_server_error(app, mocker):
     response.status_code = HTTPStatus.INTERNAL_SERVER_ERROR
     http_error = requests.HTTPError(response=response)
     mock_put.side_effect = http_error
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "mAP Core API server error."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         update_put(group)
-    assert "mAP Core API server error." in str(exc_info.value)
 
 
 def test_update_put_http_error(app, mocker):
@@ -1730,9 +1707,9 @@ def test_update_put_http_error(app, mocker):
     response.status_code = HTTPStatus.FORBIDDEN
     http_error = requests.HTTPError(response=response)
     mock_put.side_effect = http_error
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to update Group resource from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         update_put(group)
-    assert "Failed to update Group resource from mAP Core API." in str(exc_info.value)
 
 
 def test_update_put_success_direc(app, mocker):
@@ -1785,9 +1762,9 @@ def test_update_put_request_exception(app, mocker):
     mocker.patch("server.services.groups.validate_group_to_map_group", return_value=group)
     mock_put = mocker.patch("server.clients.groups.put_by_id")
     mock_put.side_effect = requests.RequestException()
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to communicate with mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         update_put(group)
-    assert "Failed to communicate with mAP Core API." in str(exc_info.value)
 
 
 def test_update_put_validation_error(app, mocker):
@@ -1812,9 +1789,9 @@ def test_update_put_validation_error(app, mocker):
     mocker.patch("server.services.groups.validate_group_to_map_group", return_value=group)
     mock_put = mocker.patch("server.clients.groups.put_by_id")
     mock_put.side_effect = ValidationError("validation error", [])
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to parse Group resource from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         update_put(group)
-    assert "Failed to parse Group resource from mAP Core API." in str(exc_info.value)
 
 
 def test_update_put_oauth_token_error(app, mocker):
@@ -1839,7 +1816,8 @@ def test_update_put_oauth_token_error(app, mocker):
     mocker.patch("server.services.groups.validate_group_to_map_group", return_value=group)
     mock_put = mocker.patch("server.clients.groups.put_by_id")
     mock_put.side_effect = OAuthTokenError("token error")
-    with pytest.raises(OAuthTokenError):
+    msg: str = "token error"
+    with pytest.raises(OAuthTokenError, match=msg):
         update_put(group)
 
 
@@ -1865,7 +1843,8 @@ def test_update_put_credentials_error(app, mocker):
     mocker.patch("server.services.groups.validate_group_to_map_group", return_value=group)
     mock_put = mocker.patch("server.clients.groups.put_by_id")
     mock_put.side_effect = CredentialsError("cred error")
-    with pytest.raises(CredentialsError):
+    msg: str = "cred error"
+    with pytest.raises(CredentialsError, match=msg):
         update_put(group)
 
 
@@ -1891,7 +1870,8 @@ def test_update_put_invalid_form_error(app, mocker):
     mocker.patch("server.services.groups.validate_group_to_map_group", return_value=group)
     mock_put = mocker.patch("server.clients.groups.put_by_id")
     mock_put.side_effect = InvalidFormError("form error")
-    with pytest.raises(InvalidFormError):
+    msg: str = "form error"
+    with pytest.raises(InvalidFormError, match=msg):
         update_put(group)
 
 
@@ -1964,10 +1944,9 @@ def test_delete_multiple_raises_resource_invalid_and_logs(app: Flask, gen_group_
         return_value=MapError(detail="delete failed", status="400", scim_type="invalidValue"),
     )
 
-    with pytest.raises(ResourceInvalid) as exc_info:
+    msg: str = "delete failed"
+    with pytest.raises(ResourceInvalid, match=msg):
         groups.delete_multiple(group_ids)
-
-    assert str(exc_info.value) == "delete failed"
     logger_mock.assert_called_once_with("delete failed")
 
 
@@ -1983,10 +1962,9 @@ def test_delete_multiple_raises_oauth_token_error_on_http_401(app: Flask, gen_gr
     http_error = requests.HTTPError(response=response)
     mock_post.side_effect = http_error
 
-    with pytest.raises(OAuthTokenError) as exc_info:
+    msg: str = "Access token is invalid or expired."
+    with pytest.raises(OAuthTokenError, match=msg):
         groups.delete_multiple(group_ids)
-
-    assert str(exc_info.value) == "Access token is invalid or expired."
 
 
 def test_delete_multiple_raises_unexpected_response_error_on_http_403(
@@ -2003,10 +1981,9 @@ def test_delete_multiple_raises_unexpected_response_error_on_http_403(
     http_error = requests.HTTPError(response=response)
     mock_post.side_effect = http_error
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to delete Group resource from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.delete_multiple(group_ids)
-
-    assert str(exc_info.value) == "Failed to delete Group resource from mAP Core API."
 
 
 def test_delete_multiple_raises_unexpected_response_error_on_http_500(
@@ -2023,10 +2000,9 @@ def test_delete_multiple_raises_unexpected_response_error_on_http_500(
     http_error = requests.HTTPError(response=response)
     mock_post.side_effect = http_error
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "mAP Core API server error."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.delete_multiple(group_ids)
-
-    assert str(exc_info.value) == "mAP Core API server error."
 
 
 def test_delete_multiple_raises_unexpected_response_error_on_request_exception(
@@ -2040,10 +2016,9 @@ def test_delete_multiple_raises_unexpected_response_error_on_request_exception(
     mock_post = mocker.patch("server.clients.bulks.post")
     mock_post.side_effect = requests.RequestException()
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to communicate with mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.delete_multiple(group_ids)
-
-    assert str(exc_info.value) == "Failed to communicate with mAP Core API."
 
 
 def test_delete_multiple_raises_unexpected_response_error_on_validation_error(
@@ -2057,10 +2032,9 @@ def test_delete_multiple_raises_unexpected_response_error_on_validation_error(
     mock_post = mocker.patch("server.clients.bulks.post")
     mock_post.side_effect = ValidationError("validation error", [])
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to parse Group resource from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.delete_multiple(group_ids)
-
-    assert str(exc_info.value) == "Failed to parse Group resource from mAP Core API."
 
 
 def test_delete_multiple_raises_oauth_token_error_propagation(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
@@ -2072,10 +2046,9 @@ def test_delete_multiple_raises_oauth_token_error_propagation(app: Flask, gen_gr
     mock_post = mocker.patch("server.clients.bulks.post")
     mock_post.side_effect = OAuthTokenError("token error")
 
-    with pytest.raises(OAuthTokenError) as exc_info:
+    msg: str = "token error"
+    with pytest.raises(OAuthTokenError, match=msg):
         groups.delete_multiple(group_ids)
-
-    assert str(exc_info.value) == "token error"
 
 
 def test_delete_multiple_raises_credentials_error_propagation(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
@@ -2087,10 +2060,9 @@ def test_delete_multiple_raises_credentials_error_propagation(app: Flask, gen_gr
     mock_post = mocker.patch("server.clients.bulks.post")
     mock_post.side_effect = CredentialsError("credentials error")
 
-    with pytest.raises(CredentialsError) as exc_info:
+    msg: str = "credentials error"
+    with pytest.raises(CredentialsError, match=msg):
         groups.delete_multiple(group_ids)
-
-    assert str(exc_info.value) == "credentials error"
 
 
 def test_delete_multiple_raises_unexpected_exception_propagation(
@@ -2103,10 +2075,9 @@ def test_delete_multiple_raises_unexpected_exception_propagation(
     mock_post = mocker.patch("server.clients.bulks.post")
     mock_post.side_effect = UnexpectedError("unexpected error")
 
-    with pytest.raises(UnexpectedError) as exc_info:
+    msg: str = "unexpected error"
+    with pytest.raises(UnexpectedError, match=msg):
         groups.delete_multiple(group_ids)
-
-    assert str(exc_info.value) == "unexpected error"
 
 
 def test_delete_by_id_success(gen_group_id, mocker: MockerFixture) -> None:
@@ -2130,10 +2101,9 @@ def test_delete_by_id_failure_resource_invalid(gen_group_id, mocker: MockerFixtu
     mock_delete = mocker.patch("server.clients.groups.delete_by_id")
     mock_delete.return_value = MapError(detail="delete failed", status="400", scim_type="invalidValue")
 
-    with pytest.raises(ResourceInvalid) as exc_info:
+    msg: str = "delete failed"
+    with pytest.raises(ResourceInvalid, match=msg):
         groups.delete_by_id(group_id)
-
-    assert str(exc_info.value) == "delete failed"
 
 
 def test_delete_by_id_raises_oauth_token_error_on_http_401(gen_group_id, mocker: MockerFixture) -> None:
@@ -2148,10 +2118,9 @@ def test_delete_by_id_raises_oauth_token_error_on_http_401(gen_group_id, mocker:
     http_error = requests.HTTPError(response=response)
     mock_delete.side_effect = http_error
 
-    with pytest.raises(OAuthTokenError) as exc_info:
+    msg: str = "Access token is invalid or expired."
+    with pytest.raises(OAuthTokenError, match=msg):
         groups.delete_by_id(group_id)
-
-    assert str(exc_info.value) == "Access token is invalid or expired."
 
 
 def test_delete_by_id_raises_unexpected_response_error_on_http_403(gen_group_id, mocker: MockerFixture) -> None:
@@ -2166,10 +2135,9 @@ def test_delete_by_id_raises_unexpected_response_error_on_http_403(gen_group_id,
     http_error = requests.HTTPError(response=response)
     mock_delete.side_effect = http_error
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to delete Group resource from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.delete_by_id(group_id)
-
-    assert str(exc_info.value) == "Failed to delete Group resource from mAP Core API."
 
 
 def test_delete_by_id_raises_unexpected_response_error_on_http_500(gen_group_id, mocker: MockerFixture) -> None:
@@ -2184,10 +2152,9 @@ def test_delete_by_id_raises_unexpected_response_error_on_http_500(gen_group_id,
     http_error = requests.HTTPError(response=response)
     mock_delete.side_effect = http_error
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "mAP Core API server error."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.delete_by_id(group_id)
-
-    assert str(exc_info.value) == "mAP Core API server error."
 
 
 def test_delete_by_id_raises_unexpected_response_error_on_request_exception(
@@ -2201,10 +2168,9 @@ def test_delete_by_id_raises_unexpected_response_error_on_request_exception(
     mock_delete = mocker.patch("server.clients.groups.delete_by_id")
     mock_delete.side_effect = requests.RequestException()
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to communicate with mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.delete_by_id(group_id)
-
-    assert str(exc_info.value) == "Failed to communicate with mAP Core API."
 
 
 def test_delete_by_id_raises_unexpected_response_error_on_validation_error(gen_group_id, mocker: MockerFixture) -> None:
@@ -2216,10 +2182,9 @@ def test_delete_by_id_raises_unexpected_response_error_on_validation_error(gen_g
     mock_delete = mocker.patch("server.clients.groups.delete_by_id")
     mock_delete.side_effect = ValidationError("validation error", [])
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to parse Group resource from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.delete_by_id(group_id)
-
-    assert str(exc_info.value) == "Failed to parse Group resource from mAP Core API."
 
 
 def test_delete_by_id_raises_oauth_token_error_propagation(gen_group_id, mocker: MockerFixture) -> None:
@@ -2230,10 +2195,9 @@ def test_delete_by_id_raises_oauth_token_error_propagation(gen_group_id, mocker:
     mock_delete = mocker.patch("server.clients.groups.delete_by_id")
     mock_delete.side_effect = OAuthTokenError("token error")
 
-    with pytest.raises(OAuthTokenError) as exc_info:
+    msg: str = "token error"
+    with pytest.raises(OAuthTokenError, match=msg):
         groups.delete_by_id(group_id)
-
-    assert str(exc_info.value) == "token error"
 
 
 def test_delete_by_id_raises_credentials_error_propagation(gen_group_id, mocker: MockerFixture) -> None:
@@ -2244,10 +2208,9 @@ def test_delete_by_id_raises_credentials_error_propagation(gen_group_id, mocker:
     mock_delete = mocker.patch("server.clients.groups.delete_by_id")
     mock_delete.side_effect = CredentialsError("credentials error")
 
-    with pytest.raises(CredentialsError) as exc_info:
+    msg: str = "credentials error"
+    with pytest.raises(CredentialsError, match=msg):
         groups.delete_by_id(group_id)
-
-    assert str(exc_info.value) == "credentials error"
 
 
 def test_delete_by_id_raises_unexpected_exception_propagation(gen_group_id, mocker: MockerFixture) -> None:
@@ -2258,10 +2221,9 @@ def test_delete_by_id_raises_unexpected_exception_propagation(gen_group_id, mock
     mock_delete = mocker.patch("server.clients.groups.delete_by_id")
     mock_delete.side_effect = UnexpectedError("unexpected error")
 
-    with pytest.raises(UnexpectedError) as exc_info:
+    msg: str = "unexpected error"
+    with pytest.raises(UnexpectedError, match=msg):
         groups.delete_by_id(group_id)
-
-    assert str(exc_info.value) == "unexpected error"
 
 
 def test_delete_by_id_map_error_not_found(gen_group_id, mocker):
@@ -2272,7 +2234,8 @@ def test_delete_by_id_map_error_not_found(gen_group_id, mocker):
         "server.clients.groups.delete_by_id",
         return_value=MapError(detail=f"Group '{group_id}' Not Found", status="404", scim_type="noTarget"),
     )
-    with pytest.raises(ResourceNotFound):
+    msg: str = f"Group '{group_id}' Not Found"
+    with pytest.raises(ResourceNotFound, match=msg):
         groups.delete_by_id(group_id)
 
 
@@ -2320,10 +2283,9 @@ def test_update_member_add_and_remove(app: Flask, gen_group_id, mocker: MockerFi
     group_id: str = gen_group_id("g113")
     same_user: str = "user12"
 
-    with pytest.raises(RequestConflict) as exc_info:
+    msg: str = "Conflict user IDs in add and remove."
+    with pytest.raises(RequestConflict, match=msg):
         groups.update_member(group_id, add={same_user}, remove={same_user})
-
-    assert str(exc_info.value) == "Conflict user IDs in add and remove."
 
 
 def test_update_member_raises_oauth_token_error_on_http_401(app: Flask, gen_group_id, mocker: MockerFixture) -> None:
@@ -2339,10 +2301,9 @@ def test_update_member_raises_oauth_token_error_on_http_401(app: Flask, gen_grou
     mocker.patch("server.clients.groups.patch_by_id")
     mocker.patch("server.datastore.app_cache", new=mocker.Mock())
 
-    with pytest.raises(OAuthTokenError) as exc_info:
+    msg: str = "Access token is invalid or expired."
+    with pytest.raises(OAuthTokenError, match=msg):
         groups.update_member(group_id, add={"user12"}, remove=set())
-
-    assert str(exc_info.value) == "Access token is invalid or expired."
 
 
 def test_update_member_raises_unexpected_response_error_on_http_403(
@@ -2361,10 +2322,9 @@ def test_update_member_raises_unexpected_response_error_on_http_403(
     mock_patch = mocker.patch("server.clients.groups.patch_by_id", side_effect=http_error)
     mocker.patch("server.datastore.app_cache", new=mocker.Mock())
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to update Group resource from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.update_member(group_id, add={"user13"}, remove=set())
-
-    assert str(exc_info.value) == "Failed to update Group resource from mAP Core API."
     assert mock_patch.call_args[0][0] == group_id
 
 
@@ -2385,10 +2345,9 @@ def test_update_member_raises_unexpected_response_error_on_http_500(
     mock_patch = mocker.patch("server.clients.groups.patch_by_id", side_effect=http_error)
     mocker.patch("server.datastore.app_cache", new=mocker.Mock())
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "mAP Core API server error."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.update_member(group_id, add={"user14"}, remove=set())
-
-    assert str(exc_info.value) == "mAP Core API server error."
     assert mock_patch.call_args[0][0] == group_id
 
 
@@ -2406,10 +2365,9 @@ def test_update_member_raises_unexpected_response_error_on_request_exception(
     mock_patch = mocker.patch("server.clients.groups.patch_by_id", side_effect=requests.RequestException())
     mocker.patch("server.datastore.app_cache", new=mocker.Mock())
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to communicate with mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.update_member(group_id, add={"user15"}, remove=set())
-
-    assert str(exc_info.value) == "Failed to communicate with mAP Core API."
     assert mock_patch.call_args[0][0] == group_id
 
 
@@ -2427,10 +2385,9 @@ def test_update_member_raises_unexpected_response_error_on_validation_error(
     mock_patch = mocker.patch("server.clients.groups.patch_by_id", side_effect=ValidationError("validation error", []))
     mocker.patch("server.datastore.app_cache", new=mocker.Mock())
 
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to parse Group resource from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.update_member(group_id, add={"user16"}, remove=set())
-
-    assert str(exc_info.value) == "Failed to parse Group resource from mAP Core API."
     assert mock_patch.call_args[0][0] == group_id
 
 
@@ -2445,10 +2402,9 @@ def test_update_member_raises_oauth_token_error_propagation(app: Flask, gen_grou
     mock_patch = mocker.patch("server.clients.groups.patch_by_id", side_effect=OAuthTokenError("token error"))
     mocker.patch("server.datastore.app_cache", new=mocker.Mock())
 
-    with pytest.raises(OAuthTokenError) as exc_info:
+    msg: str = "token error"
+    with pytest.raises(OAuthTokenError, match=msg):
         groups.update_member(group_id, add={"user17"}, remove=set())
-
-    assert str(exc_info.value) == "token error"
     assert mock_patch.call_args[0][0] == group_id
 
 
@@ -2463,10 +2419,9 @@ def test_update_member_raises_credentials_error_propagation(app: Flask, gen_grou
     mock_patch = mocker.patch("server.clients.groups.patch_by_id", side_effect=CredentialsError("credentials error"))
     mocker.patch("server.datastore.app_cache", new=mocker.Mock())
 
-    with pytest.raises(CredentialsError) as exc_info:
+    msg: str = "credentials error"
+    with pytest.raises(CredentialsError, match=msg):
         groups.update_member(group_id, add={"user18"}, remove=set())
-
-    assert str(exc_info.value) == "credentials error"
     assert mock_patch.call_args[0][0] == group_id
 
 
@@ -2482,10 +2437,9 @@ def test_update_member_raises_unexpected_exception_propagation(app: Flask, gen_g
     mocker.patch("server.datastore.app_cache", new=mocker.Mock())
     mocker.patch("server.services.repositories.get_by_id", return_value=None)
 
-    with pytest.raises(UnexpectedError) as exc_info:
+    msg: str = "unexpected error"
+    with pytest.raises(UnexpectedError, match=msg):
         groups.update_member(group_id, add={"user19"}, remove=set())
-
-    assert str(exc_info.value) == "unexpected error"
     assert mock_patch.call_args[0][0] == group_id
 
 
@@ -2502,7 +2456,8 @@ def test_update_member_get_by_id_none(app, gen_group_id, mocker):
     group_id = gen_group_id("g301")
     mocker.patch.object(groups.config.MAP_CORE, "update_strategy", new="patch")
     mocker.patch("server.services.groups.get_by_id", return_value=None)
-    with pytest.raises(ResourceNotFound):
+    msg: str = "Group 'jc_repo_id_groups_g301_test' Not Found"
+    with pytest.raises(ResourceNotFound, match=msg):
         groups.update_member(group_id, add={"u1"}, remove={"u2"})
 
 
@@ -2526,7 +2481,8 @@ def test_update_member_map_error(app, gen_group_id, mocker):
         "server.clients.groups.patch_by_id",
         return_value=MapError(detail="invalid", status="400", scim_type="invalidValue"),
     )
-    with pytest.raises(ResourceInvalid):
+    msg: str = "invalid"
+    with pytest.raises(ResourceInvalid, match=msg):
         groups.update_member(group_id, add={"u1"}, remove={"u2"})
 
 
@@ -2551,7 +2507,8 @@ def test_update_member_patch_oauth_token_error(app, gen_group_id, mocker):
     response.status_code = HTTPStatus.UNAUTHORIZED
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.groups.patch_by_id", side_effect=http_error)
-    with pytest.raises(OAuthTokenError):
+    msg: str = "Access token is invalid or expired."
+    with pytest.raises(OAuthTokenError, match=msg):
         groups.update_member(group_id, add={"u1"}, remove={"u2"})
 
 
@@ -2597,7 +2554,8 @@ def test_update_member_put_direct_success(app, gen_group_id, mocker):
 def test_update_member_put_not_found(app, gen_group_id, mocker):
     group_id = gen_group_id("g401")
     mocker.patch("server.services.groups.get_by_id", return_value=None)
-    with pytest.raises(ResourceNotFound):
+    msg: str = f"Group '{group_id}' Not Found"
+    with pytest.raises(ResourceNotFound, match=msg):
         groups.update_member_put(group_id, {"u1"}, {"u2"})
 
 
@@ -2621,7 +2579,8 @@ def test_update_member_put_map_error(app, gen_group_id, mocker):
         "server.clients.groups.patch_by_id",
         return_value=MapError(detail="invalid", status="400", scim_type="invalidValue"),
     )
-    with pytest.raises(ResourceInvalid):
+    msg: str = "invalid"
+    with pytest.raises(ResourceInvalid, match=msg):
         groups.update_member_put(group_id, {"u1"}, {"u2"})
 
 
@@ -2642,9 +2601,9 @@ def test_update_member_put_oauth_token_error(app, gen_group_id, mocker):
     mocker.patch("server.services.users.get_system_admins", return_value=["sysadmin"])
     mocker.patch("server.clients.groups.put_by_id", side_effect=OAuthTokenError("token error"))
     mocker.patch("server.clients.groups.patch_by_id", side_effect=OAuthTokenError("token error"))
-    with pytest.raises(OAuthTokenError) as exc_info:
+    msg: str = "token error"
+    with pytest.raises(OAuthTokenError, match=msg):
         groups.update_member_put(group_id, {"u1"}, {"u2"})
-    assert str(exc_info.value) == "token error"
 
 
 def test_update_member_put_unexpected_response_error(app, gen_group_id, mocker):
@@ -2667,9 +2626,9 @@ def test_update_member_put_unexpected_response_error(app, gen_group_id, mocker):
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.groups.put_by_id", side_effect=http_error)
     mocker.patch("server.clients.groups.patch_by_id", side_effect=http_error)
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to update Group resource from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.update_member_put(group_id, {"u1"}, {"u2"})
-    assert str(exc_info.value) == "Failed to update Group resource from mAP Core API."
 
 
 def test_update_member_put_validation_error(app, gen_group_id, mocker):
@@ -2689,9 +2648,9 @@ def test_update_member_put_validation_error(app, gen_group_id, mocker):
     mocker.patch("server.services.users.get_system_admins", return_value=["sysadmin"])
     mocker.patch("server.clients.groups.put_by_id", side_effect=ValidationError("validation error", []))
     mocker.patch("server.clients.groups.patch_by_id", side_effect=ValidationError("validation error", []))
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to parse Group resource from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.update_member_put(group_id, {"u1"}, {"u2"})
-    assert str(exc_info.value) == "Failed to parse Group resource from mAP Core API."
 
 
 def test_update_member_put_credentials_error(app, gen_group_id, mocker):
@@ -2711,9 +2670,9 @@ def test_update_member_put_credentials_error(app, gen_group_id, mocker):
     mocker.patch("server.services.users.get_system_admins", return_value=["sysadmin"])
     mocker.patch("server.clients.groups.put_by_id", side_effect=CredentialsError("credentials error"))
     mocker.patch("server.clients.groups.patch_by_id", side_effect=CredentialsError("credentials error"))
-    with pytest.raises(CredentialsError) as exc_info:
+    msg: str = "credentials error"
+    with pytest.raises(CredentialsError, match=msg):
         groups.update_member_put(group_id, {"u1"}, {"u2"})
-    assert str(exc_info.value) == "credentials error"
 
 
 def test_update_member_put_unexpected_error(app, gen_group_id, mocker):
@@ -2733,9 +2692,9 @@ def test_update_member_put_unexpected_error(app, gen_group_id, mocker):
     mocker.patch("server.services.users.get_system_admins", return_value=["sysadmin"])
     mocker.patch("server.clients.groups.put_by_id", side_effect=UnexpectedError("unexpected error"))
     mocker.patch("server.clients.groups.patch_by_id", side_effect=UnexpectedError("unexpected error"))
-    with pytest.raises(UnexpectedError) as exc_info:
+    msg: str = "unexpected error"
+    with pytest.raises(UnexpectedError, match=msg):
         groups.update_member_put(group_id, {"u1"}, {"u2"})
-    assert str(exc_info.value) == "unexpected error"
 
 
 def test_update_put_delegates_to_update_patch(app, gen_group_id, mocker):
@@ -2798,9 +2757,9 @@ def test_update_member_put_request_conflict(app, gen_group_id, mocker):
     add = {"user1", "user2"}
     remove = {"user2", "user3"}
     mocker.patch.object(groups.config.MAP_CORE, "update_strategy", new="put")
-    with pytest.raises(RequestConflict) as exc_info:
+    msg: str = "Conflict user IDs"
+    with pytest.raises(RequestConflict, match=msg):
         groups.update_member_put(group_id, add, remove)
-    assert "Conflict user IDs" in str(exc_info.value)
 
 
 def test_update_member_put_map_error_resource_not_found(app, gen_group_id, mocker):
@@ -2866,13 +2825,13 @@ def test_update_member_put_http_error(app, gen_group_id, mocker, status_code, ex
     http_error = requests.HTTPError(response=response)
     mock_put.side_effect = http_error
     if status_code == expected_status_code:
-        with pytest.raises(OAuthTokenError) as exc_info:
+        msg: str = expected_msg
+        with pytest.raises(OAuthTokenError, match=msg):
             groups.update_member_put(group_id, add, remove)
-        assert str(exc_info.value) == expected_msg
     else:
-        with pytest.raises(expected_exc) as exc_info:
+        msg: str = expected_msg
+        with pytest.raises(expected_exc, match=msg):
             groups.update_member_put(group_id, add, remove)
-        assert str(exc_info.value) == expected_msg
 
 
 @pytest.fixture
@@ -2907,10 +2866,9 @@ def test_update_put_raises_invalid_form_error_propagation(app: Flask, gen_group_
     mock_patch = mocker.patch("server.clients.groups.patch_by_id")
     mock_patch.side_effect = InvalidFormError("invalid form error")
 
-    with pytest.raises(InvalidFormError) as exc_info:
+    msg: str = "invalid form error"
+    with pytest.raises(InvalidFormError, match=msg):
         groups.update_put(updated_group)
-
-    assert str(exc_info.value) == "invalid form error"
     assert mock_patch.call_args[0][0] == updated_group.id
 
 
@@ -2992,9 +2950,9 @@ def test_update_member_put_credentials_error_propagation(app: Flask, gen_group_i
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
     mocker.patch("server.clients.groups.put_by_id", side_effect=CredentialsError("credentials error"))
-    with pytest.raises(CredentialsError) as exc_info:
+    msg: str = "credentials error"
+    with pytest.raises(CredentialsError, match=msg):
         groups.update_member_put(group_id, add, remove)
-    assert str(exc_info.value) == "credentials error"
 
 
 def test_update_member_put_resource_invalid_when_map_error_and_not_found_pattern_false(
@@ -3021,9 +2979,8 @@ def test_update_member_put_resource_invalid_when_map_error_and_not_found_pattern
     map_error = MapError(detail="Some other error", status="400", scim_type="invalidValue")
     mocker.patch("server.clients.groups.put_by_id", return_value=map_error)
     mocker.patch("re.search", return_value=False)
-    with pytest.raises(ResourceInvalid) as exc_info:
+    with pytest.raises(ResourceInvalid):
         groups.update_member_put(group_id, add, remove)
-    assert str(exc_info.value) == map_error.detail
     logger_mock.assert_called_once_with(map_error.detail)
 
 
@@ -3048,9 +3005,9 @@ def test_update_member_put_validation_error_on_validate_group_to_map_group(
     mocker.patch("server.services.groups.get_access_token", return_value="token")
     mocker.patch("server.services.groups.get_client_secret", return_value="secret")
     mocker.patch("server.clients.groups.put_by_id", side_effect=ValidationError("validation error", []))
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to parse Group resource from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.update_member_put(group_id, add, remove)
-    assert "Failed to parse Group resource from mAP Core API." in str(exc_info.value)
 
 
 def test_update_put_patch_strategy_propagates_exceptions(app, gen_group_id, mocker):
@@ -3058,9 +3015,9 @@ def test_update_put_patch_strategy_propagates_exceptions(app, gen_group_id, mock
     group = MagicMock(spec=GroupDetail)
     mocker.patch.object(groups.config.MAP_CORE, "update_strategy", new="patch")
     mocker.patch("server.services.groups.update", side_effect=ResourceInvalid("patch error"))
-    with pytest.raises(ResourceInvalid) as exc_info:
+    msg: str = "patch error"
+    with pytest.raises(ResourceInvalid, match=msg):
         groups.update_put(group)
-    assert str(exc_info.value) == "patch error"
 
 
 def test_update_member_put_patch_strategy_propagates_exceptions(app, gen_group_id, mocker):
@@ -3069,9 +3026,9 @@ def test_update_member_put_patch_strategy_propagates_exceptions(app, gen_group_i
     remove = {"user2"}
     mocker.patch.object(groups.config.MAP_CORE, "update_strategy", new="patch")
     mocker.patch("server.services.groups.update_member", side_effect=ResourceNotFound("patch error"))
-    with pytest.raises(ResourceNotFound) as exc_info:
+    msg: str = "patch error"
+    with pytest.raises(ResourceNotFound, match=msg):
         groups.update_member_put(group_id, add, remove)
-    assert str(exc_info.value) == "patch error"
 
 
 def test_update_member_put_success(app, gen_group_id, mocker):
@@ -3094,9 +3051,9 @@ def test_update_member_put_resource_not_found(app, mocker):
     group_id = "g_test"
     mocker.patch("server.services.groups.get_by_id", return_value=None)
     mocker.patch.object(groups.config.MAP_CORE, "update_strategy", "put")
-    with pytest.raises(ResourceNotFound) as exc_info:
+    msg: str = f"Group '{group_id}' Not Found"
+    with pytest.raises(ResourceNotFound, match=msg):
         groups.update_member_put(group_id, add=None, remove=None)
-    assert f"Group '{group_id}' Not Found" in str(exc_info.value)
 
 
 def test_update_member_put_request_exception(app, gen_group_id, mocker):
@@ -3110,6 +3067,6 @@ def test_update_member_put_request_exception(app, gen_group_id, mocker):
     mocker.patch("server.services.users.get_system_admins", return_value=[])
     mocker.patch("server.clients.groups.put_by_id", side_effect=requests.RequestException("req error"))
     mocker.patch("server.clients.groups.patch_by_id", return_value=group)
-    with pytest.raises(UnexpectedResponseError) as exc_info:
+    msg: str = "Failed to communicate with mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         groups.update_member_put(group_id, add={"u1"}, remove={"u2"})
-    assert "Failed to communicate with mAP Core API." in str(exc_info.value)

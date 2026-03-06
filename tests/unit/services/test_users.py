@@ -109,7 +109,8 @@ def test_search_raises_oauth_token_error_on_unauthorized(mocker: MockerFixture) 
     response.status_code = HTTPStatus.UNAUTHORIZED
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.users.search", side_effect=http_error)
-    with pytest.raises(OAuthTokenError):
+    msg = "Access token is invalid or expired."
+    with pytest.raises(OAuthTokenError, match=msg):
         users.search(criteria)
 
 
@@ -126,7 +127,8 @@ def test_search_raises_unexpected_response_error_on_internal_server_error(mocker
     response.status_code = HTTPStatus.INTERNAL_SERVER_ERROR
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.users.search", side_effect=http_error)
-    with pytest.raises(UnexpectedResponseError):
+    msg = "mAP Core API server error."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         users.search(criteria)
 
 
@@ -143,7 +145,8 @@ def test_search_raises_unexpected_response_error_on_other_http_error(mocker: Moc
     response.status_code = HTTPStatus.BAD_REQUEST
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.users.search", side_effect=http_error)
-    with pytest.raises(UnexpectedResponseError):
+    msg = "Failed to search User resources from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         users.search(criteria)
 
 
@@ -155,8 +158,9 @@ def test_search_raises_unexpected_response_error_on_request_exception(mocker: Mo
     )
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
+    msg = "Failed to communicate with mAP Core API."
     mocker.patch("server.clients.users.search", side_effect=requests.RequestException("fail"))
-    with pytest.raises(UnexpectedResponseError):
+    with pytest.raises(UnexpectedResponseError, match=msg):
         users.search(criteria)
 
 
@@ -168,32 +172,36 @@ def test_search_raises_unexpected_response_error_on_validation_error(mocker: Moc
     )
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
+    msg = "Failed to parse User resources from mAP Core API."
     mocker.patch("server.clients.users.search", side_effect=ValidationError("fail", []))
-    with pytest.raises(UnexpectedResponseError):
+    with pytest.raises(UnexpectedResponseError, match=msg):
         users.search(criteria)
 
 
 def test_search_reraises_invalid_query_error(mocker: MockerFixture) -> None:
     """Test that search re-raises InvalidQueryError directly from try block."""
     criteria = make_criteria_object("users", q='userName eq "u"')
-    mocker.patch("server.services.users.build_search_query", side_effect=InvalidQueryError("fail"))
-    with pytest.raises(InvalidQueryError):
+    msg = "fail"
+    mocker.patch("server.services.users.build_search_query", side_effect=InvalidQueryError(msg))
+    with pytest.raises(InvalidQueryError, match=msg):
         users.search(criteria)
 
 
 def test_search_reraises_oauth_token_error(mocker: MockerFixture) -> None:
     """Test that search re-raises OAuthTokenError directly from try block."""
     criteria = make_criteria_object("users", q='userName eq "u"')
-    mocker.patch("server.services.users.build_search_query", side_effect=OAuthTokenError("fail"))
-    with pytest.raises(OAuthTokenError):
+    msg = "fail"
+    mocker.patch("server.services.users.build_search_query", side_effect=OAuthTokenError(msg))
+    with pytest.raises(OAuthTokenError, match=msg):
         users.search(criteria)
 
 
 def test_search_reraises_credentials_error(mocker: MockerFixture) -> None:
     """Test that search re-raises CredentialsError directly from try block."""
     criteria = make_criteria_object("users", q='userName eq "u"')
-    mocker.patch("server.services.users.build_search_query", side_effect=users.CredentialsError("fail"))
-    with pytest.raises(users.CredentialsError):
+    msg = "fail"
+    mocker.patch("server.services.users.build_search_query", side_effect=users.CredentialsError(msg))
+    with pytest.raises(users.CredentialsError, match=msg):
         users.search(criteria)
 
 
@@ -207,7 +215,8 @@ def test_search_raises_invalid_query_error_on_map_error(app, mocker: MockerFixtu
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
     mocker.patch("server.clients.users.search", return_value=map_error)
     mock_logger = mocker.patch("flask.current_app.logger.info")
-    with pytest.raises(InvalidQueryError):
+    msg = "invalid query"
+    with pytest.raises(InvalidQueryError, match=msg):
         users.search(criteria)
     assert mock_logger.called
 
@@ -247,7 +256,8 @@ def test_get_by_id_raises_oauth_token_error_on_unauthorized(mocker: MockerFixtur
     response.status_code = HTTPStatus.UNAUTHORIZED
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.users.get_by_id", side_effect=http_error)
-    with pytest.raises(OAuthTokenError):
+    msg = "Access token is invalid or expired."
+    with pytest.raises(OAuthTokenError, match=msg):
         users.get_by_id(user_id)
 
 
@@ -260,7 +270,8 @@ def test_get_by_id_raises_unexpected_response_error_on_internal_server_error(moc
     response.status_code = HTTPStatus.INTERNAL_SERVER_ERROR
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.users.get_by_id", side_effect=http_error)
-    with pytest.raises(UnexpectedResponseError):
+    msg = "mAP Core API server error."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         users.get_by_id(user_id)
 
 
@@ -273,7 +284,8 @@ def test_get_by_id_raises_unexpected_response_error_on_other_http_error(mocker: 
     response.status_code = HTTPStatus.BAD_REQUEST
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.users.get_by_id", side_effect=http_error)
-    with pytest.raises(UnexpectedResponseError):
+    msg = "Failed to get User resource from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         users.get_by_id(user_id)
 
 
@@ -282,8 +294,9 @@ def test_get_by_id_raises_unexpected_response_error_on_request_exception(mocker:
     user_id = "u1"
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
+    msg = "Failed to communicate with mAP Core API."
     mocker.patch("server.clients.users.get_by_id", side_effect=requests.RequestException("fail"))
-    with pytest.raises(UnexpectedResponseError):
+    with pytest.raises(UnexpectedResponseError, match=msg):
         users.get_by_id(user_id)
 
 
@@ -292,22 +305,25 @@ def test_get_by_id_raises_unexpected_response_error_on_validation_error(mocker: 
     user_id = "u1"
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
+    msg = "Failed to parse User resource from mAP Core API."
     mocker.patch("server.clients.users.get_by_id", side_effect=ValidationError("fail", []))
-    with pytest.raises(UnexpectedResponseError):
+    with pytest.raises(UnexpectedResponseError, match=msg):
         users.get_by_id(user_id)
 
 
 def test_get_by_id_reraises_oauth_token_error(mocker: MockerFixture) -> None:
     """Test get_by_id re-raises OAuthTokenError directly from try block."""
-    mocker.patch("server.services.users.get_access_token", side_effect=OAuthTokenError("fail"))
-    with pytest.raises(OAuthTokenError):
+    msg = "fail"
+    mocker.patch("server.services.users.get_access_token", side_effect=OAuthTokenError(msg))
+    with pytest.raises(OAuthTokenError, match=msg):
         users.get_by_id("u1")
 
 
 def test_get_by_id_reraises_credentials_error(mocker: MockerFixture) -> None:
     """Test get_by_id re-raises CredentialsError directly from try block."""
-    mocker.patch("server.services.users.get_access_token", side_effect=users.CredentialsError("fail"))
-    with pytest.raises(users.CredentialsError):
+    msg = "fail"
+    mocker.patch("server.services.users.get_access_token", side_effect=users.CredentialsError(msg))
+    with pytest.raises(users.CredentialsError, match=msg):
         users.get_by_id("u1")
 
 
@@ -360,7 +376,8 @@ def test_get_by_eppn_raises_oauth_token_error_on_unauthorized(mocker: MockerFixt
     response.status_code = HTTPStatus.UNAUTHORIZED
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.users.get_by_eppn", side_effect=http_error)
-    with pytest.raises(OAuthTokenError):
+    msg = "Access token is invalid or expired."
+    with pytest.raises(OAuthTokenError, match=msg):
         users.get_by_eppn(eppn)
 
 
@@ -373,7 +390,8 @@ def test_get_by_eppn_raises_unexpected_response_error_on_internal_server_error(m
     response.status_code = HTTPStatus.INTERNAL_SERVER_ERROR
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.users.get_by_eppn", side_effect=http_error)
-    with pytest.raises(UnexpectedResponseError):
+    msg = "mAP Core API server error."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         users.get_by_eppn(eppn)
 
 
@@ -386,7 +404,8 @@ def test_get_by_eppn_raises_unexpected_response_error_on_other_http_error(mocker
     response.status_code = HTTPStatus.BAD_REQUEST
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.users.get_by_eppn", side_effect=http_error)
-    with pytest.raises(UnexpectedResponseError):
+    msg = "Failed to get User resource from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         users.get_by_eppn(eppn)
 
 
@@ -395,8 +414,9 @@ def test_get_by_eppn_raises_unexpected_response_error_on_request_exception(mocke
     eppn = "user@example.jp"
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
+    msg = "Failed to communicate with mAP Core API."
     mocker.patch("server.clients.users.get_by_eppn", side_effect=requests.RequestException("fail"))
-    with pytest.raises(UnexpectedResponseError):
+    with pytest.raises(UnexpectedResponseError, match=msg):
         users.get_by_eppn(eppn)
 
 
@@ -405,8 +425,9 @@ def test_get_by_eppn_raises_unexpected_response_error_on_validation_error(mocker
     eppn = "user@example.jp"
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
+    msg = "Failed to parse User resource from mAP Core API."
     mocker.patch("server.clients.users.get_by_eppn", side_effect=ValidationError("fail", []))
-    with pytest.raises(UnexpectedResponseError):
+    with pytest.raises(UnexpectedResponseError, match=msg):
         users.get_by_eppn(eppn)
 
 
@@ -426,15 +447,17 @@ def test_get_by_eppn_returns_none_on_map_error(app, mocker: MockerFixture) -> No
 
 def test_get_by_eppn_reraises_oauth_token_error(mocker: MockerFixture) -> None:
     """Test get_by_eppn re-raises OAuthTokenError directly from try block."""
-    mocker.patch("server.services.users.get_access_token", side_effect=OAuthTokenError("fail"))
-    with pytest.raises(OAuthTokenError):
+    msg = "fail"
+    mocker.patch("server.services.users.get_access_token", side_effect=OAuthTokenError(msg))
+    with pytest.raises(OAuthTokenError, match=msg):
         users.get_by_eppn("user@example.jp")
 
 
 def test_get_by_eppn_reraises_credentials_error(mocker: MockerFixture) -> None:
     """Test get_by_eppn re-raises CredentialsError directly from try block."""
-    mocker.patch("server.services.users.get_access_token", side_effect=users.CredentialsError("fail"))
-    with pytest.raises(users.CredentialsError):
+    msg = "fail"
+    mocker.patch("server.services.users.get_access_token", side_effect=users.CredentialsError(msg))
+    with pytest.raises(users.CredentialsError, match=msg):
         users.get_by_eppn("user@example.jp")
 
 
@@ -462,7 +485,8 @@ def test_create_raises_oauth_token_error_on_unauthorized(mocker: MockerFixture) 
     response.status_code = HTTPStatus.UNAUTHORIZED
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.users.post", side_effect=http_error)
-    with pytest.raises(OAuthTokenError):
+    msg = "Access token is invalid or expired."
+    with pytest.raises(OAuthTokenError, match=msg):
         users.create(user)
 
 
@@ -477,7 +501,8 @@ def test_create_raises_unexpected_response_error_on_internal_server_error(mocker
     response.status_code = HTTPStatus.INTERNAL_SERVER_ERROR
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.users.post", side_effect=http_error)
-    with pytest.raises(UnexpectedResponseError):
+    msg = "mAP Core API server error."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         users.create(user)
 
 
@@ -492,7 +517,8 @@ def test_create_raises_unexpected_response_error_on_other_http_error(mocker: Moc
     response.status_code = HTTPStatus.BAD_REQUEST
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.users.post", side_effect=http_error)
-    with pytest.raises(UnexpectedResponseError):
+    msg = "Failed to create User resource in mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         users.create(user)
 
 
@@ -503,8 +529,9 @@ def test_create_raises_unexpected_response_error_on_request_exception(mocker: Mo
     mocker.patch("server.services.users.prepare_user", return_value=map_user)
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
+    msg = "Failed to communicate with mAP Core API."
     mocker.patch("server.clients.users.post", side_effect=requests.RequestException("fail"))
-    with pytest.raises(UnexpectedResponseError):
+    with pytest.raises(UnexpectedResponseError, match=msg):
         users.create(user)
 
 
@@ -515,8 +542,9 @@ def test_create_raises_unexpected_response_error_on_validation_error(mocker: Moc
     mocker.patch("server.services.users.prepare_user", return_value=map_user)
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
+    msg = "Failed to parse User resource from mAP Core API."
     mocker.patch("server.clients.users.post", side_effect=ValidationError("fail", []))
-    with pytest.raises(UnexpectedResponseError):
+    with pytest.raises(UnexpectedResponseError, match=msg):
         users.create(user)
 
 
@@ -525,8 +553,9 @@ def test_create_reraises_oauth_token_error(mocker: MockerFixture) -> None:
     user = UserDetail(id="u1", user_name="u", emails=[])
     map_user = MapUser(id="u1", user_name="u", schemas=["a"], emails=[])
     mocker.patch("server.services.users.prepare_user", return_value=map_user)
-    mocker.patch("server.services.users.get_access_token", side_effect=OAuthTokenError("fail"))
-    with pytest.raises(OAuthTokenError):
+    msg = "fail"
+    mocker.patch("server.services.users.get_access_token", side_effect=OAuthTokenError(msg))
+    with pytest.raises(OAuthTokenError, match=msg):
         users.create(user)
 
 
@@ -535,8 +564,9 @@ def test_create_reraises_credentials_error(mocker: MockerFixture) -> None:
     user = UserDetail(id="u1", user_name="u", emails=[])
     map_user = MapUser(id="u1", user_name="u", schemas=["a"], emails=[])
     mocker.patch("server.services.users.prepare_user", return_value=map_user)
-    mocker.patch("server.services.users.get_access_token", side_effect=users.CredentialsError("fail"))
-    with pytest.raises(users.CredentialsError):
+    msg = "fail"
+    mocker.patch("server.services.users.get_access_token", side_effect=users.CredentialsError(msg))
+    with pytest.raises(users.CredentialsError, match=msg):
         users.create(user)
 
 
@@ -550,7 +580,8 @@ def test_create_raises_resource_invalid_on_map_error(app, mocker: MockerFixture)
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
     mocker.patch("server.clients.users.post", return_value=map_error)
     mock_logger = mocker.patch("flask.current_app.logger.info")
-    with pytest.raises(users.ResourceInvalid):
+    msg = "invalid"
+    with pytest.raises(users.ResourceInvalid, match=msg):
         users.create(user)
     assert mock_logger.called
 
@@ -574,7 +605,8 @@ def test_update_raises_resource_not_found_on_none(app, mocker: MockerFixture) ->
 
     user = UserDetail(id="u1", user_name="u", emails=[])
     mocker.patch("server.services.users.get_by_id", return_value=None)
-    with pytest.raises(users.ResourceNotFound):
+    msg = "User 'u1' Not Found"
+    with pytest.raises(users.ResourceNotFound, match=msg):
         users.update(user)
 
 
@@ -591,7 +623,8 @@ def test_update_raises_oauth_token_error_on_unauthorized(app, mocker: MockerFixt
     response.status_code = HTTPStatus.UNAUTHORIZED
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.users.patch_by_id", side_effect=http_error)
-    with pytest.raises(OAuthTokenError):
+    msg = "Access token is invalid or expired."
+    with pytest.raises(OAuthTokenError, match=msg):
         users.update(user)
 
 
@@ -608,7 +641,8 @@ def test_update_raises_unexpected_response_error_on_internal_server_error(app, m
     response.status_code = HTTPStatus.INTERNAL_SERVER_ERROR
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.users.patch_by_id", side_effect=http_error)
-    with pytest.raises(UnexpectedResponseError):
+    msg = "mAP Core API server error."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         users.update(user)
 
 
@@ -625,7 +659,8 @@ def test_update_raises_unexpected_response_error_on_other_http_error(app, mocker
     response.status_code = HTTPStatus.BAD_REQUEST
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.users.patch_by_id", side_effect=http_error)
-    with pytest.raises(UnexpectedResponseError):
+    msg = "Failed to update User resource in mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         users.update(user)
 
 
@@ -639,7 +674,8 @@ def test_update_raises_unexpected_response_error_on_request_exception(app, mocke
     mocker.patch("server.services.users.validate_user_to_map_user", return_value=map_user)
     mocker.patch("server.services.users.build_patch_operations", return_value=["patchop"])
     mocker.patch("server.clients.users.patch_by_id", side_effect=requests.RequestException("fail"))
-    with pytest.raises(UnexpectedResponseError):
+    msg = "Failed to communicate with mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         users.update(user)
 
 
@@ -653,7 +689,8 @@ def test_update_raises_unexpected_response_error_on_validation_error(app, mocker
     mocker.patch("server.services.users.validate_user_to_map_user", return_value=map_user)
     mocker.patch("server.services.users.build_patch_operations", return_value=["patchop"])
     mocker.patch("server.clients.users.patch_by_id", side_effect=ValidationError("fail", []))
-    with pytest.raises(UnexpectedResponseError):
+    msg = "Failed to parse User resource from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         users.update(user)
 
 
@@ -665,7 +702,8 @@ def test_update_reraises_oauth_token_error(app, mocker: MockerFixture) -> None:
     mocker.patch("server.services.users.validate_user_to_map_user", return_value=map_user)
     mocker.patch("server.services.users.build_patch_operations", return_value=["patchop"])
     mocker.patch("server.services.users.get_access_token", side_effect=OAuthTokenError("fail"))
-    with pytest.raises(OAuthTokenError):
+    msg = "fail"
+    with pytest.raises(OAuthTokenError, match=msg):
         users.update(user)
 
 
@@ -677,7 +715,8 @@ def test_update_reraises_credentials_error(app, mocker: MockerFixture) -> None:
     mocker.patch("server.services.users.validate_user_to_map_user", return_value=map_user)
     mocker.patch("server.services.users.build_patch_operations", return_value=["patchop"])
     mocker.patch("server.services.users.get_access_token", side_effect=users.CredentialsError("fail"))
-    with pytest.raises(users.CredentialsError):
+    msg = "fail"
+    with pytest.raises(users.CredentialsError, match=msg):
         users.update(user)
 
 
@@ -693,7 +732,8 @@ def test_update_raises_resource_not_found_on_map_error_with_not_found_pattern(ap
     mocker.patch("server.services.users.build_patch_operations", return_value=["patchop"])
     mock_logger = mocker.patch("flask.current_app.logger.info")
     mocker.patch("server.clients.users.patch_by_id", return_value=map_error)
-    with pytest.raises(users.ResourceNotFound):
+    msg = "'u1' Not Found"
+    with pytest.raises(users.ResourceNotFound, match=msg):
         users.update(user)
     assert mock_logger.called
 
@@ -710,7 +750,8 @@ def test_update_raises_resource_invalid_on_map_error(app, mocker: MockerFixture)
     mocker.patch("server.services.users.build_patch_operations", return_value=["patchop"])
     mock_logger = mocker.patch("flask.current_app.logger.info")
     mocker.patch("server.clients.users.patch_by_id", return_value=map_error)
-    with pytest.raises(users.ResourceInvalid):
+    msg = "invalid"
+    with pytest.raises(users.ResourceInvalid, match=msg):
         users.update(user)
     assert mock_logger.called
 
@@ -792,9 +833,9 @@ def test_update_put_http_error(
         side_effect=requests.HTTPError(response=http_exc.response),
     )
 
-    with pytest.raises(exc_type) as e:
+    msg = expected
+    with pytest.raises(exc_type, match=msg):
         update_put(user)
-    assert expected in str(e.value)
 
 
 def test_update_put_request_exception(app, test_config, mocker: MockerFixture) -> None:
@@ -808,9 +849,9 @@ def test_update_put_request_exception(app, test_config, mocker: MockerFixture) -
     mocker.patch("server.services.users.users.put_by_id", side_effect=requests.RequestException())
     mocker.patch("server.services.repositories.get_by_id", return_value=True)
 
-    with pytest.raises(UnexpectedResponseError) as e:
+    msg = "Failed to communicate with mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         update_put(user)
-    assert "Failed to communicate with mAP Core API." in str(e.value)
 
 
 def test_update_put_validation_error(app, test_config, mocker: MockerFixture) -> None:
@@ -824,9 +865,9 @@ def test_update_put_validation_error(app, test_config, mocker: MockerFixture) ->
     mocker.patch("server.services.users.users.put_by_id", side_effect=ValidationError("fail", []))
     mocker.patch("server.services.repositories.get_by_id", return_value=True)
 
-    with pytest.raises(UnexpectedResponseError) as e:
+    msg = "Failed to parse User resource from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         update_put(user)
-    assert "Failed to parse User resource from mAP Core API." in str(e.value)
 
 
 @pytest.mark.parametrize("exc_type", [OAuthTokenError, CredentialsError], ids=["oauth_error", "credentials_error"])
@@ -843,7 +884,8 @@ def test_update_put_token_or_credentials_error(
     mocker.patch("server.services.users.users.put_by_id", side_effect=exc_type("fail"))
     mocker.patch("server.services.repositories.get_by_id", return_value=True)
 
-    with pytest.raises(exc_type):
+    msg = "fail"
+    with pytest.raises(exc_type, match=msg):
         update_put(user)
 
 
@@ -882,7 +924,8 @@ def test_update_put_map_error_not_found(app, test_config, mocker, detail):
     mocker.patch("server.services.users.users.put_by_id", return_value=map_error)
     mocker.patch("flask.current_app.logger.info")
     mocker.patch("server.services.repositories.get_by_id", return_value=True)
-    with pytest.raises(ResourceNotFound):
+    msg = detail
+    with pytest.raises(ResourceNotFound, match=msg):
         update_put(user)
 
 
@@ -900,7 +943,8 @@ def test_update_put_map_error_invalid(app, test_config, mocker, detail):
     map_error.detail = detail
     mocker.patch("server.services.users.users.put_by_id", return_value=map_error)
     mocker.patch("flask.current_app.logger.info")
-    with pytest.raises(ResourceInvalid):
+    msg = detail
+    with pytest.raises(ResourceInvalid, match=msg):
         update_put(user)
 
 
@@ -908,7 +952,8 @@ def test_update_affiliations_get_by_id_none(app, mocker):
     user = MagicMock(spec=UserDetail)
     user.id = "u1"
     mocker.patch("server.services.users.get_by_id", return_value=None)
-    with pytest.raises(ResourceNotFound):
+    msg = "User 'u1' Not Found"
+    with pytest.raises(ResourceNotFound, match=msg):
         update_affiliations(user)
 
 
@@ -1041,12 +1086,12 @@ def test_update_affiliations_group_update_error_collects_and_raises(app, mocker)
     patch_op.value = MagicMock()
     mocker.patch("server.services.users.build_patch_operations", return_value=[patch_op])
     mock_logger = mocker.patch("flask.current_app.logger.info")
-    mocker.patch("server.services.groups.update_member", side_effect=ApiClientError("fail"))
+    msg = "Failed to update some affiliations for the user."
+    mocker.patch("server.services.groups.update_member", side_effect=ApiClientError(msg))
     mock_user_updated = mocker.patch("server.services.users.user_updated.send")
     mocker.patch("server.services.users.get_by_id", return_value=current)
-    with pytest.raises(ExceptionGroup) as exc_info:
+    with pytest.raises(ExceptionGroup, match=msg):
         users.update_affiliations(user)
-    assert any(isinstance(e, ApiClientError) for e in exc_info.value.exceptions)
     assert mock_logger.called
     mock_user_updated.assert_called()
 
@@ -1060,7 +1105,8 @@ def test_update_affiliations_not_found(app, mocker):
         is_system_admin=False,
     )
     mocker.patch("server.services.users.get_by_id", return_value=None)
-    with pytest.raises(ResourceNotFound):
+    msg = "User 'u6' Not Found"
+    with pytest.raises(ResourceNotFound, match=msg):
         users.update_affiliations(user)
 
 
@@ -1082,7 +1128,8 @@ def test_update_affiliations_raises_oauth_token_error(app, mocker):
     mocker.patch("server.services.groups.update_member", side_effect=OAuthTokenError("fail"))
     mocker.patch("server.services.repositories.get_by_id", return_value=object())
     mocker.patch("server.services.users.user_updated.send")
-    with pytest.raises(OAuthTokenError):
+    msg = "fail"
+    with pytest.raises(OAuthTokenError, match=msg):
         users.update_affiliations(user)
 
 
@@ -1130,7 +1177,8 @@ def test_count_raises_oauth_token_error_on_unauthorized(mocker: MockerFixture) -
     response.status_code = HTTPStatus.UNAUTHORIZED
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.users.search", side_effect=http_error)
-    with pytest.raises(OAuthTokenError):
+    msg = "Access token is invalid or expired."
+    with pytest.raises(OAuthTokenError, match=msg):
         users.count(criteria)
 
 
@@ -1144,7 +1192,8 @@ def test_count_raises_unexpected_response_error_on_internal_server_error(mocker:
     response.status_code = HTTPStatus.INTERNAL_SERVER_ERROR
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.users.search", side_effect=http_error)
-    with pytest.raises(UnexpectedResponseError):
+    msg = "mAP Core API server error."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         users.count(criteria)
 
 
@@ -1158,7 +1207,8 @@ def test_count_raises_unexpected_response_error_on_other_http_error(mocker: Mock
     response.status_code = HTTPStatus.BAD_REQUEST
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.users.search", side_effect=http_error)
-    with pytest.raises(UnexpectedResponseError):
+    msg = "Failed to search User resources from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         users.count(criteria)
 
 
@@ -1169,7 +1219,8 @@ def test_count_raises_unexpected_response_error_on_request_exception(mocker: Moc
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
     mocker.patch("server.clients.users.search", side_effect=requests.RequestException("fail"))
-    with pytest.raises(UnexpectedResponseError):
+    msg = "Failed to communicate with mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         users.count(criteria)
 
 
@@ -1180,7 +1231,8 @@ def test_count_raises_unexpected_response_error_on_validation_error(mocker: Mock
     mocker.patch("server.services.users.get_access_token", return_value="token")
     mocker.patch("server.services.users.get_client_secret", return_value="secret")
     mocker.patch("server.clients.users.search", side_effect=ValidationError("fail", []))
-    with pytest.raises(UnexpectedResponseError):
+    msg = "Failed to parse User resources from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
         users.count(criteria)
 
 
@@ -1188,7 +1240,8 @@ def test_count_reraises_invalid_query_error(mocker: MockerFixture) -> None:
     """Test count re-raises InvalidQueryError directly from try block."""
     criteria = make_criteria_object("users", q='userName eq "u"')
     mocker.patch("server.services.users.build_search_query", side_effect=InvalidQueryError("fail"))
-    with pytest.raises(InvalidQueryError):
+    msg = "fail"
+    with pytest.raises(InvalidQueryError, match=msg):
         users.count(criteria)
 
 
@@ -1196,7 +1249,8 @@ def test_count_reraises_oauth_token_error(mocker: MockerFixture) -> None:
     """Test count re-raises OAuthTokenError directly from try block."""
     criteria = make_criteria_object("users", q='userName eq "u"')
     mocker.patch("server.services.users.build_search_query", side_effect=OAuthTokenError("fail"))
-    with pytest.raises(OAuthTokenError):
+    msg = "fail"
+    with pytest.raises(OAuthTokenError, match=msg):
         users.count(criteria)
 
 
@@ -1204,7 +1258,8 @@ def test_count_reraises_credentials_error(mocker: MockerFixture) -> None:
     """Test count re-raises CredentialsError directly from try block."""
     criteria = make_criteria_object("users", q='userName eq "u"')
     mocker.patch("server.services.users.build_search_query", side_effect=users.CredentialsError("fail"))
-    with pytest.raises(users.CredentialsError):
+    msg = "fail"
+    with pytest.raises(users.CredentialsError, match=msg):
         users.count(criteria)
 
 
@@ -1217,7 +1272,8 @@ def test_count_raises_invalid_query_error_on_map_error(app, mocker: MockerFixtur
     map_error = MapError(detail="invalid query", status="400", scim_type="invalidSyntax")
     mocker.patch("server.clients.users.search", return_value=map_error)
     mock_logger = mocker.patch("flask.current_app.logger.info")
-    with pytest.raises(InvalidQueryError):
+    msg = "invalid query"
+    with pytest.raises(InvalidQueryError, match=msg):
         users.count(criteria)
     assert mock_logger.called
 

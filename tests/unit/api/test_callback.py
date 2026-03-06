@@ -33,7 +33,7 @@ def test_auth_code_credentials_error(mocker: MockerFixture):
     query = OAuthTokenQuery(code="", state="abc123")
 
     original_func = inspect.unwrap(auth_code)
-    with pytest.raises(CredentialsError):
+    with pytest.raises(CredentialsError, match="Invalid code"):
         original_func(query)
 
 
@@ -43,5 +43,5 @@ def test_auth_code_oauth_token_error(mocker: MockerFixture):
     query = OAuthTokenQuery(code="", state="abc123")
 
     original_func = inspect.unwrap(auth_code)
-    with pytest.raises(OAuthTokenError):
+    with pytest.raises(OAuthTokenError, match="Invalid code"):
         original_func(query)
