@@ -75,22 +75,84 @@ RECEIVE_RESPONSE_MESSAGE = LogMessage(
 )
 
 
+RESOURCE_CACHE_CREATED = LogMessage(
+    "I070", "Cache created for resource (func %(func)s, id: %(id)s)."
+)
+
+RESOURCE_CACHE_HIT = LogMessage(
+    "I071",
+    "Cache hit for resource (func %(func)s, id: %(id)s).",
+)
+
+RESOURCE_CACHE_DELETED = LogMessage(
+    "I072",
+    "Cache deleted for resource (func %(func)s, id: %(id)s).",
+)
+
 SUCCESS_CREATE_REPOSITORY = LogMessage(
-    "I100",
-    "Successfully created Service resource for Repository (id: %(service_id)s)",
+    "I110",
+    "Successfully created Service resource for Repository (id: %(id)s)",
 )
 
 SUCCESS_CREATE_ROLEGROUPS = LogMessage(
-    "I101",
-    "Successfully created role-type groups for Repository (id: %(service_id)s)",
+    "I111",
+    "Successfully created role-type groups for Repository (id: %(id)s)",
 )
 
 SUCCESS_UPDATE_REPOSITORY = LogMessage(
-    "I102",
-    "Successfully updated Service resource for Repository (id: %(service_id)s)",
+    "I120",
+    "Successfully updated Service resource for Repository (id: %(id)s)",
 )
 
 SUCCESS_DELETE_REPOSITORY = LogMessage(
-    "I103",
-    "Successfully deleted Service resource for Repository (id: %(service_id)s)",
+    "I130",
+    "Successfully deleted Service resource for Repository (id: %(id)s)",
+)
+
+
+SUCCESS_CREATE_GROUP = LogMessage(
+    "I210",
+    "Successfully created Group resource (id: %(id)s) in Repository (id: %(rid)s).",
+)
+
+SUCCESS_UPDATE_GROUP = LogMessage(
+    "I220",
+    "Successfully updated Group resource (id: %(id)s) in Repository (id: %(rid)s).",
+)
+
+SUCCESS_UPDATE_GROUP_MEMBERS = LogMessage(
+    "I221",
+    "Successfully updated members of Group resource "
+    "(id: %(id)s, added: %(add)s, removed: %(remove)s).",
+)
+
+SUCCESS_DELETE_GROUP = LogMessage(
+    "I230",
+    "Successfully deleted Group resource (id: %(id)s) in Repository (id: %(rid)s).",
+)
+
+SUCCESS_DELETE_GROUPS = LogMessage(
+    "I231",
+    "Successfully deleted Group resources (ids: %(ids)s) in Repository (id: %(rid)s).",
+)
+
+
+SEARCHED_SYSTEM_ADMINS = LogMessage(
+    "I301",
+    "Search performed on System Administrator.",
+)
+
+SUCCESS_CREATE_USER = LogMessage(
+    "I310",
+    "Successfully created User resource (id: %(id)s, ePPN: %(eppn)s).",
+)
+
+SUCCESS_UPDATE_USER = LogMessage(
+    "I320",
+    "Successfully updated User resource (id: %(id)s, ePPN: %(eppn)s).",
+)
+
+SUCCESS_UPDATE_USER_AFFILIATIONS = LogMessage(
+    "I321",
+    "Successfully updated affiliations of User resource (id: %(id)s, ePPN: %(eppn)s).",
 )

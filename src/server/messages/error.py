@@ -112,6 +112,11 @@ UNRECOGNIZED_SEARCH_CRITERIA = LogMessage(
     "Unrecognized search criteria.",
 )
 
+UNINIT_RESOURCE_CACHE = LogMessage(
+    "E070",
+    "Function (name: %(name)s) is not initialized for resource caching.",
+)
+
 
 FAILED_SEARCH_REPOSITORIES = LogMessage(
     "E100",
@@ -120,7 +125,12 @@ FAILED_SEARCH_REPOSITORIES = LogMessage(
 
 REPOSITORY_FORBIDDEN = LogMessage(
     "E103",
-    "You do not have permission to access this Repository (id: %(id)s).",
+    "Logged-in user does not have permission to access this Repository (id: %(id)s).",
+)
+
+REPOSITORY_NOT_FOUND = LogMessage(
+    "E104",
+    "Service resource for Repository (id: %(id)s) not found.",
 )
 
 FAILED_GET_REPOSITORY = LogMessage(
@@ -151,11 +161,6 @@ FAILED_UPDATE_REPOSITORY = LogMessage(
 NO_RIGHTS_UPDATE_REPOSITORY = LogMessage(
     "E123",
     "No update rights for Repository (id: %(id)s) with current access token.",
-)
-
-REPOSITORY_NOT_FOUND = LogMessage(
-    "E124",
-    "Service resource for Repository (id: %(id)s) not found.",
 )
 
 FAILED_DELETE_REPOSITORY = LogMessage(
@@ -190,7 +195,7 @@ REPOSITORY_INVALID_SERVICE_URL = LogMessage(
 
 REPOSITORY_TOO_LONG_URL = LogMessage(
     "E144",
-    "Service URL is too long (maximum length: %(max)s characters).",
+    "Service URL is too long; maximum length is %(max)s characters.",
 )
 
 REPOSITORY_REQUIRES_ENTITY_ID = LogMessage(
@@ -202,6 +207,272 @@ REPOSITORY_REQUIRES_ENTITY_ID = LogMessage(
 UNCHANGEABLE_REPOSITORY_URL = LogMessage(
     "E150",
     "Service URL of Repository cannot be updated.",
+)
+
+
+FAILED_SEARCH_GROUPS = LogMessage(
+    "E200",
+    "Failed to search Group resources (filter: %(filter)s).",
+)
+
+GROUP_UNRECOGNIZED_ID = LogMessage(
+    "E201",
+    "Group ID (id: %(id)s) is unrecognized; it may be out of this service's scope.",
+)
+
+GROUP_FORBIDDEN = LogMessage(
+    "E203",
+    "Logged-in user does not have permission to access Group (id: %(id)s).",
+)
+
+GROUP_NOT_FOUND = LogMessage(
+    "E204",
+    "Group resource (id: %(id)s) not found.",
+)
+
+FAILED_GET_GROUP = LogMessage(
+    "E205",
+    "Failed to get Group resource (id: %(id)s).",
+)
+
+GROUP_UNSUPPORTED_PATCH_PATH = LogMessage(
+    "E207",
+    "Unsupported patch path for Group resource: %(path)s.",
+)
+
+FAILED_CREATE_GROUP = LogMessage(
+    "E210",
+    "Failed to create Group resource (id: %(id)s).",
+)
+
+GROUP_DUPLICATE_ID = LogMessage(
+    "E211",
+    "A Group resource (id: %(id)s) already exists.",
+)
+
+FAILED_UPDATE_GROUP = LogMessage(
+    "E220",
+    "Failed to update Group resource (id: %(id)s).",
+)
+
+FAILED_UPDATE_GROUP_MEMBERS = LogMessage(
+    "E221",
+    "Failed to update members of Group resource "
+    "(id: %(id)s, add: %(add)s, remove: %(remove)s).",
+)
+
+NO_RIGHTS_UPDATE_GROUP = LogMessage(
+    "E223",
+    "No update rights for Group (id: %(id)s) with current access token.",
+)
+
+FAILED_DELETE_GROUP = LogMessage(
+    "E230",
+    "Failed to delete Group resource (id: %(id)s).",
+)
+
+FAILED_DELETE_GROUPS = LogMessage(
+    "E231",
+    "Failed to delete Group resources (ids: %(ids)s).",
+)
+
+SOME_GROUP_UNRECOGNIZED = LogMessage(
+    "E232",
+    "Some Group IDs are unrecognized (ids: %(ids)s), "
+    "so any of the specified groups has not been deleted.",
+)
+
+ROLEGROUP_CANNOT_DELETE = LogMessage(
+    "E233",
+    "Role-type Group resource cannot be deleted.",
+)
+
+GROUP_REQUIRES_SYSTEM_ADMIN = LogMessage(
+    "E240",
+    "At least one System Administrator is required for a Group.",
+)
+
+GROUP_REQUIRES_DISPLAY_NAME = LogMessage(
+    "E241",
+    "Display name is required for a Group.",
+)
+
+GROUP_REQUIRES_REPOSITORY = LogMessage(
+    "E242",
+    "Group must be affiliated with a Repository.",
+)
+
+GROUP_REQUIRES_EXISTING_REPOSITORY = LogMessage(
+    "E243",
+    "The specified Repository (id: %(rid)s) does not exist.",
+)
+
+GROUP_FORBIDDEN_REPOSITORY = LogMessage(
+    "E244",
+    "Logged-in user does not have permission to create Group "
+    "in the Repository (id: %(rid)s).",
+)
+
+GROUP_REQUIRES_USER_DEFINED_ID = LogMessage(
+    "E245",
+    "Group ID is required to create a group.",
+)
+
+GROUP_TOO_LONG_ID = LogMessage(
+    "E246",
+    "Group ID is too long for the Repository (id: %(rid)s); "
+    "maximum length is %(max)s characters.",
+)
+
+GROUP_REQUIRES_ID = LogMessage(
+    "E250",
+    "Group ID is required to update a Group.",
+)
+
+GROUP_INVALID_ID_PATTERN = LogMessage(
+    "E251",
+    "Group ID does not follow the expected pattern.",
+)
+
+
+CONFLICT_MEMBER_OPERATION = LogMessage(
+    "E260",
+    "Conflict in updating Group members (id: %(id)s, users: %(uids)s).",
+)
+
+
+FAILED_SEARCH_USERS = LogMessage(
+    "E300",
+    "Failed to search User resources (filter: %(filter)s).",
+)
+
+FAILED_COUNT_USERS = LogMessage(
+    "E301",
+    "Failed to count User resources (filter: %(filter)s).",
+)
+
+USER_FORBIDDEN = LogMessage(
+    "E303",
+    "Logged-in user does not have permission to access User (id: %(id)s).",
+)
+
+USER_NOT_FOUND = LogMessage(
+    "E304",
+    "User resource (id: %(id)s) not found.",
+)
+
+FAILED_GET_USER = LogMessage(
+    "E305",
+    "Failed to get User resource (id: %(id)s).",
+)
+
+FAILED_GET_USER_BY_EPPN = LogMessage(
+    "E306",
+    "Failed to get User resource (ePPN: %(eppn)s).",
+)
+
+FAILED_CREATE_USER = LogMessage(
+    "E310",
+    "Failed to create User resource (ePPN: %(eppn)s).",
+)
+
+USER_DUPLICATE_ID = LogMessage(
+    "E311",
+    "A User resource (id: %(id)s) already exists.",
+)
+
+USER_ALREADY_TIED_EPPN = LogMessage(
+    "E312",
+    "The ePPN '%(eppn)s' is already tied to another account.",
+)
+
+USER_EPPN_ILLEGAL = LogMessage(
+    "E313",
+    "The ePPN '%(eppn)s' is illegal.",
+)
+
+FAILED_UPDATE_USER = LogMessage(
+    "E320",
+    "Failed to update User resource (id: %(id)s, ePPN: %(eppn)s).",
+)
+
+FAILED_UPDATE_USER_AFFILIATIONS = LogMessage(
+    "E321",
+    "Failed to update some affiliations for User resource "
+    "(id: %(id)s, ePPN: %(eppn)s).",
+)
+
+NO_RIGHTS_UPDATE_USER = LogMessage(
+    "E323",
+    "No update rights for User (id: %(id)s) with current access token.",
+)
+
+USER_REQUIRES_USERNAME = LogMessage(
+    "E340",
+    "Username is required for a User.",
+)
+
+USER_REQUIRES_EPPN = LogMessage(
+    "E341",
+    "At least one ePPN is required for a User.",
+)
+
+USER_REQUIRES_EMAIL = LogMessage(
+    "E342",
+    "At least one email is required for a User.",
+)
+
+USER_REQUIRES_REPOSITORY = LogMessage(
+    "E343",
+    "At least one Repository affiliation is required for a User.",
+)
+
+USER_FORBIDDEN_REPOSITORY = LogMessage(
+    "E344",
+    "Logged-in user does not have permission to add or remove User"
+    "to the Repository (id: %(id)s).",
+)
+
+USER_REQUIRES_EXISTING_REPOSITORY = LogMessage(
+    "E345",
+    "The specified Repository (id: %(id)s) does not exist.",
+)
+
+USER_REQUIRES_EXISTING_GROUP = LogMessage(
+    "E346",
+    "The specified Group (id: %(id)s) does not exist.",
+)
+
+USER_FORBIDDEN_GROUP = LogMessage(
+    "E347",
+    "Logged-in user does not have permission to add or remove User"
+    "to the Group (id: %(id)s).",
+)
+
+USER_REQUIRES_NO_REPOSITORY = LogMessage(
+    "E348",
+    "System Administrator cannot be affiliated with any repository.",
+)
+
+USER_REQUIRES_NO_GROUP = LogMessage(
+    "E349",
+    "System Administrator cannot be affiliated with any group.",
+)
+
+USER_NO_CREATE_SYSTEM_ADMIN = LogMessage(
+    "E350",
+    "Logged-in user does not have permission to create a System Administrator user.",
+)
+
+USER_NO_UPDATE_SYSTEM_ADMIN = LogMessage(
+    "E351",
+    "Logged-in user does not have permission to update a System Administrator user.",
+)
+
+USER_NO_PROMOTE_SYSTEM_ADMIN = LogMessage(
+    "E352",
+    "Logged-in user does not have permission to promote a user to "
+    "System Administrator.",
 )
 
 
@@ -218,4 +489,9 @@ UNEXPECTED_SERVER_ERROR = LogMessage(
 SERVER_UNAVAILABLE = LogMessage(
     "E503",
     "The server application is currently unavailable.",
+)
+
+
+UNNECESSARY_CONTRIB = LogMessage(
+    "E999", "Contrib utilities can only be used in development mode."
 )
