@@ -1307,8 +1307,8 @@ def test_handle_user_updated_returns_early_on_non_mapuser(mocker):
 @pytest.mark.parametrize(
     ("is_logged_in", "is_admin", "permitted", "expected"),
     [
-        (False, False, [], "anonymous"),
-        (True, True, [], "system_admin"),
+        (False, False, [], "by_anonymous"),
+        (True, True, [], "by_system_admin"),
         (True, False, ["repo1", "repo2"], "repo1,repo2"),
         (True, False, [], ""),
     ],

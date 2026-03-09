@@ -1143,8 +1143,8 @@ def test__get_alias_generator_with_none_groups(monkeypatch):
 @pytest.mark.parametrize(
     ("is_logged_in", "is_admin", "permitted", "expected"),
     [
-        (False, False, [], "anonymous"),
-        (True, True, [], "system_admin"),
+        (False, False, [], "by_anonymous"),
+        (True, True, [], "by_system_admin"),
         (True, False, ["repo1", "repo2"], "repo1,repo2"),
         (True, False, [], ""),
     ],

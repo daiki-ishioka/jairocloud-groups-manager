@@ -10,6 +10,8 @@ from redis.exceptions import RedisError
 from server.clients import decoraters
 from server.clients.decoraters import cache_resource, clear_cache
 from server.entities.map_error import MapError
+from server.messages import E
+from server.messages.base import LogMessage
 
 
 if t.TYPE_CHECKING:
@@ -18,6 +20,11 @@ if t.TYPE_CHECKING:
 
 class DummyModel(BaseModel):
     value: int = 0
+
+
+def test_dummy_model_default():
+    model = DummyModel()
+    assert model.value == 0
 
 
 def test_cache_resource_with_callable(app, mocker: MockerFixture) -> None:
@@ -135,7 +142,9 @@ def test_cache_resource_get_redis_error(app, mocker):
         decorated = decoraters.cache_resource(func)
         result = decorated(expected_value)
         assert result.value == expected_value
-        mock_logger.warning.assert_any_call("Failed to retrieve cache for key: %s", mocker.ANY)
+        mock_logger.warning.assert_any_call(
+            LogMessage("W081", "Failed to get cache (func %(func)s, id: %(id)s)."), mocker.ANY
+        )
 
 
 def test_cache_resource_set_redis_error(app, mocker):
@@ -153,7 +162,9 @@ def test_cache_resource_set_redis_error(app, mocker):
         decorated = decoraters.cache_resource(func)
         result = decorated(expected_value)
         assert result.value == expected_value
-        mock_logger.warning.assert_any_call("Failed to set cache for key: %s", mocker.ANY)
+        mock_logger.warning.assert_any_call(
+            LogMessage("W080", "Failed to set cache (func %(func)s, id: %(id)s)."), mocker.ANY
+        )
 
 
 def test_cache_resource_no_cache_when_all_timeouts_falsy(app, mocker):
@@ -256,7 +267,8 @@ def test_clear_cache_not_decorated(app, mocker: MockerFixture) -> None:
     def dummy_func(x):
         return x
 
-    with pytest.raises(ValueError, match=error_msg):
+    error_msg = str(E.UNINIT_RESOURCE_CACHE % {"name": dummy_func.__name__})
+    with pytest.raises(NotImplementedError, match=error_msg):
         clear_cache(dummy_func, "1")
 
 

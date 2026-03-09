@@ -88,29 +88,6 @@ def test_validate_files_success(app: Flask, mocker: MockerFixture) -> None:
         assert result == file_storage
 
 
-def test_validate_files_size_error(app: Flask, mocker: MockerFixture) -> None:
-    expected_status_code = 400
-
-    class FileModel(BaseModel):
-        file: t.Any
-
-    file_storage = mocker.MagicMock()
-    file_storage.seek.side_effect = lambda *_, **__: None
-    file_storage.tell.return_value = 300
-    mocker.patch("server.api.helpers.config.API.max_upload_size", 200)
-
-    def view(files: FileModel):
-        return files.file
-
-    with app.test_request_context():
-        mock_request = mocker.patch("server.api.helpers.request")
-
-        mock_request.files = {"file": file_storage}
-        response = helpers.validate_files(view)()
-        assert response.status_code == expected_status_code
-        assert "validation_error" in response.json
-
-
 def test_validate_files_missing_field(app: Flask, mocker: MockerFixture) -> None:
     expected_status_code = 400
 

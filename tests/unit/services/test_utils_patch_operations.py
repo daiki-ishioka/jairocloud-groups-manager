@@ -99,7 +99,7 @@ def test_build_patch_operations(ori, up, expected, mocker: MockerFixture):
 def test_build_patch_operations_typeerror():
     original = Test(id="1", test_list=[Test3(value="test", type="test")], test_model=Test2(id="2"))
     updated = Test2(id="2")
-    msg = "Original and updated models must be of the same type."
+    msg = "E092 | Cannot resolve differences between different types (original: Test, updated: Test2)."
     with pytest.raises(TypeError, match=msg):
         build_patch_operations(original, updated)
 

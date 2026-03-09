@@ -51,7 +51,7 @@ def test_get_client_credentials_invalid_setting(mocker: MockerFixture):
         "client_id": "test_client_id",
     }
     mock_get = mocker.patch("server.services.service_settings._get_setting", return_value=setting)
-    msg = "Invalid client credentials in service settings."
+    msg = "E041 | Failed to parse client credentials from database."
 
     with pytest.raises(CredentialsError, match=msg):
         get_client_credentials()
@@ -100,7 +100,7 @@ def test_save_client_credentials_serialization_error(mocker: MockerFixture):
     mocker.patch.object(ClientCredentials, "model_dump", side_effect=ValueError)
     mocker.patch("server.services.service_settings._save_setting")
 
-    msg = "Invalid client credentials to save."
+    msg = "E043 | Failed to dump client credentials for saving to database."
     with pytest.raises(CredentialsError, match=msg):
         save_client_credentials(creds)
 
@@ -144,7 +144,7 @@ def test_get_oauth_token_invalid(mocker: MockerFixture):
     mocker.patch("server.services.service_settings._get_setting", return_value={"access_token": 1})
     mocker.patch("server.services.service_settings.ValidationError", Exception)
 
-    msg = "Invalid OAuth token in service settings."
+    msg = "E045 | Failed to parse OAuth token from database."
     with pytest.raises(OAuthTokenError, match=msg):
         get_oauth_token()
 
@@ -177,7 +177,7 @@ def test_save_oauth_token_serialization_error(mocker: MockerFixture):
     mocker.patch.object(OAuthToken, "model_dump", side_effect=ValueError)
     mocker.patch("server.services.service_settings._save_setting")
 
-    msg = "Invalid OAuth token to save."
+    msg = "E047 | Failed to dump OAuth token for saving to database."
     with pytest.raises(OAuthTokenError, match=msg):
         save_oauth_token(token_obj)
 
