@@ -13,7 +13,7 @@ from server import const
 from server.entities.map_error import MapError
 from server.entities.map_service import MapService, ServiceEntityID
 from server.entities.repository_detail import RepositoryDetail
-from server.entities.search_request import SearchResponse, SearchResult
+from server.entities.search_request import SearchRequestParameter, SearchResponse, SearchResult
 from server.entities.summaries import RepositorySummary
 from server.exc import (
     CredentialsError,
@@ -107,8 +107,14 @@ def test_search_returns_raw_response(app: Flask, mocker: MockerFixture, test_con
 def test_search_raises_oauth_token_error_on_unauthorized(app: Flask, mocker: MockerFixture) -> None:
     """Tests that OAuthTokenError is raised when search receives an unauthorized response."""
     criteria = make_criteria_object("repositories", q="test", i=["repo1"])
-    criteria.filter = "dummy"
-    mocker.patch("server.services.repositories.build_search_query", return_value=criteria)
+    build_search_query = SearchRequestParameter(
+        filter='(serviceName co "test") or (entity_ids.value co "repo1")',
+        start_index=1,
+        count=10,
+        sort_by="serviceName",
+        sort_order="ascending",
+    )
+    mocker.patch("server.services.repositories.build_search_query", return_value=build_search_query)
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     response = Response()
@@ -124,8 +130,14 @@ def test_search_raises_oauth_token_error_on_unauthorized(app: Flask, mocker: Moc
 def test_search_raises_unexpected_response_error_on_internal_server_error(app: Flask, mocker: MockerFixture) -> None:
     """Tests that UnexpectedResponseError is raised on internal server error during search."""
     criteria = make_criteria_object("repositories", q="test", i=["repo1"])
-    criteria.filter = "dummy"
-    mocker.patch("server.services.repositories.build_search_query", return_value=criteria)
+    build_search_query = SearchRequestParameter(
+        filter='(serviceName co "test") or (entity_ids.value co "repo1")',
+        start_index=1,
+        count=10,
+        sort_by="serviceName",
+        sort_order="ascending",
+    )
+    mocker.patch("server.services.repositories.build_search_query", return_value=build_search_query)
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     response = Response()
@@ -141,8 +153,14 @@ def test_search_raises_unexpected_response_error_on_internal_server_error(app: F
 def test_search_raises_unexpected_response_error_on_other_http_error(app: Flask, mocker: MockerFixture) -> None:
     """Tests that UnexpectedResponseError is raised on non-500 HTTP errors during search."""
     criteria = make_criteria_object("repositories", q="test", i=["repo1"])
-    criteria.filter = "dummy"
-    mocker.patch("server.services.repositories.build_search_query", return_value=criteria)
+    build_search_query = SearchRequestParameter(
+        filter='(serviceName co "test") or (entity_ids.value co "repo1")',
+        start_index=1,
+        count=10,
+        sort_by="serviceName",
+        sort_order="ascending",
+    )
+    mocker.patch("server.services.repositories.build_search_query", return_value=build_search_query)
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     response = Response()
@@ -158,8 +176,14 @@ def test_search_raises_unexpected_response_error_on_other_http_error(app: Flask,
 def test_search_raises_unexpected_response_error_on_request_exception(app: Flask, mocker: MockerFixture) -> None:
     """Tests that UnexpectedResponseError is raised on request exception during search."""
     criteria = make_criteria_object("repositories", q="test", i=["repo1"])
-    criteria.filter = "dummy"
-    mocker.patch("server.services.repositories.build_search_query", return_value=criteria)
+    build_search_query = SearchRequestParameter(
+        filter='(serviceName co "test") or (entity_ids.value co "repo1")',
+        start_index=1,
+        count=10,
+        sort_by="serviceName",
+        sort_order="ascending",
+    )
+    mocker.patch("server.services.repositories.build_search_query", return_value=build_search_query)
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.clients.services.search", side_effect=requests.RequestException("fail"))
@@ -172,8 +196,14 @@ def test_search_raises_unexpected_response_error_on_request_exception(app: Flask
 def test_search_raises_unexpected_response_error_on_validation_error(app: Flask, mocker: MockerFixture) -> None:
     """Tests that UnexpectedResponseError is raised on validation error during search."""
     criteria = make_criteria_object("repositories", q="test", i=["repo1"])
-    criteria.filter = "dummy"
-    mocker.patch("server.services.repositories.build_search_query", return_value=criteria)
+    build_search_query = SearchRequestParameter(
+        filter='(serviceName co "test") or (entity_ids.value co "repo1")',
+        start_index=1,
+        count=10,
+        sort_by="serviceName",
+        sort_order="ascending",
+    )
+    mocker.patch("server.services.repositories.build_search_query", return_value=build_search_query)
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.clients.services.search", side_effect=ValidationError("fail", []))
@@ -186,8 +216,14 @@ def test_search_raises_unexpected_response_error_on_validation_error(app: Flask,
 def test_search_raises_oauth_token_error_directly(mocker: MockerFixture) -> None:
     """Test: search() re-raises OAuthTokenError from build_search_query (except block coverage)"""
     criteria = make_criteria_object("repositories", q="test", i=["repo1"])
-    criteria.filter = "dummy"
-    mocker.patch("server.services.repositories.build_search_query", return_value=criteria)
+    build_search_query = SearchRequestParameter(
+        filter='(serviceName co "test") or (entity_ids.value co "repo1")',
+        start_index=1,
+        count=10,
+        sort_by="serviceName",
+        sort_order="ascending",
+    )
+    mocker.patch("server.services.repositories.build_search_query", return_value=build_search_query)
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.clients.services.search", side_effect=OAuthTokenError("token error"))
@@ -199,7 +235,6 @@ def test_search_raises_oauth_token_error_directly(mocker: MockerFixture) -> None
 def test_search_raises_credentials_error_directly(mocker: MockerFixture) -> None:
     """Test: search() re-raises CredentialsError from build_search_query (except block coverage)"""
     criteria = make_criteria_object("repositories", q="test", i=["repo1"])
-    criteria.filter = "dummy"
     mocker.patch("server.services.repositories.build_search_query", return_value=criteria)
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
@@ -212,7 +247,14 @@ def test_search_raises_credentials_error_directly(mocker: MockerFixture) -> None
 def test_search_raises_invalid_query_error_direct(mocker: MockerFixture) -> None:
     """Tests that InvalidQueryError is raised directly from build_search_query."""
     criteria = make_criteria_object("repositories", q="test", i=["repo1"])
-    mocker.patch("server.services.repositories.build_search_query", return_value=criteria)
+    build_search_query = SearchRequestParameter(
+        filter='(serviceName co "test") or (entity_ids.value co "repo1")',
+        start_index=1,
+        count=10,
+        sort_by="serviceName",
+        sort_order="ascending",
+    )
+    mocker.patch("server.services.repositories.build_search_query", return_value=build_search_query)
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.services.repositories.build_search_query", side_effect=InvalidQueryError("criteria error"))
@@ -225,7 +267,14 @@ def test_search_raises_invalid_query_error_direct(mocker: MockerFixture) -> None
 def test_search_raises_oauth_token_error_direct(mocker: MockerFixture) -> None:
     """Tests that OAuthTokenError is raised directly from build_search_query."""
     criteria = make_criteria_object("repositories", q="test", i=["repo1"])
-    mocker.patch("server.services.repositories.build_search_query", return_value=criteria)
+    build_search_query = SearchRequestParameter(
+        filter='(serviceName co "test") or (entity_ids.value co "repo1")',
+        start_index=1,
+        count=10,
+        sort_by="serviceName",
+        sort_order="ascending",
+    )
+    mocker.patch("server.services.repositories.build_search_query", return_value=build_search_query)
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.services.repositories.build_search_query", side_effect=OAuthTokenError("token error"))
@@ -238,7 +287,14 @@ def test_search_raises_oauth_token_error_direct(mocker: MockerFixture) -> None:
 def test_search_raises_credentials_error_direct(mocker: MockerFixture) -> None:
     """Tests that CredentialsError is raised directly from build_search_query."""
     criteria = make_criteria_object("repositories", q="test", i=["repo1"])
-    mocker.patch("server.services.repositories.build_search_query", return_value=criteria)
+    build_search_query = SearchRequestParameter(
+        filter='(serviceName co "test") or (entity_ids.value co "repo1")',
+        start_index=1,
+        count=10,
+        sort_by="serviceName",
+        sort_order="ascending",
+    )
+    mocker.patch("server.services.repositories.build_search_query", return_value=build_search_query)
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.services.repositories.build_search_query", side_effect=CredentialsError("cred error"))
@@ -251,9 +307,15 @@ def test_search_raises_credentials_error_direct(mocker: MockerFixture) -> None:
 def test_search_raises_invalid_query_error_on_map_error(app, mocker: MockerFixture) -> None:
     """Tests that InvalidQueryError is raised when MapError is returned from search."""
     criteria = make_criteria_object("repositories", q="test", i=["repo1"])
-    criteria.filter = "dummy"
+    build_search_query = SearchRequestParameter(
+        filter='(serviceName co "test") or (entity_ids.value co "repo1")',
+        start_index=1,
+        count=10,
+        sort_by="serviceName",
+        sort_order="ascending",
+    )
     map_error = MapError(detail="invalid query", status="400", scim_type="invalidSyntax")
-    mocker.patch("server.services.repositories.build_search_query", return_value=criteria)
+    mocker.patch("server.services.repositories.build_search_query", return_value=build_search_query)
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
     mocker.patch("server.services.repositories.get_client_secret", return_value="secret")
     mocker.patch("server.clients.services.search", return_value=map_error)
@@ -461,7 +523,7 @@ def test_create_success(app, mocker: MockerFixture, test_config) -> None:
     map_service = MapService(
         id=service_id, service_name=service_name, service_url=service_url, schemas=[service_schema], entity_ids=[]
     )
-    mocker.patch("server.services.repositories.get_system_admins", return_value=["admin"])
+    mocker.patch("server.services.repositories.users.get_system_admins", return_value=["admin"])
     mocker.patch("server.services.repositories.prepare_service", return_value=(map_service, service_id))
     mocker.patch("server.services.repositories.prepare_role_groups", return_value=[])
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
@@ -483,7 +545,7 @@ def test_create_raises_oauth_token_error_on_unauthorized(app: Flask, mocker: Moc
     msg: str = "Access token is invalid or expired"
     service_url: HttpUrl = HttpUrl(test_config.MAP_CORE.base_url)
     repo = RepositoryDetail(id="repo1", service_name="s", service_url=service_url, entity_ids=[])
-    mocker.patch("server.services.repositories.get_system_admins", return_value=["admin"])
+    mocker.patch("server.services.repositories.users.get_system_admins", return_value=["admin"])
     mocker.patch("server.services.repositories.prepare_service", return_value=(mocker.MagicMock(), "repo1"))
     mocker.patch("server.services.repositories.prepare_role_groups", return_value=[])
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
@@ -506,7 +568,7 @@ def test_create_raises_unexpected_response_error_on_internal_server_error(
     msg: str = "E031 | Received unexpected response from mAP Core API."
     service_url: HttpUrl = HttpUrl(test_config.MAP_CORE.base_url)
     repo = RepositoryDetail(id="repo1", service_name="s", service_url=service_url, entity_ids=[])
-    mocker.patch("server.services.repositories.get_system_admins", return_value=["admin"])
+    mocker.patch("server.services.repositories.users.get_system_admins", return_value=["admin"])
     mocker.patch("server.services.repositories.prepare_role_groups", return_value=[])
     mocker.patch("server.services.repositories.prepare_service", return_value=(mocker.MagicMock(), "repo1"))
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
@@ -529,7 +591,7 @@ def test_create_raises_unexpected_response_error_on_request_exception(
     msg: str = "E033 | Failed to communicate with mAP Core API."
     service_url: HttpUrl = HttpUrl(test_config.MAP_CORE.base_url)
     repo = RepositoryDetail(id="repo1", service_name="s", service_url=service_url, entity_ids=[])
-    mocker.patch("server.services.repositories.get_system_admins", return_value=["admin"])
+    mocker.patch("server.services.repositories.users.get_system_admins", return_value=["admin"])
     mocker.patch("server.services.repositories.prepare_role_groups", return_value=[])
     mocker.patch("server.services.repositories.prepare_service", return_value=(mocker.MagicMock(), "repo1"))
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
@@ -549,7 +611,7 @@ def test_create_raises_unexpected_response_error_on_validation_error(
     msg: str = "Failed to parse response from mAP Core API"
     service_url: HttpUrl = HttpUrl(test_config.MAP_CORE.base_url)
     repo = RepositoryDetail(id="repo1", service_name="s", service_url=service_url, entity_ids=[])
-    mocker.patch("server.services.repositories.get_system_admins", return_value=["admin"])
+    mocker.patch("server.services.repositories.users.get_system_admins", return_value=["admin"])
     mocker.patch("server.services.repositories.prepare_role_groups", return_value=[])
     mocker.patch("server.services.repositories.prepare_service", return_value=(mocker.MagicMock(), "repo1"))
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
@@ -568,7 +630,7 @@ def test_create_raises_resource_invalid_on_map_error(app, mocker: MockerFixture,
     service_url: HttpUrl = HttpUrl(test_config.MAP_CORE.base_url)
     repo = RepositoryDetail(id="repo1", service_name="s", service_url=service_url, entity_ids=[])
     map_error = MapError(detail=r"Duplicate id '(.*)'", status="400", scim_type="invalidSyntax")
-    mocker.patch("server.services.repositories.get_system_admins", return_value=["admin"])
+    mocker.patch("server.services.repositories.users.get_system_admins", return_value=["admin"])
     mocker.patch("server.services.repositories.prepare_role_groups", return_value=[])
     mocker.patch("server.services.repositories.prepare_service", return_value=(mocker.MagicMock(), "repo1"))
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
@@ -587,7 +649,7 @@ def test_create_raises_oauth_token_error_direct(app: Flask, mocker: MockerFixtur
 
     service_url: HttpUrl = HttpUrl(test_config.MAP_CORE.base_url)
     repo = RepositoryDetail(id="repo1", service_name="s", service_url=service_url, entity_ids=[])
-    mocker.patch("server.services.repositories.get_system_admins", return_value=["admin"])
+    mocker.patch("server.services.repositories.users.get_system_admins", return_value=["admin"])
     mocker.patch("server.services.repositories.prepare_role_groups", return_value=[])
     mocker.patch("server.services.repositories.prepare_service", return_value=(mocker.MagicMock(), "repo1"))
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
@@ -606,7 +668,7 @@ def test_create_raises_credentials_error_direct(app: Flask, mocker: MockerFixtur
 
     service_url: HttpUrl = HttpUrl(test_config.MAP_CORE.base_url)
     repo = RepositoryDetail(id="repo1", service_name="s", service_url=service_url, entity_ids=[])
-    mocker.patch("server.services.repositories.get_system_admins", return_value=["admin"])
+    mocker.patch("server.services.repositories.users.get_system_admins", return_value=["admin"])
     mocker.patch("server.services.repositories.prepare_role_groups", return_value=[])
     mocker.patch("server.services.repositories.prepare_service", return_value=(mocker.MagicMock(), "repo1"))
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
@@ -625,7 +687,7 @@ def test_create_raises_invalid_form_error_direct(app: Flask, mocker: MockerFixtu
 
     service_url: HttpUrl = HttpUrl(test_config.MAP_CORE.base_url)
     repo = RepositoryDetail(id="repo1", service_name="s", service_url=service_url, entity_ids=[])
-    mocker.patch("server.services.repositories.get_system_admins", return_value=["admin"])
+    mocker.patch("server.services.repositories.users.get_system_admins", return_value=["admin"])
     mocker.patch("server.services.repositories.prepare_role_groups", return_value=[])
     mocker.patch("server.services.repositories.prepare_service", return_value=(mocker.MagicMock(), "repo1"))
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
@@ -644,7 +706,7 @@ def test_create_raises_system_admin_not_found_direct(app: Flask, mocker: MockerF
 
     service_url: HttpUrl = HttpUrl(test_config.MAP_CORE.base_url)
     repo = RepositoryDetail(id="repo1", service_name="s", service_url=service_url, entity_ids=[])
-    mocker.patch("server.services.repositories.get_system_admins", return_value=["admin"])
+    mocker.patch("server.services.repositories.users.get_system_admins", return_value=["admin"])
     mocker.patch("server.services.repositories.prepare_role_groups", return_value=[])
     mocker.patch("server.services.repositories.prepare_service", return_value=(mocker.MagicMock(), "repo1"))
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
@@ -664,7 +726,7 @@ def test_create_raises_unexpected_response_error_on_other_http_error(
     """Tests that UnexpectedResponseError is raised on non-401/500 HTTP errors during create."""
     service_url: HttpUrl = HttpUrl(test_config.MAP_CORE.base_url)
     repo = RepositoryDetail(id="repo1", service_name="s", service_url=service_url, entity_ids=[])
-    mocker.patch("server.services.repositories.get_system_admins", return_value=["admin"])
+    mocker.patch("server.services.repositories.users.get_system_admins", return_value=["admin"])
     mocker.patch("server.services.repositories.prepare_role_groups", return_value=[])
     mocker.patch("server.services.repositories.prepare_service", return_value=(mocker.MagicMock(), "repo1"))
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
@@ -700,7 +762,7 @@ def test_create_calls_groups_post_for_each_group(app, mocker: MockerFixture, tes
     map_service = MapService(
         id=service_id, service_name=service_name, service_url=service_url, schemas=[service_schema], entity_ids=[]
     )
-    mocker.patch("server.services.repositories.get_system_admins", return_value=["admin"])
+    mocker.patch("server.services.repositories.users.get_system_admins", return_value=["admin"])
     mocker.patch("server.services.repositories.prepare_role_groups", return_value=role_groups)
     mocker.patch("server.services.repositories.prepare_service", return_value=(map_service, service_id))
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
@@ -719,7 +781,7 @@ def test_create_map_error_unexpected_response(app, mocker: MockerFixture, test_c
     service_url: HttpUrl = HttpUrl(test_config.MAP_CORE.base_url)
     repo = RepositoryDetail(id="repo1", service_name="s", service_url=service_url, entity_ids=[])
     map_error = MapError(detail="some unknown error", status="400", scim_type="invalidSyntax")
-    mocker.patch("server.services.repositories.get_system_admins", return_value=["admin"])
+    mocker.patch("server.services.repositories.users.get_system_admins", return_value=["admin"])
     mocker.patch("server.services.repositories.prepare_role_groups", return_value=[])
     mocker.patch("server.services.repositories.prepare_service", return_value=(mocker.MagicMock(), "repo1"))
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
@@ -738,7 +800,7 @@ def test_create_map_error_no_rights_create(app, mocker: MockerFixture, test_conf
     service_url: HttpUrl = HttpUrl(test_config.MAP_CORE.base_url)
     repo = RepositoryDetail(id="repo1", service_name="s", service_url=service_url, entity_ids=[])
     map_error = MapError(detail=r"You do not have creation right of '(.*)'", status="400", scim_type="invalidSyntax")
-    mocker.patch("server.services.repositories.get_system_admins", return_value=["admin"])
+    mocker.patch("server.services.repositories.users.get_system_admins", return_value=["admin"])
     mocker.patch("server.services.repositories.prepare_role_groups", return_value=[])
     mocker.patch("server.services.repositories.prepare_service", return_value=(mocker.MagicMock(), "repo1"))
     mocker.patch("server.services.repositories.get_access_token", return_value="token")
