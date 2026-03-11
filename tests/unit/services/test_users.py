@@ -10,9 +10,9 @@ from pydantic_core import ValidationError
 from pytest_mock import MockerFixture
 from requests import Response
 
-from server.clients.users import MapUser
 from server.const import USER_ROLES
 from server.entities.map_error import MapError
+from server.entities.map_user import MapUser
 from server.entities.search_request import SearchRequestParameter, SearchResponse, SearchResult
 from server.entities.summaries import UserSummary
 from server.entities.user_detail import RepositoryRole, UserDetail
@@ -32,7 +32,6 @@ from server.services.utils import (
     UsersCriteria,
     make_criteria_object,
 )
-from tests.helpers import load_json_data
 
 
 if t.TYPE_CHECKING:
@@ -511,22 +510,6 @@ def test_create_reraises_credentials_error(mocker: MockerFixture) -> None:
         users.create(user)
 
 
-def test_create_raises_resource_invalid_on_map_error(app, mocker: MockerFixture) -> None:
-
-    user = UserDetail(id="u1", user_name="u", emails=[])
-    map_user = MapUser(id="u1", user_name="u", schemas=["a"], emails=[])
-    map_error = MapError(detail="invalid", status="400", scim_type="invalidSyntax")
-    mocker.patch("server.services.users.prepare_user", return_value=map_user)
-    mocker.patch("server.services.users.get_access_token", return_value="token")
-    mocker.patch("server.services.users.get_client_secret", return_value="secret")
-    mocker.patch("server.clients.users.post", return_value=map_error)
-    mock_logger = mocker.patch("flask.current_app.logger.error")
-    msg = "E031 | Received unexpected response from mAP Core API."
-    with pytest.raises(users.UnexpectedResponseError, match=msg):
-        users.create(user)
-    assert mock_logger.called
-
-
 def test_create_duplicate_id_pattern_raises_resource_invalid(app, mocker: MockerFixture) -> None:
     """Test create raises ResourceInvalid when MAP_DUPLICATE_ID_PATTERN is matched."""
 
@@ -580,6 +563,22 @@ def test_create_illegal_eppn_pattern_raises_resource_invalid(app, mocker: Mocker
         users.create(user)
 
 
+def test_create_raises_resource_invalid_on_map_error(app, mocker: MockerFixture) -> None:
+
+    user = UserDetail(id="u1", user_name="u", emails=[])
+    map_user = MapUser(id="u1", user_name="u", schemas=["a"], emails=[])
+    map_error = MapError(detail="invalid", status="400", scim_type="invalidSyntax")
+    mocker.patch("server.services.users.prepare_user", return_value=map_user)
+    mocker.patch("server.services.users.get_access_token", return_value="token")
+    mocker.patch("server.services.users.get_client_secret", return_value="secret")
+    mocker.patch("server.clients.users.post", return_value=map_error)
+    mock_logger = mocker.patch("flask.current_app.logger.error")
+    msg = "E031 | Received unexpected response from mAP Core API."
+    with pytest.raises(UnexpectedResponseError, match=msg):
+        users.create(user)
+    assert mock_logger.called
+
+
 def test_update_success(app, mocker: MockerFixture) -> None:
 
     user = UserDetail(id="u1", user_name="u", emails=[])
@@ -595,12 +594,31 @@ def test_update_success(app, mocker: MockerFixture) -> None:
     assert result.id == "u1"
 
 
+def test_update_delegates_to_update_affiliations(app, test_config, mocker):
+    user = MagicMock(spec=UserDetail)
+    mocker.patch.object(test_config.MAP_CORE, "user_editable", new=False)
+    mock_update_affiliations = mocker.patch.object(users, "update_affiliations", return_value="affiliated")
+    result = update(user)
+    assert result == "affiliated"
+    mock_update_affiliations.assert_called_once_with(user)
+
+
+def test_update_delegates_to_update_put(app, test_config, mocker):
+    user = MagicMock(spec=UserDetail)
+    mocker.patch.object(test_config.MAP_CORE, "user_editable", new=True)
+    mocker.patch.object(test_config.MAP_CORE, "update_strategy", new="put")
+    mock_update_affiliations = mocker.patch.object(users, "update_put", return_value="put_result")
+    result = update(user)
+    assert result == "put_result"
+    mock_update_affiliations.assert_called_once_with(user)
+
+
 def test_update_raises_resource_not_found_on_none(app, mocker: MockerFixture) -> None:
 
     user = UserDetail(id="u1", user_name="u", emails=[])
     mocker.patch("server.services.users.get_by_id", return_value=None)
     msg = "E304 | User resource (id: u1) not found."
-    with pytest.raises(users.ResourceNotFound, match=msg):
+    with pytest.raises(ResourceNotFound, match=msg):
         users.update(user)
 
 
@@ -646,24 +664,6 @@ def test_update_raises_unexpected_response_error_on_internal_server_error(app, m
     mocker.patch("server.services.users.build_patch_operations", return_value=["patchop"])
     response = Response()
     response.status_code = HTTPStatus.INTERNAL_SERVER_ERROR
-    http_error = requests.HTTPError(response=response)
-    mocker.patch("server.clients.users.patch_by_id", side_effect=http_error)
-    msg = "E320 | Failed to update User resource (id: %(id)s, ePPN: %(eppn)s)."
-    with pytest.raises(UnexpectedResponseError, match=msg):
-        users.update(user)
-
-
-def test_update_raises_unexpected_response_error_on_other_http_error(app, mocker: MockerFixture) -> None:
-
-    user = UserDetail(id="u1", user_name="u", emails=[])
-    map_user = MapUser(id="u1", user_name="u", schemas=["a"], emails=[])
-    mocker.patch("server.services.users.get_access_token", return_value="token")
-    mocker.patch("server.services.users.get_client_secret", return_value="secret")
-    mocker.patch("server.services.users.get_by_id", return_value=user)
-    mocker.patch("server.services.users.validate_user_to_map_user", return_value=map_user)
-    mocker.patch("server.services.users.build_patch_operations", return_value=["patchop"])
-    response = Response()
-    response.status_code = HTTPStatus.BAD_REQUEST
     http_error = requests.HTTPError(response=response)
     mocker.patch("server.clients.users.patch_by_id", side_effect=http_error)
     msg = "E320 | Failed to update User resource (id: %(id)s, ePPN: %(eppn)s)."
@@ -721,9 +721,9 @@ def test_update_reraises_credentials_error(app, mocker: MockerFixture) -> None:
     mocker.patch("server.services.users.get_by_id", return_value=user)
     mocker.patch("server.services.users.validate_user_to_map_user", return_value=map_user)
     mocker.patch("server.services.users.build_patch_operations", return_value=["patchop"])
-    mocker.patch("server.services.users.get_access_token", side_effect=users.CredentialsError("fail"))
+    mocker.patch("server.services.users.get_access_token", side_effect=CredentialsError("fail"))
     msg = "fail"
-    with pytest.raises(users.CredentialsError, match=msg):
+    with pytest.raises(CredentialsError, match=msg):
         users.update(user)
 
 
@@ -775,37 +775,9 @@ def test_update_raises_resource_invalid_on_map_error(app, mocker: MockerFixture)
     mock_logger = mocker.patch("flask.current_app.logger.error")
     mocker.patch("server.clients.users.patch_by_id", return_value=map_error)
     msg = "invalid"
-    with pytest.raises(users.ResourceInvalid, match=msg):
+    with pytest.raises(ResourceInvalid, match=msg):
         users.update(user)
     assert mock_logger.called
-
-
-@pytest.mark.parametrize(
-    ("editable", "strategy"), [(False, "patch"), (False, "put")], ids=["editable_false_patch", "editable_false_put"]
-)
-def test_update_put_affiliations_called(
-    app, test_config, mocker: MockerFixture, *, editable: bool, strategy: str
-) -> None:
-    user = MagicMock(spec=UserDetail)
-    mocker.patch.object(test_config.MAP_CORE, "user_editable", new=editable)
-    mocker.patch.object(test_config.MAP_CORE, "update_strategy", new=strategy)
-    update_affiliations = mocker.patch("server.services.users.update_affiliations", return_value="updated")
-
-    result = update_put(user)
-    assert result == "updated"
-    update_affiliations.assert_called_once_with(user)
-
-
-@pytest.mark.parametrize(("editable", "strategy"), [(True, "patch")], ids=["editable_true_patch"])
-def test_update_put_patch_called(app, test_config, mocker: MockerFixture, *, editable: bool, strategy: str) -> None:
-    user = MagicMock(spec=UserDetail)
-    mocker.patch.object(test_config.MAP_CORE, "user_editable", new=editable)
-    mocker.patch.object(test_config.MAP_CORE, "update_strategy", new=strategy)
-    update = mocker.patch("server.services.users.update", return_value="patched")
-
-    result = update_put(user)
-    assert result == "patched"
-    update.assert_called_once_with(user)
 
 
 def test_update_put_success(app, test_config, mocker: MockerFixture) -> None:
@@ -829,6 +801,27 @@ def test_update_put_success(app, test_config, mocker: MockerFixture) -> None:
 
     result = update_put(user)
     assert result == "user_detail"
+
+
+def test_update_put_affiliations_called(app, test_config, mocker: MockerFixture) -> None:
+    user = MagicMock(spec=UserDetail)
+    mocker.patch.object(test_config.MAP_CORE, "user_editable", new=False)
+    update_affiliations = mocker.patch("server.services.users.update_affiliations", return_value="updated")
+
+    result = update_put(user)
+    assert result == "updated"
+    update_affiliations.assert_called_once_with(user)
+
+
+def test_update_put_patch_called(app, test_config, mocker: MockerFixture) -> None:
+    user = MagicMock(spec=UserDetail)
+    mocker.patch.object(test_config.MAP_CORE, "user_editable", new=True)
+    mocker.patch.object(test_config.MAP_CORE, "update_strategy", new="patch")
+    update = mocker.patch("server.services.users.update", return_value="patched")
+
+    result = update_put(user)
+    assert result == "patched"
+    update.assert_called_once_with(user)
 
 
 def test_update_put_user_not_found(app, test_config, mocker: MockerFixture) -> None:
@@ -996,103 +989,6 @@ def test_update_put_map_error_branches(
     assert exc_msg in str(exc_info.value)
 
 
-@pytest.mark.parametrize("editable", [False], ids=["user_editable_false"])
-def test_update_delegates_to_update_affiliations(app, test_config, mocker, editable):
-    user = MagicMock(spec=UserDetail)
-    mocker.patch.object(test_config.MAP_CORE, "user_editable", new=editable)
-    mock_update_affiliations = mocker.patch.object(users, "update_affiliations", return_value="affiliated")
-    result = update(user)
-    assert result == "affiliated"
-    mock_update_affiliations.assert_called_once_with(user)
-
-
-@pytest.mark.parametrize("strategy", ["put"], ids=["update_strategy_put"])
-def test_update_delegates_to_update_put(app, test_config, mocker, strategy):
-    user = MagicMock(spec=UserDetail)
-    mocker.patch.object(test_config.MAP_CORE, "user_editable", new=True)
-    mocker.patch.object(test_config.MAP_CORE, "update_strategy", new=strategy)
-    mock_update_affiliations = mocker.patch.object(users, "update_put", return_value="put_result")
-    result = update(user)
-    assert result == "put_result"
-    mock_update_affiliations.assert_called_once_with(user)
-
-
-@pytest.mark.parametrize("detail", ["User 'u1' Not Found"], ids=["map_not_found_pattern"])
-def test_update_put_map_error_not_found(app, test_config, mocker, detail):
-    repo_role = RepositoryRole(id="repo1", user_role=USER_ROLES.SYSTEM_ADMIN)
-    user = UserDetail(id="u1", user_name="u", emails=[], repository_roles=[repo_role])
-    mocker.patch.object(test_config.MAP_CORE, "user_editable", new=True)
-    mocker.patch.object(test_config.MAP_CORE, "update_strategy", new="put")
-    mocker.patch("server.services.utils.transformers.validate_user_to_map_user", return_value=MagicMock())
-    mocker.patch("server.services.users.get_access_token", return_value="token")
-    mocker.patch("server.services.users.get_client_secret", return_value="secret")
-    map_error = MagicMock(spec=users.MapError)
-    map_error.detail = detail
-    mocker.patch("server.services.users.users.put_by_id", return_value=map_error)
-    mocker.patch("flask.current_app.logger.info")
-    mocker.patch("server.services.repositories.get_by_id", return_value=True)
-    msg = "E053 | Failed to communicate with mAP Core API."
-    with pytest.raises(UnexpectedResponseError, match=msg):
-        update_put(user)
-
-
-@pytest.mark.parametrize("detail", ["invalid"], ids=["map_error_invalid"])
-def test_update_put_map_error_invalid(app, test_config, mocker, detail):
-    repo_role = RepositoryRole(id="repo1", user_role=USER_ROLES.SYSTEM_ADMIN)
-    user = UserDetail(id="u1", user_name="u", emails=[], repository_roles=[repo_role])
-    mocker.patch.object(test_config.MAP_CORE, "user_editable", new=True)
-    mocker.patch.object(test_config.MAP_CORE, "update_strategy", new="put")
-    mocker.patch("server.services.utils.transformers.validate_user_to_map_user", return_value=MagicMock())
-    mocker.patch("server.services.users.get_access_token", return_value="token")
-    mocker.patch("server.services.users.get_client_secret", return_value="secret")
-    mocker.patch("server.services.repositories.get_by_id", return_value=True)
-    map_error = MagicMock(spec=users.MapError)
-    map_error.detail = detail
-    mocker.patch("server.services.users.users.put_by_id", return_value=map_error)
-    mocker.patch("flask.current_app.logger.info")
-    msg = "E053 | Failed to communicate with mAP Core API."
-    with pytest.raises(UnexpectedResponseError, match=msg):
-        update_put(user)
-
-
-def test_update_affiliations_get_by_id_none(app, mocker):
-    user = MagicMock(spec=UserDetail)
-    user.id = "u1"
-    mocker.patch("server.services.users.get_by_id", return_value=None)
-    msg = "E304 | User resource (id: u1) not found."
-    with pytest.raises(ResourceNotFound, match=msg):
-        update_affiliations(user)
-
-
-def test_update_affiliations_add_op_success(app, mocker):
-    user = UserDetail(
-        id="u1",
-        user_name="u",
-        emails=[],
-        repository_roles=[RepositoryRole(id="repo1", user_role=USER_ROLES.SYSTEM_ADMIN)],
-        is_system_admin=False,
-    )
-    current = MagicMock(spec=UserDetail)
-    mocker.patch("server.services.repositories.get_by_id", return_value=True)
-    mocker.patch("server.services.token.get_access_token", return_value="dummy_token")
-    mocker.patch("server.services.token.get_oauth_token", return_value=None)
-    mocker.patch("server.services.users.get_by_id", return_value=current)
-    mocker.patch("server.services.users.validate_user_to_map_user", return_value=MagicMock())
-    patch_op = MagicMock()
-    patch_op.op = "add"
-    patch_op.value = MagicMock()
-    mocker.patch("server.services.users.build_patch_operations", return_value=[patch_op])
-    mock_logger = mocker.patch("flask.current_app.logger.info")
-    mock_groups = mocker.patch("server.services.groups.update_member")
-    mock_user_updated = mocker.patch("server.services.users.user_updated.send")
-    mocker.patch("server.services.users.get_by_id", return_value=current)
-    result = users.update_affiliations(user)
-    mock_groups.assert_called()
-    assert mock_logger.called
-    mock_user_updated.assert_called()
-    assert result == current
-
-
 def test_update_affiliations_replace_op_skipped(app, mocker):
     user = UserDetail(
         id="u2",
@@ -1152,6 +1048,35 @@ def test_update_affiliations_remove_op_regex_success(app, mocker):
     assert result == current
 
 
+def test_update_affiliations_add_op_success(app, mocker):
+    user = UserDetail(
+        id="u1",
+        user_name="u",
+        emails=[],
+        repository_roles=[RepositoryRole(id="repo1", user_role=USER_ROLES.SYSTEM_ADMIN)],
+        is_system_admin=False,
+    )
+    current = MagicMock(spec=UserDetail)
+    mocker.patch("server.services.repositories.get_by_id", return_value=True)
+    mocker.patch("server.services.token.get_access_token", return_value="dummy_token")
+    mocker.patch("server.services.token.get_oauth_token", return_value=None)
+    mocker.patch("server.services.users.get_by_id", return_value=current)
+    mocker.patch("server.services.users.validate_user_to_map_user", return_value=MagicMock())
+    patch_op = MagicMock()
+    patch_op.op = "add"
+    patch_op.value = MagicMock()
+    mocker.patch("server.services.users.build_patch_operations", return_value=[patch_op])
+    mock_logger = mocker.patch("flask.current_app.logger.info")
+    mock_groups = mocker.patch("server.services.groups.update_member")
+    mock_user_updated = mocker.patch("server.services.users.user_updated.send")
+    mocker.patch("server.services.users.get_by_id", return_value=current)
+    result = users.update_affiliations(user)
+    mock_groups.assert_called()
+    assert mock_logger.called
+    mock_user_updated.assert_called()
+    assert result == current
+
+
 def test_update_affiliations_remove_op_regex_fail(app, mocker):
     user = UserDetail(
         id="u4",
@@ -1180,18 +1105,13 @@ def test_update_affiliations_remove_op_regex_fail(app, mocker):
     assert result == current
 
 
-def test_update_affiliations_not_found(app, mocker):
-    user = UserDetail(
-        id="u6",
-        user_name="u6",
-        emails=[],
-        repository_roles=[RepositoryRole(id="repo6", user_role=USER_ROLES.SYSTEM_ADMIN)],
-        is_system_admin=False,
-    )
+def test_update_affiliations_get_by_id_none(app, mocker):
+    user = MagicMock(spec=UserDetail)
+    user.id = "u1"
     mocker.patch("server.services.users.get_by_id", return_value=None)
-    msg = "E304 | User resource (id: u6) not found."
+    msg = "E304 | User resource (id: u1) not found."
     with pytest.raises(ResourceNotFound, match=msg):
-        users.update_affiliations(user)
+        update_affiliations(user)
 
 
 def test_update_affiliations_raises_oauth_token_error(app, mocker):
@@ -1244,7 +1164,6 @@ def test_update_affiliations_raises_typeerror_on_exception_group(app, mocker):
 
 
 def test_get_system_admins_success(app, mocker: MockerFixture) -> None:
-
     map_user1 = MapUser(id="u1", user_name="u1", schemas=["a"], emails=[])
     map_user2 = MapUser(id="u2", user_name="u2", schemas=["a"], emails=[])
     mocker.patch("server.services.users.search", return_value=type("obj", (), {"resources": [map_user1, map_user2]})())
@@ -1307,21 +1226,6 @@ def test_count_raises_unexpected_response_error_on_internal_server_error(app, mo
         users.count(criteria)
 
 
-def test_count_raises_unexpected_response_error_on_other_http_error(app, mocker: MockerFixture) -> None:
-    """Test count raises UnexpectedResponseError on other HTTP errors."""
-    criteria = make_criteria_object("users", q='userName eq "u"')
-    mocker.patch("server.services.users.build_search_query", return_value=SearchRequestParameter(filter="dummy"))
-    mocker.patch("server.services.users.get_access_token", return_value="token")
-    mocker.patch("server.services.users.get_client_secret", return_value="secret")
-    response = Response()
-    response.status_code = HTTPStatus.BAD_REQUEST
-    http_error = requests.HTTPError(response=response)
-    mocker.patch("server.clients.users.search", side_effect=http_error)
-    msg = "E051 | Received unexpected response from mAP Core API."
-    with pytest.raises(UnexpectedResponseError, match=msg):
-        users.count(criteria)
-
-
 def test_count_raises_unexpected_response_error_on_request_exception(app, mocker: MockerFixture) -> None:
     """Test count raises UnexpectedResponseError on requests.RequestException."""
     criteria = make_criteria_object("users", q='userName eq "u"')
@@ -1343,15 +1247,6 @@ def test_count_raises_unexpected_response_error_on_validation_error(app, mocker:
     mocker.patch("server.clients.users.search", side_effect=ValidationError("fail", []))
     msg = "E052 | Failed to decode response from mAP Core API."
     with pytest.raises(UnexpectedResponseError, match=msg):
-        users.count(criteria)
-
-
-def test_count_reraises_invalid_query_error(app, mocker: MockerFixture) -> None:
-    """Test count re-raises InvalidQueryError directly from try block."""
-    criteria = make_criteria_object("users", q='userName eq "u"')
-    mocker.patch("server.services.users.build_search_query", side_effect=InvalidQueryError("fail"))
-    msg = "fail"
-    with pytest.raises(InvalidQueryError, match=msg):
         users.count(criteria)
 
 
@@ -1395,6 +1290,13 @@ def test_count_raises_invalid_query_error_on_map_error(app, mocker: MockerFixtur
     assert mock_logger.called
 
 
+def test_handle_user_updated_type_check(mocker: MockerFixture) -> None:
+    """Tests handle_user_updated returns immediately if user is not UserDetail."""
+
+    result = users.handle_user_updated(_sender=None, user=None)
+    assert result is None
+
+
 def test_handle_user_updated_eppns_true(mocker: MockerFixture) -> None:
 
     user = UserDetail(id="u1", user_name="u", emails=[], eppns=["eppn1"])
@@ -1414,10 +1316,3 @@ def test_handle_user_updated_eppns_false(mocker: MockerFixture) -> None:
     users.handle_user_updated(_sender=None, user=user)
     mock_clear_id.assert_called_once_with("u2")
     mock_clear_eppn.assert_not_called()
-
-
-@pytest.fixture
-def user_data() -> tuple[dict[str, t.Any], MapUser]:
-    json_data = load_json_data("data/map_user.json")
-    user = MapUser.model_validate(json_data)
-    return json_data, user
